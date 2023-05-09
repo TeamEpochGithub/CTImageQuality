@@ -162,3 +162,5 @@ cython_debug/
 #.idea/
 
 ./LDCTIQAG2023_train
+
+weight.pkl

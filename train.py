@@ -28,8 +28,10 @@ set_seed(0)
 
 configs = {
     "batch_size": 16,
-    "epochs": 200,
+    "epochs": 251,
     "lr": 3e-4,
+    "min_lr": 1e-6,
+    "weight_decay": 1e-4
 }
 
 data_dir=r"C:\Users\leo\Documents\CTImageQuality\LDCTIQAG2023_train\image"
@@ -53,6 +55,7 @@ def valid(model, test_dataset):
     total_pred = []
     total_gt = []
     aggregate_results = dict()
+    best_score = 0
     with torch.no_grad():
         for _, (img, label) in enumerate(test_dataset):
             img = img.unsqueeze(0).float()
@@ -68,6 +71,9 @@ def valid(model, test_dataset):
         aggregate_results["krocc"] = abs(kendalltau(total_pred, total_gt)[0])
         aggregate_results["overall"] = abs(pearsonr(total_pred, total_gt)[0]) + abs(spearmanr(total_pred, total_gt)[0]) + abs(kendalltau(total_pred, total_gt)[0])
     print("validation metrics:", aggregate_results)
+    if aggregate_results["overall"] > best_score:
+        best_score = aggregate_results["overall"]
+        torch.save(model.state_dict(), "weight.pkl")
 
 
 def train():
@@ -76,9 +82,9 @@ def train():
     train_loader = DataLoader(train_dataset, batch_size=configs["batch_size"], shuffle=True)
     model = Unet34_Swin().cuda()
     model.train()
-    optimizer = optim.AdamW(model.parameters(), lr=configs["lr"], betas=(0.9, 0.999), eps=1e-8, weight_decay=1e-4)
+    optimizer = optim.AdamW(model.parameters(), lr=configs["lr"], betas=(0.9, 0.999), eps=1e-8, weight_decay=configs["weight_decay"])
     num_steps = len(train_loader) * configs["epochs"]
-    lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_steps)
+    lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_steps, eta_min=configs["min_lr"])
     warmup_scheduler = warmup.UntunedLinearWarmup(optimizer)
     for epoch in range(configs["epochs"]):
         losses = 0
