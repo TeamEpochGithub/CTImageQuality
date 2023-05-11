@@ -7,6 +7,8 @@ import torch.optim as optim
 import numpy as np
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
+from tqdm import tqdm
+
 from datasets import CT_Dataset
 from models.res34_swin import Unet34_Swin
 import pytorch_warmup as warmup
@@ -76,8 +78,9 @@ def valid(model, test_dataset):
             spearmanr(total_pred, total_gt)[0]) + abs(kendalltau(total_pred, total_gt)[0])
     print("validation metrics:", aggregate_results)
     if aggregate_results["overall"] > best_score:
+        print("new best model saved")
         best_score = aggregate_results["overall"]
-        torch.save(model.state_dict(), "weight.pkl")
+        torch.save(model.state_dict(), "weight.pth")
 
 
 def train():
@@ -93,7 +96,7 @@ def train():
     for epoch in range(configs["epochs"]):
         losses = 0
         model.train()
-        for _, (image, target) in enumerate(train_loader):
+        for _, (image, target) in tqdm(enumerate(train_loader), total=57):
             image = image.cuda()
             target = target.cuda()
             pred = model(image)
@@ -105,7 +108,7 @@ def train():
             with warmup_scheduler.dampening():
                 lr_scheduler.step()
         print("epoch:", epoch, "loss:", float(losses / len(train_dataset)), "lr:", lr_scheduler.get_last_lr())
-        if epoch % 25 == 0:
+        if epoch % 1 == 0:
             valid(model, test_dataset)
 
 
