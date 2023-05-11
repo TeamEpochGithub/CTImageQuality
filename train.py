@@ -6,6 +6,8 @@ import torch
 import torch.optim as optim
 import numpy as np
 import torch.nn.functional as F
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.loggers import TensorBoardLogger
 from torch.utils.data import DataLoader
 from datasets import CT_Dataset
 from models.res34_swin import Unet34_Swin
@@ -14,6 +16,14 @@ from scipy.stats import pearsonr, spearmanr, kendalltau
 import tifffile
 from PIL import Image
 import LDCTIQAG2023_train as train_data
+import pytorch_lightning as pl
+from pytorch_lightning import Trainer
+from pytorch_lightning.strategies import DDPStrategy
+
+import logging
+logging.getLogger("lightning.pytorch").setLevel(logging.DEBUG)
+
+torch.set_float32_matmul_precision('medium')
 
 def set_seed(seed):
     """Set all random seeds and settings for reproducibility (deterministic behavior)."""
@@ -77,37 +87,90 @@ def valid(model, test_dataset):
     print("validation metrics:", aggregate_results)
     if aggregate_results["overall"] > best_score:
         best_score = aggregate_results["overall"]
-        torch.save(model.state_dict(), "weight.pkl")
+        torch.save(model.state_dict(), "swin_model.pth")
 
 
-def train():
+def train(model):
+
+    logger = TensorBoardLogger(save_dir="logs/logs")
+
     train_dataset = CT_Dataset(imgs_list[:900], label_list[:900], split="train")
     test_dataset = CT_Dataset(imgs_list[900:], label_list[900:], split="test")
     train_loader = DataLoader(train_dataset, batch_size=configs["batch_size"], shuffle=True)
-    model = Unet34_Swin().cuda()
-    model.train()
-    optimizer = optim.AdamW(model.parameters(), lr=configs["lr"], betas=(0.9, 0.999), eps=1e-8,
-                            weight_decay=configs["weight_decay"])
-    num_steps = len(train_loader) * configs["epochs"]
-    lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_steps, eta_min=configs["min_lr"])
-    warmup_scheduler = warmup.UntunedLinearWarmup(optimizer)
-    for epoch in range(configs["epochs"]):
-        losses = 0
-        for _, (image, target) in enumerate(train_loader):
-            image = image.cuda()
-            target = target.cuda()
-            pred = model(image)
-            loss = F.mse_loss(pred.squeeze(), target)
-            losses += loss.item()
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            with warmup_scheduler.dampening():
-                lr_scheduler.step()
-        print("epoch:", epoch, "loss:", float(losses / len(train_dataset)), "lr:", lr_scheduler.get_last_lr())
-        if epoch % 25 == 0:
-            valid(model, test_dataset)
+    valid_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
+
+    strategy = DDPStrategy(process_group_backend="gloo", find_unused_parameters=True)
+
+    checkpoint_callback = ModelCheckpoint(
+        save_top_k=1,
+        monitor="val/loss",
+        mode="min",
+    )
+
+    trainer = Trainer(
+        max_epochs=500,
+        logger=True,
+        log_every_n_steps=50,
+        callbacks=[checkpoint_callback],
+        num_sanity_val_steps=0,
+        accelerator='gpu',
+        devices=1,
+        strategy=strategy,
+        precision='16-mixed',
+        enable_progress_bar=True,
+    )
+
+    trainer.fit(model, train_dataloaders=train_loader, val_dataloaders=valid_loader)
+
+    return model
+
+
+class BaseModule(pl.LightningModule):
+    def __init__(self, model, epochs, warmup_epochs, learning_rate, weight_decay, loss_function):
+        super().__init__()
+        self.model = model
+        self.epochs = epochs
+        self.warmup_epochs = warmup_epochs
+        self.learning_rate = learning_rate
+        self.weight_decay = weight_decay
+        self.loss_function = loss_function
+
+        self.optimizer = optim.AdamW(model.parameters(), lr=configs["lr"], betas=(0.9, 0.999), eps=1e-8,
+                                     weight_decay=configs["weight_decay"])
+
+        self.lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer,
+                                                                       self.epochs - self.warmup_epochs,
+                                                                       eta_min=1e-6)
+        self.warmup_scheduler = warmup.UntunedLinearWarmup(self.optimizer)
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self.model(x).squeeze()
+        loss = self.loss_function(y_hat, y)
+        self.log("train/loss", loss, sync_dist=True, prog_bar=True)
+        self.optimizer.step()
+        with self.warmup_scheduler.dampening():
+            self.lr_scheduler.step()
+
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self.model(x)
+        loss = self.loss_function(y_hat, y)
+        self.log("val/loss", loss, sync_dist=True, prog_bar=True)
+        return loss
+
+    def configure_optimizers(self):
+        return [self.optimizer], [self.lr_scheduler]
+
+    def forward(self, x):
+        return self.model(x)
 
 
 if __name__ == "__main__":
-    train()
+    model = Unet34_Swin()
+
+    module = BaseModule(model, 250, 20, configs["lr"], configs["weight_decay"], F.mse_loss)
+
+    train(module)
