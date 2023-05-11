@@ -63,7 +63,7 @@ def valid(model, test_dataset):
     aggregate_results = dict()
     best_score = 0
     with torch.no_grad():
-        for _, (img, label) in tqdm(enumerate(test_dataset), total=1000-configs["split_num"]):
+        for _, (img, label) in tqdm(enumerate(test_dataset), desc="Validation", total=1000-configs["split_num"]):
             img = img.unsqueeze(0).float()
             pred = model(img.cuda())
             pred_new = pred.cpu().numpy().squeeze(0)
@@ -97,7 +97,7 @@ def train():
     for epoch in range(configs["epochs"]):
         losses = 0
         model.train()
-        for _, (image, target) in tqdm(enumerate(train_loader), total=57):
+        for _, (image, target) in tqdm(enumerate(train_loader), desc="Training", total=57):
             image = image.cuda()
             target = target.cuda()
             pred = model(image)
