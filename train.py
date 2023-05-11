@@ -35,7 +35,8 @@ configs = {
     "epochs": 251,
     "lr": 3e-4,
     "min_lr": 1e-6,
-    "weight_decay": 1e-4
+    "weight_decay": 1e-4,
+    "split_num": 900,
 }
 
 data_dir = osp.join(osp.dirname(train_data.__file__), 'image')
@@ -62,7 +63,7 @@ def valid(model, test_dataset):
     aggregate_results = dict()
     best_score = 0
     with torch.no_grad():
-        for _, (img, label) in enumerate(test_dataset):
+        for _, (img, label) in tqdm(enumerate(test_dataset), total=1000-configs["split_num"]):
             img = img.unsqueeze(0).float()
             pred = model(img.cuda())
             pred_new = pred.cpu().numpy().squeeze(0)
@@ -84,8 +85,8 @@ def valid(model, test_dataset):
 
 
 def train():
-    train_dataset = CT_Dataset(imgs_list[:900], label_list[:900], split="train")
-    test_dataset = CT_Dataset(imgs_list[900:], label_list[900:], split="test")
+    train_dataset = CT_Dataset(imgs_list[:configs["split_num"]], label_list[:configs["split_num"]], split="train")
+    test_dataset = CT_Dataset(imgs_list[configs["split_num"]:], label_list[configs["split_num"]:], split="test")
     train_loader = DataLoader(train_dataset, batch_size=configs["batch_size"], shuffle=True)
     model = Unet34_Swin().cuda()
     optimizer = optim.AdamW(model.parameters(), lr=configs["lr"], betas=(0.9, 0.999), eps=1e-8,
