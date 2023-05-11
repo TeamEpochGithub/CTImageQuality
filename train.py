@@ -94,16 +94,17 @@ def train(model):
 
     logger = TensorBoardLogger(save_dir="logs/logs")
 
-    train_dataset = CT_Dataset(imgs_list[:900], label_list[:900], split="train")
-    test_dataset = CT_Dataset(imgs_list[900:], label_list[900:], split="test")
-    train_loader = DataLoader(train_dataset, batch_size=configs["batch_size"], shuffle=True)
-    valid_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
+    split_num = 900
+    train_dataset = CT_Dataset(imgs_list[:split_num], label_list[:split_num], split="train")
+    test_dataset = CT_Dataset(imgs_list[split_num:], label_list[split_num:], split="test")
+    train_loader = DataLoader(train_dataset, batch_size=configs["batch_size"], shuffle=True, num_workers=8)
+    valid_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=8)
 
     strategy = DDPStrategy(process_group_backend="gloo", find_unused_parameters=True)
 
     checkpoint_callback = ModelCheckpoint(
         save_top_k=1,
-        monitor="val/loss",
+        monitor="val_loss",
         mode="min",
     )
 
@@ -147,7 +148,7 @@ class BaseModule(pl.LightningModule):
         x, y = batch
         y_hat = self.model(x).squeeze()
         loss = self.loss_function(y_hat, y)
-        self.log("train/loss", loss, sync_dist=True, prog_bar=True)
+        self.log("train_loss", loss, sync_dist=True, prog_bar=True, on_epoch=True)
         self.optimizer.step()
         with self.warmup_scheduler.dampening():
             self.lr_scheduler.step()
@@ -156,9 +157,9 @@ class BaseModule(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self.model(x)
+        y_hat = self.model(x).squeeze()
         loss = self.loss_function(y_hat, y)
-        self.log("val/loss", loss, sync_dist=True, prog_bar=True)
+        self.log("val_loss", loss, sync_dist=True, prog_bar=True, on_epoch=True)
         return loss
 
     def configure_optimizers(self):
