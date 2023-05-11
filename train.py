@@ -85,7 +85,6 @@ def train():
     test_dataset = CT_Dataset(imgs_list[900:], label_list[900:], split="test")
     train_loader = DataLoader(train_dataset, batch_size=configs["batch_size"], shuffle=True)
     model = Unet34_Swin().cuda()
-    model.train()
     optimizer = optim.AdamW(model.parameters(), lr=configs["lr"], betas=(0.9, 0.999), eps=1e-8,
                             weight_decay=configs["weight_decay"])
     num_steps = len(train_loader) * configs["epochs"]
@@ -93,6 +92,7 @@ def train():
     warmup_scheduler = warmup.UntunedLinearWarmup(optimizer)
     for epoch in range(configs["epochs"]):
         losses = 0
+        model.train()
         for _, (image, target) in enumerate(train_loader):
             image = image.cuda()
             target = target.cuda()
