@@ -6,6 +6,8 @@ import torch
 import torch.optim as optim
 import numpy as np
 import torch.nn.functional as F
+from torch import nn
+from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -32,12 +34,12 @@ def set_seed(seed):
     os.environ['PYTHONHASHSEED'] = str(seed)
 
 
-# set_seed(0)
+set_seed(0)
 
 configs = {
-    "batch_size": 16,  # 16 for resnet. while 8 for efficientnet
-    "epochs": 251,
-    "lr": 3e-4,
+    "batch_size": 32,
+    "epochs": 401,
+    "lr": 5e-4,
     "min_lr": 1e-6,
     "weight_decay": 1e-4,
     "split_num": 900,
@@ -66,7 +68,7 @@ def valid(model, test_dataset, best_score):
     total_gt = []
     aggregate_results = dict()
     with torch.no_grad():
-        for _, (img, label) in tqdm(enumerate(test_dataset)):
+        for _, (img, label) in tqdm(enumerate(test_dataset), desc="Validation", total=1000-configs["split_num"], colour='blue'):
             img = img.unsqueeze(0).float()
             pred = model(img.cuda())
             pred_new = pred.cpu().numpy().squeeze(0)
@@ -96,18 +98,19 @@ def train():
     train_dataset = CT_Dataset(imgs_list[:configs["split_num"]], label_list[:configs["split_num"]], split="train")
     test_dataset = CT_Dataset(imgs_list[configs["split_num"]:], label_list[configs["split_num"]:], split="test")
     train_loader = DataLoader(train_dataset, batch_size=configs["batch_size"], shuffle=True)
-    model = Unet34_Swinv2().cuda()
+    model = Unet34_Swin().cuda()  # model = Efficient_Swinv2_Next().cuda()
+    # model = nn.DataParallel(model)
+
     optimizer = optim.AdamW(model.parameters(), lr=configs["lr"], betas=(0.9, 0.999), eps=1e-8, weight_decay=configs["weight_decay"])
     num_steps = len(train_loader) * configs["epochs"]
     lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_steps, eta_min=configs["min_lr"])
     warmup_scheduler = warmup.UntunedLinearWarmup(optimizer)
 
-    model.train()
     best_score = 0
     for epoch in range(configs["epochs"]):
         losses = 0
         model.train()
-        for _, (image, target) in tqdm(enumerate(train_loader)):
+        for _, (image, target) in tqdm(enumerate(train_loader), desc="Training", total=len(train_loader), colour='green'):
             image = image.cuda()
             target = target.cuda()
             pred = model(image)
