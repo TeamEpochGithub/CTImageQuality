@@ -35,7 +35,7 @@ def set_seed(seed):
 # set_seed(0)
 
 configs = {
-    "batch_size": 8,
+    "batch_size": 16,  # 16 for resnet. while 8 for efficientnet
     "epochs": 251,
     "lr": 3e-4,
     "min_lr": 1e-6,
@@ -116,8 +116,8 @@ def train():
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            # with warmup_scheduler.dampening():
-            #     lr_scheduler.step()
+            with warmup_scheduler.dampening():
+                lr_scheduler.step()
         print("epoch:", epoch, "loss:", float(losses / len(train_dataset)), "lr:", lr_scheduler.get_last_lr())
         if epoch % 25 == 0:
             best_score = valid(model, test_dataset, best_score)
