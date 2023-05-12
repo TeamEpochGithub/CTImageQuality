@@ -11,7 +11,9 @@ from tqdm import tqdm
 
 from datasets import CT_Dataset
 from models.res34_swin import Unet34_Swin
-from models.efficient_swinv2 import Efficient_Swinv2_Next
+from models.res34_swinv2 import Unet34_Swinv2
+from models.efficient_swinv2 import Efficientnet_Swinv2
+from models.efficient_swin import Efficientnet_Swin
 import pytorch_warmup as warmup
 from scipy.stats import pearsonr, spearmanr, kendalltau
 import tifffile
@@ -29,11 +31,11 @@ def set_seed(seed):
     os.environ['PYTHONHASHSEED'] = str(seed)
 
 
-set_seed(0)
+# set_seed(0)
 
 configs = {
-    "batch_size": 16,
-    "epochs": 1001,
+    "batch_size": 8,
+    "epochs": 251,
     "lr": 3e-4,
     "min_lr": 1e-6,
     "weight_decay": 1e-4,
@@ -63,7 +65,7 @@ def valid(model, test_dataset, best_score):
     total_gt = []
     aggregate_results = dict()
     with torch.no_grad():
-        for _, (img, label) in tqdm(enumerate(test_dataset), desc="Validation", total=1000-configs["split_num"]):
+        for _, (img, label) in tqdm(enumerate(test_dataset)):
             img = img.unsqueeze(0).float()
             pred = model(img.cuda())
             pred_new = pred.cpu().numpy().squeeze(0)
@@ -90,7 +92,7 @@ def train():
     train_dataset = CT_Dataset(imgs_list[:configs["split_num"]], label_list[:configs["split_num"]], split="train")
     test_dataset = CT_Dataset(imgs_list[configs["split_num"]:], label_list[configs["split_num"]:], split="test")
     train_loader = DataLoader(train_dataset, batch_size=configs["batch_size"], shuffle=True)
-    model = Unet34_Swin().cuda()  # model = Efficient_Swinv2_Next().cuda()
+    model = Efficientnet_Swin().cuda()  # model = Efficient_Swinv2_Next().cuda()
     model.train()
     optimizer = optim.AdamW(model.parameters(), lr=configs["lr"], betas=(0.9, 0.999), eps=1e-8, weight_decay=configs["weight_decay"])
     num_steps = len(train_loader) * configs["epochs"]
@@ -101,7 +103,7 @@ def train():
     for epoch in range(configs["epochs"]):
         losses = 0
         model.train()
-        for _, (image, target) in tqdm(enumerate(train_loader), desc="Training", total=57):
+        for _, (image, target) in tqdm(enumerate(train_loader)):
             image = image.cuda()
             target = target.cuda()
             pred = model(image)

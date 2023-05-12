@@ -64,9 +64,9 @@ class Conv_3(nn.Module):
     def forward(self, x):
         return self.conv3(x)
 
-class Efficient_Swinv2_Next(nn.Module):
+class Efficientnet_Swinv2(nn.Module):
     def __init__(self, size=256):
-        super(Efficient_Swinv2_Next, self).__init__()
+        super(Efficientnet_Swinv2, self).__init__()
         self.input_size = size
         self.efficientnet = EfficientNet_v1()
         self.stem = nn.Sequential(
@@ -75,12 +75,11 @@ class Efficient_Swinv2_Next(nn.Module):
             Conv_3(64, 64, 3, 1, 1),
         )
         dropout_path = torch.linspace(0., 0.2, 8).tolist()
-        self.eff1 = self.efficientnet.blocks1
         self.stage1 = SwinTransformerStage(
                 in_channels=64,
                 depth=2,
-                downscale=0,
-                input_resolution=(self.input_size //4, self.input_size // 4),
+                downscale=2,
+                input_resolution=(self.input_size //2, self.input_size // 2),
                 number_of_heads=4,
                 window_size=8,
                 ff_feature_ratio=4,
@@ -91,13 +90,13 @@ class Efficient_Swinv2_Next(nn.Module):
                 sequential_self_attention=False,
                 use_deformable_block=False
             )
+        self.eff1 = self.efficientnet.blocks1
 
-        self.eff2 = self.efficientnet.blocks2
         self.stage2 = SwinTransformerStage(
                 in_channels=128,
                 depth=2,
-                downscale=0,
-                input_resolution=(self.input_size // 8, self.input_size // 8),
+                downscale=2,
+                input_resolution=(self.input_size // 4, self.input_size // 4),
                 number_of_heads=8,
                 window_size=8,
                 ff_feature_ratio=4,
@@ -108,13 +107,13 @@ class Efficient_Swinv2_Next(nn.Module):
                 sequential_self_attention=False,
                 use_deformable_block=False
             )
+        self.eff2 = self.efficientnet.blocks2
 
-        self.eff3 = self.efficientnet.blocks3
         self.stage3 = SwinTransformerStage(
                 in_channels=256,
                 depth=2,
-                downscale=0,
-                input_resolution=(self.input_size // 16, self.input_size // 16),
+                downscale=2,
+                input_resolution=(self.input_size // 8, self.input_size // 8),
                 number_of_heads=16,
                 window_size=8,
                 ff_feature_ratio=4,
@@ -125,13 +124,13 @@ class Efficient_Swinv2_Next(nn.Module):
                 sequential_self_attention=False,
                 use_deformable_block=False
             )
+        self.eff3 = self.efficientnet.blocks3
 
-        self.eff4 = self.efficientnet.blocks4
         self.stage4 = SwinTransformerStage(
                 in_channels=512,
                 depth=2,
-                downscale=0,
-                input_resolution=(self.input_size // 32, self.input_size // 32),
+                downscale=2,
+                input_resolution=(self.input_size // 16, self.input_size // 16),
                 number_of_heads=32,
                 window_size=4,
                 ff_feature_ratio=4,
@@ -142,20 +141,21 @@ class Efficient_Swinv2_Next(nn.Module):
                 sequential_self_attention=False,
                 use_deformable_block=False
             )
+        self.eff4 = self.efficientnet.blocks4
 
         self.avg = nn.AvgPool2d(8)
-        self.fc = nn.Linear(512, 1)
+        self.fc = nn.Linear(1024, 1)
 
     def forward(self, x):
         x1 = self.stem(x)  # 64, 128, 128
-        x1 = self.eff1(x1)  # 96, 128, 128
-        x2 = self.stage1(x1)+x1
-        x2 = self.eff2(x2)
-        x3 = self.stage2(x2)+x2  # 192, 64, 64
-        x3 = self.eff3(x3)
-        x4 = self.stage3(x3)+x3  # 384, 32, 32
-        x4 = self.eff4(x4)
-        x5 = self.stage4(x4)+x4  # 192, 16, 16
+        x1 = self.stage1(x1)
+        x2 = self.eff1(x1)+x1  # 96, 128, 128
+        x2 = self.stage2(x2)  # 192, 64, 64
+        x3 = self.eff2(x2)+x2
+        x3 = self.stage3(x3)  # 384, 32, 32
+        x4 = self.eff3(x3)+x3
+        x4 = self.stage4(x4)  # 192, 16, 16
+        x5 = self.eff4(x4)+x4
 
         outs = self.avg(x5)
         outs = outs.view(outs.shape[0], -1)

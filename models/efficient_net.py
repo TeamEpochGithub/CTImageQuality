@@ -236,7 +236,7 @@ class EfficientNet(nn.Module):
 
 class EfficientNet_v1(nn.Module):
     config = [
-        # (in_channels, out_channels, kernel_size, stride, expand_ratio, se_ratio, repeats)
+        #(in_channels, out_channels, kernel_size, stride, expand_ratio, se_ratio, repeats)
         [64, 64,  3, 1, 1, 0.25, 1],
         [64, 64,  3, 2, 6, 0.25, 2],
         [64, 128,  5, 2, 6, 0.25, 2],
