@@ -13,7 +13,9 @@ from tqdm import tqdm
 
 from datasets import CT_Dataset
 from models.res34_swin import Unet34_Swin
-from models.efficient_swinv2 import Efficient_Swinv2_Next
+from models.res34_swinv2 import Unet34_Swinv2
+from models.efficient_swinv2 import Efficientnet_Swinv2
+from models.efficient_swin import Efficientnet_Swin
 import pytorch_warmup as warmup
 from scipy.stats import pearsonr, spearmanr, kendalltau
 import tifffile
@@ -99,7 +101,6 @@ def train():
     model = Unet34_Swin().cuda()  # model = Efficient_Swinv2_Next().cuda()
     # model = nn.DataParallel(model)
 
-    model.train()
     optimizer = optim.AdamW(model.parameters(), lr=configs["lr"], betas=(0.9, 0.999), eps=1e-8, weight_decay=configs["weight_decay"])
     num_steps = len(train_loader) * configs["epochs"]
     lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_steps, eta_min=configs["min_lr"])
