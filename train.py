@@ -81,6 +81,9 @@ def valid(model, test_dataset, best_score):
     if aggregate_results["overall"] > best_score:
         print("new best model saved")
         best_score = aggregate_results["overall"]
+
+        if not os.path.exists('output'):
+            os.makedirs('output')
         torch.save(model.state_dict(), osp.join('output', "model.pth"))
 
     return best_score
