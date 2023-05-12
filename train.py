@@ -17,6 +17,7 @@ from scipy.stats import pearsonr, spearmanr, kendalltau
 import tifffile
 from PIL import Image
 import LDCTIQAG2023_train as train_data
+import time
 
 def set_seed(seed):
     """Set all random seeds and settings for reproducibility (deterministic behavior)."""
@@ -77,7 +78,7 @@ def valid(model, test_dataset, best_score):
         aggregate_results["krocc"] = abs(kendalltau(total_pred, total_gt)[0])
         aggregate_results["overall"] = abs(pearsonr(total_pred, total_gt)[0]) + abs(
             spearmanr(total_pred, total_gt)[0]) + abs(kendalltau(total_pred, total_gt)[0])
-    print("validation metrics:", aggregate_results)
+    print("validation metrics:", {key: round(value, 3) for key, value in aggregate_results.items()})
     if aggregate_results["overall"] > best_score:
         print("new best model saved")
         best_score = aggregate_results["overall"]
@@ -115,7 +116,7 @@ def train():
             optimizer.step()
             with warmup_scheduler.dampening():
                 lr_scheduler.step()
-        print("\nepoch:", epoch, "loss:", float(losses / len(train_dataset)), "lr:", lr_scheduler.get_last_lr())
+        print("epoch:", epoch, "loss:", float(losses / len(train_dataset)), "lr:", lr_scheduler.get_last_lr())
         if epoch % 25 == 0:
             best_score = valid(model, test_dataset, best_score)
 
