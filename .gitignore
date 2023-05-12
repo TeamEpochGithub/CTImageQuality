@@ -1,7 +1,6 @@
 ./LDCTIQAG2023_train
 weight.pkl
 data/
-output/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
