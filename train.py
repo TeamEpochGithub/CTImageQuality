@@ -6,8 +6,6 @@ import torch
 import torch.optim as optim
 import numpy as np
 import torch.nn.functional as F
-from torch import nn
-from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -21,7 +19,7 @@ from scipy.stats import pearsonr, spearmanr, kendalltau
 import tifffile
 from PIL import Image
 import LDCTIQAG2023_train as train_data
-import time
+import wandb
 
 def set_seed(seed):
     """Set all random seeds and settings for reproducibility (deterministic behavior)."""
@@ -38,7 +36,7 @@ set_seed(0)
 
 configs = {
     "batch_size": 32,
-    "epochs": 401,
+    "epochs": 11,
     "lr": 5e-4,
     "min_lr": 1e-6,
     "weight_decay": 1e-4,
@@ -83,6 +81,7 @@ def valid(model, test_dataset, best_score):
         aggregate_results["overall"] = abs(pearsonr(total_pred, total_gt)[0]) + abs(
             spearmanr(total_pred, total_gt)[0]) + abs(kendalltau(total_pred, total_gt)[0])
     print("validation metrics:", {key: round(value, 3) for key, value in aggregate_results.items()})
+    wandb.log(aggregate_results)
     if aggregate_results["overall"] > best_score:
         print("new best model saved")
         best_score = aggregate_results["overall"]
@@ -90,15 +89,16 @@ def valid(model, test_dataset, best_score):
         if not os.path.exists('output'):
             os.makedirs('output')
         torch.save(model.state_dict(), osp.join('output', "model.pth"))
+        wandb.save("model.pth")
 
     return best_score
 
 
-def train():
+def train(model):
     train_dataset = CT_Dataset(imgs_list[:configs["split_num"]], label_list[:configs["split_num"]], split="train")
     test_dataset = CT_Dataset(imgs_list[configs["split_num"]:], label_list[configs["split_num"]:], split="test")
     train_loader = DataLoader(train_dataset, batch_size=configs["batch_size"], shuffle=True)
-    model = Unet34_Swin().cuda()  # model = Efficient_Swinv2_Next().cuda()
+    model = model().cuda()  # model = Efficient_Swinv2_Next().cuda()
     # model = nn.DataParallel(model)
 
     optimizer = optim.AdamW(model.parameters(), lr=configs["lr"], betas=(0.9, 0.999), eps=1e-8, weight_decay=configs["weight_decay"])
@@ -121,10 +121,26 @@ def train():
             optimizer.step()
             with warmup_scheduler.dampening():
                 lr_scheduler.step()
-        print("epoch:", epoch, "loss:", float(losses / len(train_dataset)), "lr:", lr_scheduler.get_last_lr())
-        if epoch % 25 == 0:
+
+        loss = float(losses / len(train_dataset))
+        print("epoch:", epoch, "loss:", loss, "lr:", lr_scheduler.get_last_lr())
+        wandb.log({"loss": loss, "epoch": epoch})
+
+        if epoch % 2 == 0:
             best_score = valid(model, test_dataset, best_score)
 
 
 if __name__ == "__main__":
-    train()
+    wandb.login()
+
+    run = wandb.init(
+        project="CTImageQuality-regression",
+        notes="My first experiment",
+        tags=["baselines"],
+        config=configs,
+    )
+
+    models = [Unet34_Swin, Unet34_Swinv2, Efficientnet_Swin, Efficientnet_Swinv2]
+
+    for model in models:
+        train(model)

@@ -2,6 +2,7 @@
 weight.pkl
 data/
 output/
+wandb/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
