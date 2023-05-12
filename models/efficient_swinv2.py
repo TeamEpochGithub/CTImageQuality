@@ -162,7 +162,7 @@ class Efficientnet_Swinv2(nn.Module):
         )
 
         self.avg = nn.AvgPool2d(8)
-        self.fc = nn.Linear(1024, 1)
+        self.fc = nn.Linear(512, 1)
 
     def forward(self, x):
         e0 = self.stem(x)  # 64, 128, 128
