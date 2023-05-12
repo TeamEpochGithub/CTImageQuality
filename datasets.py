@@ -12,9 +12,11 @@ class CT_Dataset(torch.utils.data.Dataset):
         if self.split == 'train':
             self.transform = torchvision.transforms.Compose([
                 torchvision.transforms.ToPILImage(),
-                torchvision.transforms.RandomHorizontalFlip(),
-                torchvision.transforms.RandomVerticalFlip(),
+                torchvision.transforms.RandomHorizontalFlip(0.5),
+                torchvision.transforms.RandomVerticalFlip(0.5),
                 torchvision.transforms.RandomRotation(15),
+                # torchvision.transforms.RandomAffine(degrees=(30, 70), translate=(0.1, 0.3), scale=(0.7, 0.9)),
+                torchvision.transforms.RandomPerspective(),
                 torchvision.transforms.ToTensor(),
             ])
         else:
