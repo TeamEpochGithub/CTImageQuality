@@ -32,7 +32,7 @@ set_seed(0)
 
 configs = {
     "batch_size": 16,
-    "epochs": 251,
+    "epochs": 1001,
     "lr": 3e-4,
     "min_lr": 1e-6,
     "weight_decay": 1e-4,
@@ -56,12 +56,11 @@ for root, dirs, files in os.walk(data_dir):
                 imgs_list.append(img)
 
 
-def valid(model, test_dataset):
+def valid(model, test_dataset, best_score):
     model.eval()
     total_pred = []
     total_gt = []
     aggregate_results = dict()
-    best_score = 0
     with torch.no_grad():
         for _, (img, label) in tqdm(enumerate(test_dataset), desc="Validation", total=1000-configs["split_num"]):
             img = img.unsqueeze(0).float()
@@ -83,6 +82,8 @@ def valid(model, test_dataset):
         best_score = aggregate_results["overall"]
         torch.save(model.state_dict(), "weight.pth")
 
+    return best_score
+
 
 def train():
     train_dataset = CT_Dataset(imgs_list[:configs["split_num"]], label_list[:configs["split_num"]], split="train")
@@ -94,6 +95,8 @@ def train():
     num_steps = len(train_loader) * configs["epochs"]
     lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_steps, eta_min=configs["min_lr"])
     warmup_scheduler = warmup.UntunedLinearWarmup(optimizer)
+
+    best_score = 0
     for epoch in range(configs["epochs"]):
         losses = 0
         model.train()
@@ -109,8 +112,8 @@ def train():
             with warmup_scheduler.dampening():
                 lr_scheduler.step()
         print("epoch:", epoch, "loss:", float(losses / len(train_dataset)), "lr:", lr_scheduler.get_last_lr())
-        if epoch % 1 == 0:
-            valid(model, test_dataset)
+        if epoch % 25 == 0:
+            best_score = valid(model, test_dataset, best_score)
 
 
 if __name__ == "__main__":
