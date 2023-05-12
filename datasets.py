@@ -12,11 +12,19 @@ class CT_Dataset(torch.utils.data.Dataset):
         if self.split == 'train':
             self.transform = torchvision.transforms.Compose([
                 torchvision.transforms.ToPILImage(),
-                torchvision.transforms.RandomHorizontalFlip(),
-                torchvision.transforms.RandomVerticalFlip(),
+                # torchvision.transforms.RandomHorizontalFlip(),
+                # torchvision.transforms.RandomVerticalFlip(),
                 torchvision.transforms.RandomRotation(15),
                 # torchvision.transforms.RandomAffine(degrees=(30, 70), translate=(0.1, 0.3), scale=(0.7, 0.9)),
                 # torchvision.transforms.RandomPerspective(),
+                torchvision.transforms.RandomApply([
+                    torchvision.transforms.CenterCrop(size=480),
+                    torchvision.transforms.Resize(size=(512, 512)),
+                ], p=0.1),
+                torchvision.transforms.RandomApply([
+                    torchvision.transforms.Pad(padding=20),
+                    torchvision.transforms.Resize((512, 512)),
+                ], p=0.1),
                 torchvision.transforms.ToTensor(),
             ])
         else:
@@ -31,7 +39,7 @@ class CT_Dataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         x = self.imgs_list[idx]
-        x = x.resize((256, 256), Image.ANTIALIAS)
+        # x = x.resize((256, 256), Image.ANTIALIAS)
         x = np.array(x)
         x = self.transform(x)
         y = self.label_list[idx]

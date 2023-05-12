@@ -124,7 +124,7 @@ class DConv_5(nn.Module):
         return e5
 
 class Efficientnet_Swin(nn.Module):
-    def __init__(self, img_size=256, hidden_dim=64, layers=(2, 2, 18,
+    def __init__(self, img_size=512, hidden_dim=64, layers=(2, 2, 18,
                                                             2), heads=(3, 6, 12, 24), channels=1, head_dim=32,
                  window_size=8, downscaling_factors=(2, 2, 2, 2), relative_pos_embedding=True):
         super(Efficientnet_Swin, self).__init__()
@@ -180,7 +180,7 @@ class Efficientnet_Swin(nn.Module):
             Conv_3(hidden_dim * 8, hidden_dim * 8, 3, 1, 1),
         )
 
-        self.avg = nn.AvgPool2d(8)
+        self.avg = nn.AvgPool2d(16)
         self.fc = nn.Linear(512, 1)
 
 

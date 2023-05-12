@@ -104,9 +104,6 @@ def train(model, configs):
 
     best_score = 0
     for epoch in range(configs["epochs"]):
-        if epoch == 11:
-            break
-
         losses = 0
         model.train()
         for _, (image, target) in tqdm(enumerate(train_loader), desc="Training", total=len(train_loader),
@@ -137,7 +134,7 @@ if __name__ == "__main__":
     models = [Efficientnet_Swin, Efficientnet_Swinv2, Resnet34_Swin, Resnet34_Swinv2]
 
     efficient_config = {
-        "batch_size": 32,
+        "batch_size": 8,
         "epochs": 251,
         "lr": 3e-4,
         "min_lr": 1e-6,
@@ -146,7 +143,7 @@ if __name__ == "__main__":
     }
 
     resnet_config = {
-        "batch_size": 64,
+        "batch_size": 16,
         "epochs": 251,
         "lr": 3e-4,
         "min_lr": 1e-6,

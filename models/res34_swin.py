@@ -124,7 +124,7 @@ class DConv_5(nn.Module):
 
 # UNet34-Swin
 class Resnet34_Swin(nn.Module):
-    def __init__(self, img_size=256, hidden_dim=64, layers=(2, 2, 18,
+    def __init__(self, img_size=512, hidden_dim=64, layers=(2, 2, 18,
                                                             2), heads=(3, 6, 12, 24), channels=1, head_dim=32,
                  window_size=8, downscaling_factors=(2, 2, 2, 2), relative_pos_embedding=True):
         super(Resnet34_Swin, self).__init__()
@@ -172,7 +172,7 @@ class Resnet34_Swin(nn.Module):
 
         self.res_convs4 = nn.Sequential(*(self.base_layers[7][1:]))
 
-        self.avg = nn.AvgPool2d(8)
+        self.avg = nn.AvgPool2d(16)
         self.fc = nn.Linear(512, 1)
 
 

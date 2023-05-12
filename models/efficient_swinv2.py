@@ -65,7 +65,7 @@ class Conv_3(nn.Module):
         return self.conv3(x)
 
 class Efficientnet_Swinv2(nn.Module):
-    def __init__(self, size=256, hidden_dim = 64):
+    def __init__(self, size=512, hidden_dim = 64):
         super(Efficientnet_Swinv2, self).__init__()
         self.input_size = size
         self.hidden_dim = hidden_dim
@@ -161,7 +161,7 @@ class Efficientnet_Swinv2(nn.Module):
             Conv_3(hidden_dim * 8, hidden_dim * 8, 3, 1, 1),
         )
 
-        self.avg = nn.AvgPool2d(8)
+        self.avg = nn.AvgPool2d(16)
         self.fc = nn.Linear(512, 1)
 
     def forward(self, x):
