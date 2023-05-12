@@ -19,6 +19,7 @@ from scipy.stats import pearsonr, spearmanr, kendalltau
 import tifffile
 from PIL import Image
 import LDCTIQAG2023_train as train_data
+import time
 
 def set_seed(seed):
     """Set all random seeds and settings for reproducibility (deterministic behavior)."""
@@ -79,11 +80,14 @@ def valid(model, test_dataset, best_score):
         aggregate_results["krocc"] = abs(kendalltau(total_pred, total_gt)[0])
         aggregate_results["overall"] = abs(pearsonr(total_pred, total_gt)[0]) + abs(
             spearmanr(total_pred, total_gt)[0]) + abs(kendalltau(total_pred, total_gt)[0])
-    print("validation metrics:", aggregate_results)
+    print("validation metrics:", {key: round(value, 3) for key, value in aggregate_results.items()})
     if aggregate_results["overall"] > best_score:
         print("new best model saved")
         best_score = aggregate_results["overall"]
-        torch.save(model.state_dict(), "weights_efficientnet.pth")
+
+        if not os.path.exists('output'):
+            os.makedirs('output')
+        torch.save(model.state_dict(), osp.join('output', "model.pth"))
 
     return best_score
 
