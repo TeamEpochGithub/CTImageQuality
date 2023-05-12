@@ -140,7 +140,7 @@ if __name__ == "__main__":
         config=configs,
     )
 
-    models = [Unet34_Swin, Unet34_Swinv2, Efficientnet_Swin, Efficientnet_Swinv2]
+    models = [Unet34_Swinv2, Efficientnet_Swin, Efficientnet_Swinv2]  # [Unet34_Swin,
 
     for model in models:
         train(model)

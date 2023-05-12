@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
-import timm
+from timm.models.layers import DropPath
 
 __all__: List[str] = ["SwinTransformerStage", "SwinTransformerBlock", "DeformableSwinTransformerBlock"]
 
@@ -364,7 +364,7 @@ class SwinTransformerBlock(nn.Module):
             dropout_projection=dropout,
             sequential_self_attention=sequential_self_attention)
         # Init dropout layer
-        self.dropout: nn.Module = timm.models.layers.DropPath(
+        self.dropout: nn.Module = DropPath(
             drop_prob=dropout_path) if dropout_path > 0. else nn.Identity()
         # Init feed-forward network
         self.feed_forward_network: nn.Module = FeedForward(in_features=in_channels,
