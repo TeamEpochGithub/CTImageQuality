@@ -81,7 +81,7 @@ def valid(model, test_dataset, best_score):
     if aggregate_results["overall"] > best_score:
         print("new best model saved")
         best_score = aggregate_results["overall"]
-        torch.save(model.state_dict(), "weights_efficientnet.pth")
+        torch.save(model.state_dict(), osp.join('output', "model.pth"))
 
     return best_score
 
@@ -112,7 +112,7 @@ def train():
             optimizer.step()
             with warmup_scheduler.dampening():
                 lr_scheduler.step()
-        print("epoch:", epoch, "loss:", float(losses / len(train_dataset)), "lr:", lr_scheduler.get_last_lr())
+        print("\nepoch:", epoch, "loss:", float(losses / len(train_dataset)), "lr:", lr_scheduler.get_last_lr())
         if epoch % 25 == 0:
             best_score = valid(model, test_dataset, best_score)
 
