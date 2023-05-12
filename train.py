@@ -36,7 +36,7 @@ set_seed(0)
 
 configs = {
     "batch_size": 32,
-    "epochs": 11,
+    "epochs": 3,
     "lr": 5e-4,
     "min_lr": 1e-6,
     "weight_decay": 1e-4,
@@ -126,21 +126,25 @@ def train(model):
         print("epoch:", epoch, "loss:", loss, "lr:", lr_scheduler.get_last_lr())
         wandb.log({"loss": loss, "epoch": epoch})
 
-        if epoch % 2 == 0:
+        if epoch % 1 == 0:
             best_score = valid(model, test_dataset, best_score)
 
 
 if __name__ == "__main__":
     wandb.login()
 
-    run = wandb.init(
-        project="CTImageQuality-regression",
-        notes="My first experiment",
-        tags=["baselines"],
-        config=configs,
-    )
+    names = ['Unet34_Swin', 'Unet34_Swinv2', 'Efficientnet_Swin', 'Efficientnet_Swinv2']
+    models = [Unet34_Swin, Unet34_Swinv2, Efficientnet_Swin, Efficientnet_Swinv2]
 
-    models = [Unet34_Swinv2, Efficientnet_Swin, Efficientnet_Swinv2]  # [Unet34_Swin,
+    for ind, model in enumerate(models):
+        run = wandb.init(
+            project=f"CTImageQuality-regression",
+            notes="My first experiment",
+            tags=["baselines"],
+            config=configs,
+            name=names[ind]
+        )
 
-    for model in models:
         train(model)
+
+        wandb.finish()
