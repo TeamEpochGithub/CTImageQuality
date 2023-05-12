@@ -19,6 +19,7 @@ from scipy.stats import pearsonr, spearmanr, kendalltau
 import tifffile
 from PIL import Image
 import LDCTIQAG2023_train as train_data
+import time
 
 def set_seed(seed):
     """Set all random seeds and settings for reproducibility (deterministic behavior)."""
@@ -79,11 +80,14 @@ def valid(model, test_dataset, best_score):
         aggregate_results["krocc"] = abs(kendalltau(total_pred, total_gt)[0])
         aggregate_results["overall"] = abs(pearsonr(total_pred, total_gt)[0]) + abs(
             spearmanr(total_pred, total_gt)[0]) + abs(kendalltau(total_pred, total_gt)[0])
-    print("validation metrics:", aggregate_results)
+    print("validation metrics:", {key: round(value, 3) for key, value in aggregate_results.items()})
     if aggregate_results["overall"] > best_score:
         print("new best model saved")
         best_score = aggregate_results["overall"]
-        torch.save(model.state_dict(), "weights_efficientnet.pth")
+
+        if not os.path.exists('output'):
+            os.makedirs('output')
+        torch.save(model.state_dict(), osp.join('output', "model.pth"))
 
     return best_score
 
@@ -92,13 +96,13 @@ def train():
     train_dataset = CT_Dataset(imgs_list[:configs["split_num"]], label_list[:configs["split_num"]], split="train")
     test_dataset = CT_Dataset(imgs_list[configs["split_num"]:], label_list[configs["split_num"]:], split="test")
     train_loader = DataLoader(train_dataset, batch_size=configs["batch_size"], shuffle=True)
-    model = Efficientnet_Swin().cuda()  # model = Efficient_Swinv2_Next().cuda()
-    model.train()
+    model = Unet34_Swinv2().cuda()
     optimizer = optim.AdamW(model.parameters(), lr=configs["lr"], betas=(0.9, 0.999), eps=1e-8, weight_decay=configs["weight_decay"])
     num_steps = len(train_loader) * configs["epochs"]
     lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_steps, eta_min=configs["min_lr"])
     warmup_scheduler = warmup.UntunedLinearWarmup(optimizer)
 
+    model.train()
     best_score = 0
     for epoch in range(configs["epochs"]):
         losses = 0
@@ -112,8 +116,8 @@ def train():
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            with warmup_scheduler.dampening():
-                lr_scheduler.step()
+            # with warmup_scheduler.dampening():
+            #     lr_scheduler.step()
         print("epoch:", epoch, "loss:", float(losses / len(train_dataset)), "lr:", lr_scheduler.get_last_lr())
         if epoch % 25 == 0:
             best_score = valid(model, test_dataset, best_score)

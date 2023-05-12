@@ -123,7 +123,6 @@ class DConv_5(nn.Module):
         e5 = e5+e3
         return e5
 
-efficient_model = EfficientNet_v1()
 class Efficientnet_Swin(nn.Module):
     def __init__(self, img_size=256, hidden_dim=64, layers=(2, 2, 18,
                                                             2), heads=(3, 6, 12, 24), channels=1, head_dim=32,
@@ -141,7 +140,8 @@ class Efficientnet_Swin(nn.Module):
                                   downscaling_factor=downscaling_factors[0], num_heads=heads[0], head_dim=head_dim,
                                   window_size=window_size, relative_pos_embedding=relative_pos_embedding)
 
-        self.res_convs1 = efficient_model.blocks1
+        self.efficient_model = EfficientNet_v1(input_dim=64)
+        self.res_convs1 = self.efficient_model.blocks1
         self.conv11 = nn.Sequential(
             Conv_3(hidden_dim * 2, hidden_dim, 3, 1, 1),
             Conv_3(hidden_dim, hidden_dim, 3, 1, 1),
@@ -152,7 +152,7 @@ class Efficientnet_Swin(nn.Module):
                                   window_size=window_size, relative_pos_embedding=relative_pos_embedding)
 
 
-        self.res_convs2 = efficient_model.blocks2
+        self.res_convs2 = self.efficient_model.blocks2
         self.conv12 = nn.Sequential(
             Conv_3(hidden_dim * 4, hidden_dim * 2, 3, 1, 1),
             Conv_3(hidden_dim * 2, hidden_dim * 2, 3, 1, 1),
@@ -163,7 +163,7 @@ class Efficientnet_Swin(nn.Module):
                                   downscaling_factor=downscaling_factors[2], num_heads=heads[2], head_dim=head_dim,
                                   window_size=window_size, relative_pos_embedding=relative_pos_embedding)
 
-        self.res_convs3 = efficient_model.blocks3
+        self.res_convs3 = self.efficient_model.blocks3
         self.conv13 = nn.Sequential(
             Conv_3(hidden_dim * 8, hidden_dim * 4, 3, 1, 1),
             Conv_3(hidden_dim * 4, hidden_dim * 4, 3, 1, 1),
@@ -174,7 +174,7 @@ class Efficientnet_Swin(nn.Module):
                                   downscaling_factor=downscaling_factors[3], num_heads=heads[3], head_dim=head_dim,
                                   window_size=window_size, relative_pos_embedding=relative_pos_embedding)
 
-        self.res_convs4 = efficient_model.blocks4
+        self.res_convs4 = self.efficient_model.blocks4
         self.conv14 = nn.Sequential(
             Conv_3(hidden_dim * 16, hidden_dim * 8, 3, 1, 1),
             Conv_3(hidden_dim * 8, hidden_dim * 8, 3, 1, 1),

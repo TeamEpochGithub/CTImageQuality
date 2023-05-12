@@ -235,20 +235,18 @@ class EfficientNet(nn.Module):
 
 
 class EfficientNet_v1(nn.Module):
-    config = [
-        #(in_channels, out_channels, kernel_size, stride, expand_ratio, se_ratio, repeats)
-        [64, 64,  3, 1, 1, 0.25, 1],
-        [64, 64,  3, 2, 6, 0.25, 2],
-        [64, 128,  5, 2, 6, 0.25, 2],
-        [128, 256,  3, 2, 6, 0.25, 3],
-        [256, 256, 5, 1, 6, 0.25, 3],
-        [256, 512, 5, 2, 6, 0.25, 4],
-        [512, 512, 3, 1, 6, 0.25, 1]
-    ]
-
-    def __init__(self, drop_connect_rate=0.25):
+    def __init__(self, input_dim, drop_connect_rate=0.25):
         super(EfficientNet_v1, self).__init__()
-
+        self.config = [
+            # (in_channels, out_channels, kernel_size, stride, expand_ratio, se_ratio, repeats)
+            [input_dim, 64, 3, 1, 1, 0.25, 1],
+            [64, 64, 3, 2, 6, 0.25, 2],
+            [64, 128, 5, 2, 6, 0.25, 2],
+            [128, 256, 3, 2, 6, 0.25, 3],
+            [256, 256, 5, 1, 6, 0.25, 3],
+            [256, 512, 5, 2, 6, 0.25, 4],
+            [512, 512, 3, 1, 6, 0.25, 1]
+        ]
         # scaling width
         # width_coefficient = param[0]
         # if width_coefficient != 1.0:
@@ -264,7 +262,7 @@ class EfficientNet_v1(nn.Module):
         #         conf[6] = _RoundRepeats(conf[6]*depth_coefficient)
 
         # scaling resolution
-        input_size = 256
+        # input_size = 256
 
         # stem convolution
         # self.stem_conv = _Conv3x3Bn(3, stem_channels, 2)
