@@ -134,13 +134,15 @@ def train(model):
 if __name__ == "__main__":
     wandb.login()
 
-    run = wandb.init(
-        project="CTImageQuality-regression",
-        notes="Experiment",
-        tags=["baselines"],
-        config=configs,
-    )
-
+    names = ["Unet34_Swin", "Unet34_Swinv2", "Efficientnet_Swin", "Efficientnet_Swinv2"]
     models = [Unet34_Swin, Unet34_Swinv2, Efficientnet_Swin, Efficientnet_Swinv2]
-
-    train(Unet34_Swin)
+    for i in range(4):
+        run = wandb.init(
+            project="CTImageQuality-regression",
+            notes="Experiment",
+            tags=["baselines"],
+            config=configs,
+            name=names[i]
+        )
+        train(Unet34_Swin)
+        wandb.finish()
