@@ -35,11 +35,11 @@ def set_seed(seed):
 set_seed(0)
 
 configs = {
-    "batch_size": 32,
-    "epochs": 11,
-    "lr": 5e-4,
+    "batch_size": 4,
+    "epochs": 251,
+    "lr": 3e-4,
     "min_lr": 1e-6,
-    "weight_decay": 1e-4,
+    "weight_decay": 1e-3,
     "split_num": 900,
 }
 
@@ -140,7 +140,6 @@ if __name__ == "__main__":
         config=configs,
     )
 
-    models = [Unet34_Swinv2, Efficientnet_Swin, Efficientnet_Swinv2]  # [Unet34_Swin,
+    models = [Unet34_Swin, Unet34_Swinv2, Efficientnet_Swin, Efficientnet_Swinv2]
 
-    for model in models:
-        train(model)
+    train(Unet34_Swin)

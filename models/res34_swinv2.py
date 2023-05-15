@@ -11,7 +11,7 @@ class Conv_3(nn.Module):
         super(Conv_3, self).__init__()
         self.conv3 = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=kernel, stride=stride, padding=padding),
-            nn.BatchNorm2d(out_channels, affine=True),
+            nn.InstanceNorm2d(out_channels, affine=True),
             nn.ReLU(inplace=True)
         )
 
@@ -125,7 +125,7 @@ class DConv_5(nn.Module):
 
 # UNet34-Swin
 class Unet34_Swinv2(nn.Module):
-    def __init__(self, img_size=256, hidden_dim=64, layers=(2, 2, 18,
+    def __init__(self, img_size=512, hidden_dim=64, layers=(2, 2, 18,
                                                             2), heads=(3, 6, 12, 24), channels=1, head_dim=32,
                  window_size=8, downscaling_factors=(2, 2, 2, 2), relative_pos_embedding=True):
         super(Unet34_Swinv2, self).__init__()
@@ -140,11 +140,11 @@ class Unet34_Swinv2(nn.Module):
         dropout_path = torch.linspace(0., 0.2, 8).tolist()
         self.stage1 = SwinTransformerStage(
                 in_channels=hidden_dim//2,
-                depth=2,
-                downscale=2,
+                depth=layers[0],
+                downscale=downscaling_factors[0],
                 input_resolution=(img_size // 2, img_size // 2),
-                number_of_heads=4,
-                window_size=8,
+                number_of_heads=heads[0],
+                window_size=window_size,
                 ff_feature_ratio=4,
                 dropout=0.0,
                 dropout_attention=0.0,
@@ -161,11 +161,11 @@ class Unet34_Swinv2(nn.Module):
 
         self.stage2 = SwinTransformerStage(
                 in_channels=hidden_dim,
-                depth=2,
-                downscale=2,
+                depth=layers[1],
+                downscale=downscaling_factors[1],
                 input_resolution=(img_size // 4, img_size // 4),
-                number_of_heads=8,
-                window_size=8,
+                number_of_heads=heads[1],
+                window_size=window_size,
                 ff_feature_ratio=4,
                 dropout=0.0,
                 dropout_attention=0.0,
@@ -185,11 +185,11 @@ class Unet34_Swinv2(nn.Module):
 
         self.stage3 = SwinTransformerStage(
                 in_channels=hidden_dim*2,
-                depth=2,
-                downscale=2,
+                depth=layers[2],
+                downscale=downscaling_factors[2],
                 input_resolution=(img_size // 8, img_size // 8),
-                number_of_heads=16,
-                window_size=8,
+                number_of_heads=heads[2],
+                window_size=window_size,
                 ff_feature_ratio=4,
                 dropout=0.0,
                 dropout_attention=0.0,
@@ -206,11 +206,11 @@ class Unet34_Swinv2(nn.Module):
 
         self.stage4 = SwinTransformerStage(
                 in_channels=hidden_dim*4,
-                depth=2,
-                downscale=2,
+                depth=layers[3],
+                downscale=downscaling_factors[3],
                 input_resolution=(img_size // 16, img_size // 16),
-                number_of_heads=32,
-                window_size=4,
+                number_of_heads=heads[3],
+                window_size=window_size,
                 ff_feature_ratio=4,
                 dropout=0.0,
                 dropout_attention=0.0,
@@ -222,8 +222,15 @@ class Unet34_Swinv2(nn.Module):
 
         self.res_convs4 = nn.Sequential(*(self.base_layers[7][1:]))
 
-        self.avg = nn.AvgPool2d(8)
-        self.fc = nn.Linear(512, 1)
+        self.out_conv1 = Conv_3(512, 512, 3, 2, 1)
+        self.out_conv2 = Conv_3(512, 512, 3, 1, 1)
+        self.out_conv3 = Conv_3(512, 512, 3, 2, 1)
+        self.out_conv4 = Conv_3(512, 512, 3, 1, 1)
+
+        f_size = 512*(img_size//128)**2
+        self.fc1 = nn.Linear(f_size, 512)
+        self.dropout = nn.Dropout(0.4)
+        self.fc2 = nn.Linear(512, 1)
 
 
 
@@ -241,9 +248,15 @@ class Unet34_Swinv2(nn.Module):
         e4_swin_tmp = self.stage4(e3) + self.avg4(e3)
         e4 = self.res_convs4(e4_swin_tmp)+e4_swin_tmp
 
-        outs = self.avg(e4)
+        e4 = self.out_conv1(e4)
+        e4 = self.out_conv2(e4)+e4
+        e4 = self.out_conv3(e4)
+        outs = self.out_conv4(e4)+e4
+
         outs = outs.view(outs.shape[0], -1)
-        outs = F.relu(self.fc(outs))
+        outs = self.dropout(self.fc1(outs))
+        outs = F.relu(outs)
+        outs = F.relu(self.fc2(outs))
         return outs
 
 # ins = torch.rand((8, 1, 256, 256))
