@@ -172,28 +172,40 @@ class Resnet34_Swin(nn.Module):
 
         self.res_convs4 = nn.Sequential(*(self.base_layers[7][1:]))
 
-        self.avg = nn.AvgPool2d(16)
-        self.fc = nn.Linear(512, 1)
+        self.out_conv1 = Conv_3(512, 512, 3, 2, 1)
+        self.out_conv2 = Conv_3(512, 512, 3, 1, 1)
+        self.out_conv3 = Conv_3(512, 512, 3, 2, 1)
+        self.out_conv4 = Conv_3(512, 512, 3, 1, 1)
 
+        f_size = 512*(img_size//128)**2
+        self.fc1 = nn.Linear(f_size, 512)
+        self.dropout = nn.Dropout(0.4)
+        self.fc2 = nn.Linear(512, 1)
 
 
     def forward(self, x):
         e0 = self.layer0(x)
-        e1_swin_tmp = self.stage1(e0) + self.avg1(e0)
+        e1_swin_tmp = self.stage1(e0)
         e1 = self.res_convs1(e1_swin_tmp)+e1_swin_tmp
 
-        e2_swin_tmp = self.stage2(e1) + self.avg2(e1)
+        e2_swin_tmp = self.stage2(e1)
         e2 = self.res_convs2(e2_swin_tmp)+e2_swin_tmp
 
-        e3_swin_tmp = self.stage3(e2) + self.avg3(e2)
+        e3_swin_tmp = self.stage3(e2)
         e3 = self.res_convs3(e3_swin_tmp)+e3_swin_tmp
 
-        e4_swin_tmp = self.stage4(e3) + self.avg4(e3)
+        e4_swin_tmp = self.stage4(e3)
         e4 = self.res_convs4(e4_swin_tmp)+e4_swin_tmp
 
-        outs = self.avg(e4)
+        e4 = self.out_conv1(e4)
+        e4 = self.out_conv2(e4)+e4
+        e4 = self.out_conv3(e4)
+        outs = self.out_conv4(e4)+e4
+
         outs = outs.view(outs.shape[0], -1)
-        outs = F.relu(self.fc(outs))
+        outs = self.dropout(self.fc1(outs))
+        outs = F.relu(outs)
+        outs = F.relu(self.fc2(outs))
         return outs
 
 # ins = torch.rand((8, 1, 256, 256))
