@@ -54,8 +54,8 @@ def evaluate_k_fold(config, name="model", folds=5):
     for i in range(folds):
         left_bound, right_bound = i * int(len(imgs_list) / folds), (i + 1) * int(len(imgs_list) / folds)
 
-        train_dataset = CT_Dataset(imgs_list[:left_bound] + imgs_list[right_bound:], label_list[:left_bound] + label_list[right_bound:], split="train", image_size=config['image_size'])
-        test_dataset = CT_Dataset(imgs_list[left_bound:right_bound], label_list[left_bound:right_bound], split="test", image_size=config['image_size'])
+        train_dataset = CT_Dataset(imgs_list[:left_bound] + imgs_list[right_bound:], label_list[:left_bound] + label_list[right_bound:], split="train", config=config)
+        test_dataset = CT_Dataset(imgs_list[left_bound:right_bound], label_list[left_bound:right_bound], split="test", config=config)
 
         scores_dict = train(config["model"], config, train_dataset, test_dataset)
 
@@ -70,6 +70,12 @@ def evaluate_k_fold(config, name="model", folds=5):
 if __name__ == '__main__':
     image_size = 256
 
+    aug_config = {'RandomHorizontalFlip': False,
+                  'RandomVerticalFlip': False,
+                  'RandomRotation': True,
+                  'ZoomIn': True,
+                  'ZoomOut': True}
+
     efficient_swin_config = {
         "model": Efficientnet_Swin,
         "batch_size": 8,
@@ -78,7 +84,8 @@ if __name__ == '__main__':
         "min_lr": 1e-6,
         "weight_decay": 1e-4,
         "name": 'Efficientnet_Swin',
-        'image_size': image_size
+        'image_size': image_size,
+        'augment': aug_config
     }
 
     efficient_swinv2_config = {
@@ -89,7 +96,8 @@ if __name__ == '__main__':
         "min_lr": 1e-6,
         "weight_decay": 1e-4,
         "name": 'Efficientnet_Swinv2',
-        'image_size': image_size
+        'image_size': image_size,
+        'augment': aug_config
     }
 
     resnet_swin_config = {
@@ -100,7 +108,8 @@ if __name__ == '__main__':
         "min_lr": 1e-6,
         "weight_decay": 1e-4,
         "name": 'Resnet34_Swin',
-        'image_size': image_size
+        'image_size': image_size,
+        'augment': aug_config
     }
 
     resnet_swinv2_config = {
@@ -111,7 +120,8 @@ if __name__ == '__main__':
         "min_lr": 1e-6,
         "weight_decay": 1e-4,
         "name": 'Resnet34_Swinv2',
-        'image_size': image_size
+        'image_size': image_size,
+        'augment': aug_config
     }
 
     all_configs = [efficient_swin_config, efficient_swinv2_config, resnet_swin_config, resnet_swinv2_config]
