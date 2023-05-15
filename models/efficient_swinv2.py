@@ -107,9 +107,9 @@ class MixBlock(nn.Module):
         return y_local, y_global
 
 class Efficientnet_Swinv2(nn.Module):
-    def __init__(self, size=256, hidden_dim=64, use_mix=False):
+    def __init__(self, img_size=512, hidden_dim=64, use_mix=False):
         super(Efficientnet_Swinv2, self).__init__()
-        self.input_size = size
+        self.input_size = img_size
         self.hidden_dim = hidden_dim
         self.efficientnet = EfficientNet_v1(input_dim=32)
         self.stem = nn.Sequential(

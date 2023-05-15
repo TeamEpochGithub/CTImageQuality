@@ -35,8 +35,8 @@ class SwinTransformerV2(nn.Module):
         :param downscale: (bool) If true input is downsampled (see Fig. 3 or V1 paper)
         :param input_resolution: (Tuple[int, int]) Input resolution
         :param number_of_heads: (int) Number of attention heads to be utilized
-        :param window_size: (int) Window size to be utilized
-        :param shift_size: (int) Shifting size to be used
+        :param window_size: (int) Window img_size to be utilized
+        :param shift_size: (int) Shifting img_size to be used
         :param ff_feature_ratio: (int) Ratio of the hidden dimension in the FFN to the input channels
         :param dropout: (float) Dropout in input mapping
         :param dropout_attention: (float) Dropout rate of attention map
@@ -79,8 +79,8 @@ class SwinTransformerV2(nn.Module):
 
     def update_resolution(self, new_window_size: int, new_input_resolution: Tuple[int, int]) -> None:
         """
-        Method updates the window size and so the pair-wise relative positions
-        :param new_window_size: (int) New window size
+        Method updates the window img_size and so the pair-wise relative positions
+        :param new_window_size: (int) New window img_size
         :param new_input_resolution: (Tuple[int, int]) New input resolution
         """
         # Compute new patch resolution
@@ -118,7 +118,7 @@ def swin_transformer_v2_t(input_resolution: Tuple[int, int],
     """
     Function returns a tiny Swin Transformer V2 (SwinV2-T: C = 96, layer numbers = {2, 2, 6, 2}) for feature extraction
     :param input_resolution: (Tuple[int, int]) Input resolution
-    :param window_size: (int) Window size to be utilized
+    :param window_size: (int) Window img_size to be utilized
     :param in_channels: (int) Number of input channels
     :param use_checkpoint: (bool) If true checkpointing is utilized
     :param sequential_self_attention: (bool) If true sequential self-attention is performed
@@ -144,7 +144,7 @@ def swin_transformer_v2_s(input_resolution: Tuple[int, int],
     """
     Function returns a small Swin Transformer V2 (SwinV2-S: C = 96, layer numbers ={2, 2, 18, 2}) for feature extraction
     :param input_resolution: (Tuple[int, int]) Input resolution
-    :param window_size: (int) Window size to be utilized
+    :param window_size: (int) Window img_size to be utilized
     :param in_channels: (int) Number of input channels
     :param use_checkpoint: (bool) If true checkpointing is utilized
     :param sequential_self_attention: (bool) If true sequential self-attention is performed
@@ -170,7 +170,7 @@ def swin_transformer_v2_b(input_resolution: Tuple[int, int],
     """
     Function returns a base Swin Transformer V2 (SwinV2-B: C = 128, layer numbers ={2, 2, 18, 2}) for feature extraction
     :param input_resolution: (Tuple[int, int]) Input resolution
-    :param window_size: (int) Window size to be utilized
+    :param window_size: (int) Window img_size to be utilized
     :param in_channels: (int) Number of input channels
     :param use_checkpoint: (bool) If true checkpointing is utilized
     :param sequential_self_attention: (bool) If true sequential self-attention is performed
@@ -196,7 +196,7 @@ def swin_transformer_v2_l(input_resolution: Tuple[int, int],
     """
     Function returns a large Swin Transformer V2 (SwinV2-L: C = 192, layer numbers ={2, 2, 18, 2}) for feature extraction
     :param input_resolution: (Tuple[int, int]) Input resolution
-    :param window_size: (int) Window size to be utilized
+    :param window_size: (int) Window img_size to be utilized
     :param in_channels: (int) Number of input channels
     :param use_checkpoint: (bool) If true checkpointing is utilized
     :param sequential_self_attention: (bool) If true sequential self-attention is performed
@@ -222,7 +222,7 @@ def swin_transformer_v2_h(input_resolution: Tuple[int, int],
     """
     Function returns a large Swin Transformer V2 (SwinV2-H: C = 352, layer numbers = {2, 2, 18, 2}) for feature extraction
     :param input_resolution: (Tuple[int, int]) Input resolution
-    :param window_size: (int) Window size to be utilized
+    :param window_size: (int) Window img_size to be utilized
     :param in_channels: (int) Number of input channels
     :param use_checkpoint: (bool) If true checkpointing is utilized
     :param sequential_self_attention: (bool) If true sequential self-attention is performed
@@ -248,7 +248,7 @@ def swin_transformer_v2_g(input_resolution: Tuple[int, int],
     """
     Function returns a giant Swin Transformer V2 (SwinV2-G: C = 512, layer numbers = {2, 2, 42, 2}) for feature extraction
     :param input_resolution: (Tuple[int, int]) Input resolution
-    :param window_size: (int) Window size to be utilized
+    :param window_size: (int) Window img_size to be utilized
     :param in_channels: (int) Number of input channels
     :param use_checkpoint: (bool) If true checkpointing is utilized
     :param sequential_self_attention: (bool) If true sequential self-attention is performed
