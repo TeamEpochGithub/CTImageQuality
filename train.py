@@ -10,8 +10,8 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from datasets import CT_Dataset
-from models.res34_swin import Unet34_Swin
-from models.res34_swinv2 import Unet34_Swinv2
+from models.res34_swin import Resnet34_Swin
+from models.res34_swinv2 import Resnet34_Swinv2
 from models.efficient_swinv2 import Efficientnet_Swinv2
 from models.efficient_swin import Efficientnet_Swin
 import pytorch_warmup as warmup
@@ -20,6 +20,7 @@ import tifffile
 from PIL import Image
 import LDCTIQAG2023_train as train_data
 import wandb
+
 
 def set_seed(seed):
     """Set all random seeds and settings for reproducibility (deterministic behavior)."""
@@ -52,13 +53,14 @@ for root, dirs, files in os.walk(data_dir):
 random.shuffle(imgs_list)
 
 
-def valid(model, test_dataset, best_score):
+def valid(model, test_dataset, best_score, epoch, configs):
     model.eval()
     total_pred = []
     total_gt = []
     aggregate_results = dict()
     with torch.no_grad():
-        for _, (img, label) in tqdm(enumerate(test_dataset), desc="Validation", total=1000-configs["split_num"], colour='blue'):
+        for _, (img, label) in tqdm(enumerate(test_dataset), desc="Validation", total=1000 - configs["split_num"],
+                                    colour='blue'):
             img = img.unsqueeze(0).float()
             pred = model(img.cuda())
             pred_new = pred.cpu().numpy().squeeze(0)
@@ -73,6 +75,8 @@ def valid(model, test_dataset, best_score):
         aggregate_results["overall"] = abs(pearsonr(total_pred, total_gt)[0]) + abs(
             spearmanr(total_pred, total_gt)[0]) + abs(kendalltau(total_pred, total_gt)[0])
     print("validation metrics:", {key: round(value, 3) for key, value in aggregate_results.items()})
+
+    aggregate_results['epoch'] = epoch
     wandb.log(aggregate_results)
     if aggregate_results["overall"] > best_score:
         print("new best model saved")
@@ -93,7 +97,8 @@ def train(model, configs):
     model = model().cuda()  # model = Efficient_Swinv2_Next().cuda()
     # model = nn.DataParallel(model)
 
-    optimizer = optim.AdamW(model.parameters(), lr=configs["lr"], betas=(0.9, 0.999), eps=1e-8, weight_decay=configs["weight_decay"])
+    optimizer = optim.AdamW(model.parameters(), lr=configs["lr"], betas=(0.9, 0.999), eps=1e-8,
+                            weight_decay=configs["weight_decay"])
     num_steps = len(train_loader) * configs["epochs"]
     lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_steps, eta_min=configs["min_lr"])
     warmup_scheduler = warmup.UntunedLinearWarmup(optimizer)
@@ -102,7 +107,8 @@ def train(model, configs):
     for epoch in range(configs["epochs"]):
         losses = 0
         model.train()
-        for _, (image, target) in tqdm(enumerate(train_loader), desc="Training", total=len(train_loader), colour='green'):
+        for _, (image, target) in tqdm(enumerate(train_loader), desc="Training", total=len(train_loader),
+                                       colour='green'):
             image = image.cuda()
             target = target.cuda()
             pred = model(image)
@@ -118,14 +124,26 @@ def train(model, configs):
         print("epoch:", epoch, "loss:", loss, "lr:", lr_scheduler.get_last_lr())
         wandb.log({"loss": loss, "epoch": epoch})
 
-        if epoch % 2 == 0:
-            best_score = valid(model, test_dataset, best_score)
+        if epoch % 1 == 0:
+            best_score = valid(model, test_dataset, best_score, epoch, configs)
 
 
 if __name__ == "__main__":
     wandb.login()
 
-    configs = {
+    names = ['Efficientnet_Swin', 'Efficientnet_Swinv2', 'Resnet34_Swin', 'Resnet34_Swinv2']
+    models = [Efficientnet_Swin, Efficientnet_Swinv2, Resnet34_Swin, Resnet34_Swinv2]
+
+    efficient_config = {
+        "batch_size": 8,
+        "epochs": 251,
+        "lr": 3e-4,
+        "min_lr": 1e-6,
+        "weight_decay": 1e-4,
+        "split_num": 900,
+    }
+
+    resnet_config = {
         "batch_size": 16,
         "epochs": 251,
         "lr": 3e-4,
@@ -134,16 +152,21 @@ if __name__ == "__main__":
         "split_num": 900,
     }
 
+    all_configs = {'Efficientnet_Swin': efficient_config,
+                   'Efficientnet_Swinv2': efficient_config,
+                   'Resnet34_Swin': resnet_config,
+                   'Resnet34_Swinv2': resnet_config
+                   }
 
-    names = ["Efficientnet_Swin", "Efficientnet_Swinv2", "Unet34_Swin", "Unet34_Swinv2"]
-    models = [Efficientnet_Swin, Efficientnet_Swinv2, Unet34_Swin, Unet34_Swinv2]
-    for i in range(4):
+    for ind, model in enumerate(models):
         run = wandb.init(
-            project="CTImageQuality-regression",
-            notes="Experiment",
+            project=f"CTImageQuality-regression",
+            notes="My first experiment",
             tags=["baselines"],
-            config=configs,
-            name=names[i]
+            config=all_configs[names[ind]],
+            name=names[ind]
         )
-        train(Unet34_Swin, configs)
+
+        train(model, all_configs[names[ind]])
+
         wandb.finish()

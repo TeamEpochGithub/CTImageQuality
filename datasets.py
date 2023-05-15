@@ -17,6 +17,14 @@ class CT_Dataset(torch.utils.data.Dataset):
                 torchvision.transforms.RandomRotation(15),
                 # torchvision.transforms.RandomAffine(degrees=(30, 70), translate=(0.1, 0.3), scale=(0.7, 0.9)),
                 # torchvision.transforms.RandomPerspective(),
+                torchvision.transforms.RandomApply([
+                    torchvision.transforms.CenterCrop(size=480),
+                    torchvision.transforms.Resize(size=(512, 512)),
+                ], p=0.1),
+                torchvision.transforms.RandomApply([
+                    torchvision.transforms.Pad(padding=20),
+                    torchvision.transforms.Resize((512, 512)),
+                ], p=0.1),
                 torchvision.transforms.ToTensor(),
             ])
         else:

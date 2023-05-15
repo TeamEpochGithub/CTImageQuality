@@ -10,7 +10,7 @@ class Conv_3(nn.Module):
         super(Conv_3, self).__init__()
         self.conv3 = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=kernel, stride=stride, padding=padding),
-            nn.InstanceNorm2d(out_channels, affine=True),
+            nn.BatchNorm2d(out_channels, affine=True),
             nn.ReLU(inplace=True)
         )
 
@@ -123,11 +123,11 @@ class DConv_5(nn.Module):
         return e5
 
 # UNet34-Swin
-class Unet34_Swin(nn.Module):
+class Resnet34_Swin(nn.Module):
     def __init__(self, img_size=512, hidden_dim=64, layers=(2, 2, 18,
                                                             2), heads=(3, 6, 12, 24), channels=1, head_dim=32,
                  window_size=8, downscaling_factors=(2, 2, 2, 2), relative_pos_embedding=True):
-        super(Unet34_Swin, self).__init__()
+        super(Resnet34_Swin, self).__init__()
         self.base_model = torchvision.models.resnet34(True)
         self.base_layers = list(self.base_model.children())
         self.layer0 = nn.Sequential(
@@ -209,6 +209,6 @@ class Unet34_Swin(nn.Module):
         return outs
 
 # ins = torch.rand((8, 1, 256, 256))
-# model = Unet34_Swin()
+# model = Resnet34_Swin()
 # ous = model(ins)
 # print(ous.shape)
