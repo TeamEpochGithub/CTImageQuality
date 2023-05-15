@@ -54,8 +54,8 @@ def evaluate_k_fold(config, name="model", folds=5):
     for i in range(folds):
         left_bound, right_bound = i * int(len(imgs_list) / folds), (i + 1) * int(len(imgs_list) / folds)
 
-        train_dataset = CT_Dataset(imgs_list[:left_bound] + imgs_list[right_bound:], label_list[:left_bound] + label_list[right_bound:], split="train")
-        test_dataset = CT_Dataset(imgs_list[left_bound:right_bound], label_list[left_bound:right_bound], split="test")
+        train_dataset = CT_Dataset(imgs_list[:left_bound] + imgs_list[right_bound:], label_list[:left_bound] + label_list[right_bound:], split="train", image_size=config['image_size'])
+        test_dataset = CT_Dataset(imgs_list[left_bound:right_bound], label_list[left_bound:right_bound], split="test", image_size=config['image_size'])
 
         scores_dict = train(config["model"], config, train_dataset, test_dataset)
 
@@ -68,48 +68,50 @@ def evaluate_k_fold(config, name="model", folds=5):
 
 
 if __name__ == '__main__':
-
-    names = ['Efficientnet_Swin', 'Efficientnet_Swinv2', 'Resnet34_Swin', 'Resnet34_Swinv2']
-    models = [Efficientnet_Swin, Efficientnet_Swinv2, Resnet34_Swin, Resnet34_Swinv2]
+    image_size = 256
 
     efficient_swin_config = {
         "model": Efficientnet_Swin,
         "batch_size": 8,
-        "epochs": 151,
+        "epochs": 3,
         "lr": 3e-4,
         "min_lr": 1e-6,
         "weight_decay": 1e-4,
-        "name": 'Efficientnet_Swin'
+        "name": 'Efficientnet_Swin',
+        'image_size': image_size
     }
 
     efficient_swinv2_config = {
         "model": Efficientnet_Swinv2,
         "batch_size": 8,
-        "epochs": 151,
+        "epochs": 3,
         "lr": 3e-4,
         "min_lr": 1e-6,
         "weight_decay": 1e-4,
-        "name": 'Efficientnet_Swinv2'
+        "name": 'Efficientnet_Swinv2',
+        'image_size': image_size
     }
 
     resnet_swin_config = {
         "model": Resnet34_Swin,
         "batch_size": 16,
-        "epochs": 151,
+        "epochs": 3,
         "lr": 3e-4,
         "min_lr": 1e-6,
         "weight_decay": 1e-4,
-        "name": 'Resnet34_Swin'
+        "name": 'Resnet34_Swin',
+        'image_size': image_size
     }
 
     resnet_swinv2_config = {
         "model": Resnet34_Swinv2,
         "batch_size": 16,
-        "epochs": 151,
+        "epochs": 3,
         "lr": 3e-4,
         "min_lr": 1e-6,
         "weight_decay": 1e-4,
-        "name": 'Resnet34_Swinv2'
+        "name": 'Resnet34_Swinv2',
+        'image_size': image_size
     }
 
     all_configs = [efficient_swin_config, efficient_swinv2_config, resnet_swin_config, resnet_swinv2_config]

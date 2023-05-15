@@ -3,11 +3,13 @@ import torch
 import torchvision
 from PIL import Image
 
+
 class CT_Dataset(torch.utils.data.Dataset):
-    def __init__(self, imgs_list, label_list, split):
+    def __init__(self, imgs_list, label_list, split, image_size=512):
         self.imgs_list = imgs_list
         self.label_list = label_list
         self.split = split
+        self.image_size = image_size
 
         if self.split == 'train':
             self.transform = torchvision.transforms.Compose([
@@ -19,11 +21,11 @@ class CT_Dataset(torch.utils.data.Dataset):
                 # torchvision.transforms.RandomPerspective(),
                 torchvision.transforms.RandomApply([
                     torchvision.transforms.CenterCrop(size=480),
-                    torchvision.transforms.Resize(size=(512, 512)),
+                    torchvision.transforms.Resize(size=(self.image_size, self.image_size)),
                 ], p=0.1),
                 torchvision.transforms.RandomApply([
                     torchvision.transforms.Pad(padding=20),
-                    torchvision.transforms.Resize((512, 512)),
+                    torchvision.transforms.Resize((self.image_size, self.image_size)),
                 ], p=0.1),
                 torchvision.transforms.ToTensor(),
             ])
@@ -39,7 +41,7 @@ class CT_Dataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         x = self.imgs_list[idx]
-        # x = x.resize((256, 256), Image.ANTIALIAS)
+        x = x.resize((self.image_size, self.image_size), Image.ANTIALIAS)
         x = np.array(x)
         x = self.transform(x)
         y = self.label_list[idx]
