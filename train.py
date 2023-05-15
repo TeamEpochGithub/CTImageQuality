@@ -32,7 +32,7 @@ def set_seed(seed):
 set_seed(0)
 
 
-def valid(model, test_dataset, best_score, best_score_epoch, epoch, configs):
+def valid(model, test_dataset, best_score, best_score_epoch, epoch):
     model.eval()
     total_pred = []
     total_gt = []
@@ -71,20 +71,20 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch, configs):
 
 
 def train(model, configs, train_dataset, test_dataset):
-    train_loader = DataLoader(train_dataset, batch_size=configs["batch_size"], shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=configs.batch_size, shuffle=True)
     model = model().cuda()  # model = Efficient_Swinv2_Next().cuda()
     # model = nn.DataParallel(model)
 
-    optimizer = optim.AdamW(model.parameters(), lr=configs["lr"], betas=(0.9, 0.999), eps=1e-8,
-                            weight_decay=configs["weight_decay"])
-    num_steps = len(train_loader) * configs["epochs"]
-    lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_steps, eta_min=configs["min_lr"])
+    optimizer = optim.AdamW(model.parameters(), lr=configs.lr, betas=(0.9, 0.999), eps=1e-8,
+                            weight_decay=configs.weight_decay)
+    num_steps = len(train_loader) * configs.epochs
+    lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_steps, eta_min=configs.min_lr)
     warmup_scheduler = warmup.UntunedLinearWarmup(optimizer)
 
     best_score = 0
     best_loss = 1
     best_score_epoch = 0
-    for epoch in range(configs["epochs"]):
+    for epoch in range(configs.epochs):
         losses = 0
         model.train()
         for _, (image, target) in tqdm(enumerate(train_loader), desc="Training", total=len(train_loader),
@@ -107,7 +107,8 @@ def train(model, configs, train_dataset, test_dataset):
         # wandb.log({"loss": loss, "epoch": epoch})
 
         if epoch % 1 == 0:
-            best_score, best_score_epoch = valid(model, test_dataset, best_score, best_score_epoch, epoch, configs)
+            best_score, best_score_epoch = valid(model, test_dataset, best_score, best_score_epoch, epoch)
+        break
 
     return {"best_score": best_score, "best_score_epoch": best_score_epoch, "best_loss": best_loss}
 
