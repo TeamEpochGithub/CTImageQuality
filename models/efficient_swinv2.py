@@ -57,15 +57,57 @@ class Conv_3(nn.Module):
         super(Conv_3, self).__init__()
         self.conv3 = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=kernel, stride=stride, padding=padding),
-            nn.BatchNorm2d(out_channels, affine=True),
+            nn.InstanceNorm2d(out_channels, affine=True),
             nn.ReLU(inplace=True)
         )
 
     def forward(self, x):
         return self.conv3(x)
 
+class MixBlock(nn.Module):
+    def __init__(self, c_in):
+        super(MixBlock, self).__init__()
+        self.local_query = nn.Conv2d(c_in, c_in, (1, 1))
+        self.global_query = nn.Conv2d(c_in, c_in, (1, 1))
+
+        self.local_key = nn.Conv2d(c_in, c_in, (1, 1))
+        self.global_key = nn.Conv2d(c_in, c_in, (1, 1))
+
+        self.softmax = nn.Softmax(dim=-1)
+        self.relu = nn.ReLU()
+
+        self.global_gamma = nn.Parameter(torch.zeros(1))
+        self.local_gamma = nn.Parameter(torch.zeros(1))
+
+        self.local_conv = nn.Conv2d(c_in, c_in, (1, 1), groups=c_in)
+        self.local_bn = nn.InstanceNorm2d(c_in, affine=True)
+        self.global_conv = nn.Conv2d(c_in, c_in, (1, 1), groups=c_in)
+        self.global_bn = nn.InstanceNorm2d(c_in, affine=True)
+
+    def forward(self, x_local, x_global):
+        B, C, W, H = x_local.size()
+        assert W == H
+
+        q_local = self.local_query(x_local).reshape(-1, W, H)  # [BC, W, H]
+        q_global = self.global_query(x_global).reshape(-1, W, H)
+        M_query = torch.cat([q_local, q_global], dim=2)  # [BC, W, 2H]
+
+        k_local = self.local_key(x_local).reshape(-1, W, H).transpose(1, 2)  # [BC, H, W]
+        k_global = self.global_key(x_global).reshape(-1, W, H).transpose(1, 2)
+        M_key = torch.cat([k_local, k_global], dim=1)  # [BC, 2H, W]
+
+        energy = torch.bmm(M_query, M_key)  # [BC, W, W]
+        attention = self.softmax(energy).view(B, C, W, W)
+
+        att_global = x_global * attention * (torch.sigmoid(self.global_gamma) * 2.0 - 1.0)
+        y_local = x_local + self.local_bn(self.local_conv(att_global))
+
+        att_local = x_local * attention * (torch.sigmoid(self.local_gamma) * 2.0 - 1.0)
+        y_global = x_global + self.global_bn(self.global_conv(att_local))
+        return y_local, y_global
+
 class Efficientnet_Swinv2(nn.Module):
-    def __init__(self, size=512, hidden_dim = 64):
+    def __init__(self, size=256, hidden_dim=64, use_mix=False):
         super(Efficientnet_Swinv2, self).__init__()
         self.input_size = size
         self.hidden_dim = hidden_dim
@@ -76,12 +118,13 @@ class Efficientnet_Swinv2(nn.Module):
             Conv_3(self.hidden_dim, self.hidden_dim // 2, 3, 1, 1),
         )
         dropout_path = torch.linspace(0., 0.2, 8).tolist()
+        self.use_mix = use_mix
         self.stage1 = SwinTransformerStage(
                 in_channels=self.hidden_dim // 2,
                 depth=2,
                 downscale=2,
                 input_resolution=(self.input_size // 2, self.input_size // 2),
-                number_of_heads=4,
+                number_of_heads=3,
                 window_size=8,
                 ff_feature_ratio=4,
                 dropout=0.0,
@@ -92,17 +135,20 @@ class Efficientnet_Swinv2(nn.Module):
                 use_deformable_block=False
             )
         self.eff1 = self.efficientnet.blocks1
-        self.conv11 = nn.Sequential(
-            Conv_3(hidden_dim * 2, hidden_dim, 3, 1, 1),
-            Conv_3(hidden_dim, hidden_dim, 3, 1, 1),
-        )
+        if self.use_mix:
+            self.mix1 = MixBlock(hidden_dim)
+        else:
+            self.conv11 = nn.Sequential(
+                Conv_3(hidden_dim * 2, hidden_dim, 3, 1, 1),
+                Conv_3(hidden_dim, hidden_dim, 3, 1, 1),
+            )
 
         self.stage2 = SwinTransformerStage(
                 in_channels=self.hidden_dim,
                 depth=2,
                 downscale=2,
                 input_resolution=(self.input_size // 4, self.input_size // 4),
-                number_of_heads=8,
+                number_of_heads=6,
                 window_size=8,
                 ff_feature_ratio=4,
                 dropout=0.0,
@@ -113,10 +159,13 @@ class Efficientnet_Swinv2(nn.Module):
                 use_deformable_block=False
             )
         self.eff2 = self.efficientnet.blocks2
-        self.conv12 = nn.Sequential(
-            Conv_3(hidden_dim * 4, hidden_dim * 2, 3, 1, 1),
-            Conv_3(hidden_dim * 2, hidden_dim * 2, 3, 1, 1),
-        )
+        if self.use_mix:
+            self.mix2 = MixBlock(hidden_dim*2)
+        else:
+            self.conv12 = nn.Sequential(
+                Conv_3(hidden_dim * 4, hidden_dim * 2, 3, 1, 1),
+                Conv_3(hidden_dim * 2, hidden_dim * 2, 3, 1, 1),
+            )
 
 
         self.stage3 = SwinTransformerStage(
@@ -124,7 +173,7 @@ class Efficientnet_Swinv2(nn.Module):
                 depth=2,
                 downscale=2,
                 input_resolution=(self.input_size // 8, self.input_size // 8),
-                number_of_heads=16,
+                number_of_heads=12,
                 window_size=8,
                 ff_feature_ratio=4,
                 dropout=0.0,
@@ -135,18 +184,21 @@ class Efficientnet_Swinv2(nn.Module):
                 use_deformable_block=False
             )
         self.eff3 = self.efficientnet.blocks3
-        self.conv13 = nn.Sequential(
-            Conv_3(hidden_dim * 8, hidden_dim * 4, 3, 1, 1),
-            Conv_3(hidden_dim * 4, hidden_dim * 4, 3, 1, 1),
-        )
+        if self.use_mix:
+            self.mix3 = MixBlock(hidden_dim * 4)
+        else:
+            self.conv13 = nn.Sequential(
+                Conv_3(hidden_dim * 8, hidden_dim * 4, 3, 1, 1),
+                Conv_3(hidden_dim * 4, hidden_dim * 4, 3, 1, 1),
+            )
 
         self.stage4 = SwinTransformerStage(
                 in_channels=self.hidden_dim*4,
                 depth=2,
                 downscale=2,
                 input_resolution=(self.input_size // 16, self.input_size // 16),
-                number_of_heads=32,
-                window_size=4,
+                number_of_heads=24,
+                window_size=8,
                 ff_feature_ratio=4,
                 dropout=0.0,
                 dropout_attention=0.0,
@@ -156,35 +208,71 @@ class Efficientnet_Swinv2(nn.Module):
                 use_deformable_block=False
             )
         self.eff4 = self.efficientnet.blocks4
+        if self.use_mix:
+            self.mix4 = MixBlock(hidden_dim * 8)
         self.conv14 = nn.Sequential(
             Conv_3(hidden_dim * 16, hidden_dim * 8, 3, 1, 1),
             Conv_3(hidden_dim * 8, hidden_dim * 8, 3, 1, 1),
         )
 
-        self.avg = nn.AvgPool2d(16)
-        self.fc = nn.Linear(512, 1)
+        self.out_conv1 = Conv_3(512, 512, 3, 2, 1)
+        self.out_conv2 = Conv_3(512, 512, 3, 1, 1)
+        self.out_conv3 = Conv_3(512, 512, 3, 2, 1)
+        self.out_conv4 = Conv_3(512, 512, 3, 1, 1)
+
+        f_size = 512*(img_size//128)**2
+        self.fc1 = nn.Linear(f_size, 512)
+        self.dropout = nn.Dropout(0.4)
+        self.fc2 = nn.Linear(512, 1)
 
     def forward(self, x):
-        e0 = self.stem(x)  # 64, 128, 128
-        e1_swin_tmp = self.stage1(e0)
-        e1_res = self.eff1(e0)
-        e1 = self.conv11(torch.cat((e1_swin_tmp, e1_res), dim=1))
+        if self.use_mix:
+            e0 = self.layer0(x)
+            e1_swin_tmp = self.stage1(e0)
+            e1_res = self.eff1(e0)
+            e1_swin_tmp, e1_res = self.mix1(e1_swin_tmp, e1_res)
 
-        e2_swin_tmp = self.stage2(e1)
-        e2_res = self.eff2(e1)
-        e2 = self.conv12(torch.cat((e2_swin_tmp, e2_res), dim=1))
+            e2_swin_tmp = self.stage2(e1_swin_tmp)
+            e2_res = self.eff2(e1_res)
+            e2_swin_tmp, e2_res = self.mix2(e2_swin_tmp, e2_res)
 
-        e3_swin_tmp = self.stage3(e2)
-        e3_res = self.eff3(e2)
-        e3 = self.conv13(torch.cat((e3_swin_tmp, e3_res), dim=1))
+            e3_swin_tmp = self.stage3(e2_swin_tmp)
+            e3_res = self.eff3(e2_res)
+            e3_swin_tmp, e3_res = self.mix3(e3_swin_tmp, e3_res)
 
-        e4_swin_tmp = self.stage4(e3)
-        e4_res = self.eff4(e3)
-        e4 = self.conv14(torch.cat((e4_swin_tmp, e4_res), dim=1))
+            e4_swin_tmp = self.stage4(e3_swin_tmp)
+            e4_res = self.eff4(e3_res)
+            e4_swin_tmp, e4_res = self.mix4(e4_swin_tmp, e4_res)
 
-        outs = self.avg(e4)
+            e4 = torch.cat((e4_swin_tmp, e4_res), dim=1)
+            e4 = self.conv14(e4)
+        else:
+            e0 = self.stem(x)  # 64, 128, 128
+            e1_swin_tmp = self.stage1(e0)
+            e1_res = self.eff1(e0)
+            e1 = self.conv11(torch.cat((e1_swin_tmp, e1_res), dim=1))
+
+            e2_swin_tmp = self.stage2(e1)
+            e2_res = self.eff2(e1)
+            e2 = self.conv12(torch.cat((e2_swin_tmp, e2_res), dim=1))
+
+            e3_swin_tmp = self.stage3(e2)
+            e3_res = self.eff3(e2)
+            e3 = self.conv13(torch.cat((e3_swin_tmp, e3_res), dim=1))
+
+            e4_swin_tmp = self.stage4(e3)
+            e4_res = self.eff4(e3)
+            e4 = self.conv14(torch.cat((e4_swin_tmp, e4_res), dim=1))
+
+        e4 = self.out_conv1(e4)
+        e4 = self.out_conv2(e4)+e4
+        e4 = self.out_conv3(e4)
+        outs = self.out_conv4(e4)+e4
+
         outs = outs.view(outs.shape[0], -1)
-        outs = F.relu(self.fc(outs))
+        outs = self.dropout(self.fc1(outs))
+        outs = F.relu(outs)
+        outs = F.relu(self.fc2(outs))
 
         return outs
 

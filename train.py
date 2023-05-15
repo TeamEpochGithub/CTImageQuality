@@ -33,7 +33,7 @@ def set_seed(seed):
     os.environ['PYTHONHASHSEED'] = str(seed)
 
 
-set_seed(0)
+set_seed(42)
 
 data_dir = osp.join(osp.dirname(train_data.__file__), 'image')
 label_dir = osp.join(osp.dirname(train_data.__file__), 'train.json')
@@ -50,6 +50,7 @@ for root, dirs, files in os.walk(data_dir):
                 image = tif.pages[0].asarray()
                 img = Image.fromarray(image)
                 imgs_list.append(img)
+random.shuffle(imgs_list)
 
 
 def valid(model, test_dataset, best_score, epoch, configs):
