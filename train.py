@@ -32,16 +32,7 @@ def set_seed(seed):
     os.environ['PYTHONHASHSEED'] = str(seed)
 
 
-set_seed(0)
-
-configs = {
-    "batch_size": 4,
-    "epochs": 251,
-    "lr": 3e-4,
-    "min_lr": 1e-6,
-    "weight_decay": 1e-4,
-    "split_num": 900,
-}
+set_seed(42)
 
 data_dir = osp.join(osp.dirname(train_data.__file__), 'image')
 label_dir = osp.join(osp.dirname(train_data.__file__), 'train.json')
@@ -95,7 +86,7 @@ def valid(model, test_dataset, best_score):
     return best_score
 
 
-def train(model):
+def train(model, configs):
     train_dataset = CT_Dataset(imgs_list[:configs["split_num"]], label_list[:configs["split_num"]], split="train")
     test_dataset = CT_Dataset(imgs_list[configs["split_num"]:], label_list[configs["split_num"]:], split="test")
     train_loader = DataLoader(train_dataset, batch_size=configs["batch_size"], shuffle=True)
@@ -134,8 +125,18 @@ def train(model):
 if __name__ == "__main__":
     wandb.login()
 
-    names = ["Unet34_Swin", "Unet34_Swinv2", "Efficientnet_Swin", "Efficientnet_Swinv2"]
-    models = [Unet34_Swin, Unet34_Swinv2, Efficientnet_Swin, Efficientnet_Swinv2]
+    configs = {
+        "batch_size": 16,
+        "epochs": 251,
+        "lr": 3e-4,
+        "min_lr": 1e-6,
+        "weight_decay": 1e-4,
+        "split_num": 900,
+    }
+
+
+    names = ["Efficientnet_Swin", "Efficientnet_Swinv2", "Unet34_Swin", "Unet34_Swinv2"]
+    models = [Efficientnet_Swin, Efficientnet_Swinv2, Unet34_Swin, Unet34_Swinv2]
     for i in range(4):
         run = wandb.init(
             project="CTImageQuality-regression",
@@ -144,5 +145,5 @@ if __name__ == "__main__":
             config=configs,
             name=names[i]
         )
-        train(Unet34_Swin)
+        train(Unet34_Swin, configs)
         wandb.finish()
