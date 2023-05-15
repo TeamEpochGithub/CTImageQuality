@@ -72,7 +72,7 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch, configs):
 
 def train(model, configs, train_dataset, test_dataset):
     train_loader = DataLoader(train_dataset, batch_size=configs["batch_size"], shuffle=True)
-    model = model().cuda()  # model = Efficient_Swinv2_Next().cuda()
+    model = model(img_size=configs['image_size']).cuda()  # model = Efficient_Swinv2_Next().cuda()
     # model = nn.DataParallel(model)
 
     optimizer = optim.AdamW(model.parameters(), lr=configs["lr"], betas=(0.9, 0.999), eps=1e-8,
