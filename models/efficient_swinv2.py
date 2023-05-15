@@ -107,9 +107,9 @@ class MixBlock(nn.Module):
         return y_local, y_global
 
 class Efficientnet_Swinv2(nn.Module):
-    def __init__(self, size=256, hidden_dim=64, use_mix=False):
+    def __init__(self, img_size=512, hidden_dim=64, use_mix=False):
         super(Efficientnet_Swinv2, self).__init__()
-        self.input_size = size
+        self.input_size = img_size
         self.hidden_dim = hidden_dim
         self.efficientnet = EfficientNet_v1(input_dim=32)
         self.stem = nn.Sequential(
@@ -124,7 +124,7 @@ class Efficientnet_Swinv2(nn.Module):
                 depth=2,
                 downscale=2,
                 input_resolution=(self.input_size // 2, self.input_size // 2),
-                number_of_heads=3,
+                number_of_heads=4,
                 window_size=8,
                 ff_feature_ratio=4,
                 dropout=0.0,
@@ -148,7 +148,7 @@ class Efficientnet_Swinv2(nn.Module):
                 depth=2,
                 downscale=2,
                 input_resolution=(self.input_size // 4, self.input_size // 4),
-                number_of_heads=6,
+                number_of_heads=8,
                 window_size=8,
                 ff_feature_ratio=4,
                 dropout=0.0,
@@ -173,7 +173,7 @@ class Efficientnet_Swinv2(nn.Module):
                 depth=2,
                 downscale=2,
                 input_resolution=(self.input_size // 8, self.input_size // 8),
-                number_of_heads=12,
+                number_of_heads=16,
                 window_size=8,
                 ff_feature_ratio=4,
                 dropout=0.0,
@@ -197,7 +197,7 @@ class Efficientnet_Swinv2(nn.Module):
                 depth=2,
                 downscale=2,
                 input_resolution=(self.input_size // 16, self.input_size // 16),
-                number_of_heads=24,
+                number_of_heads=32,
                 window_size=8,
                 ff_feature_ratio=4,
                 dropout=0.0,
@@ -269,7 +269,7 @@ class Efficientnet_Swinv2(nn.Module):
         e4 = self.out_conv3(e4)
         outs = self.out_conv4(e4)+e4
 
-        outs = outs.view(outs.shape[0], -1)
+        outs = outs.reshape(outs.shape[0], -1)
         outs = self.dropout(self.fc1(outs))
         outs = F.relu(outs)
         outs = F.relu(self.fc2(outs))

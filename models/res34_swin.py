@@ -202,7 +202,7 @@ class Resnet34_Swin(nn.Module):
         e4 = self.out_conv3(e4)
         outs = self.out_conv4(e4)+e4
 
-        outs = outs.view(outs.shape[0], -1)
+        outs = outs.reshape(outs.shape[0], -1)
         outs = self.dropout(self.fc1(outs))
         outs = F.relu(outs)
         outs = F.relu(self.fc2(outs))

@@ -56,7 +56,6 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch):
     print("validation metrics:", {key: round(value, 3) for key, value in aggregate_results.items()})
 
     aggregate_results['epoch'] = epoch
-    # wandb.log(aggregate_results)
     if aggregate_results["overall"] > best_score:
         print("new best model saved")
         best_score = aggregate_results["overall"]
@@ -72,8 +71,7 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch):
 
 def train(model, configs, train_dataset, test_dataset):
     train_loader = DataLoader(train_dataset, batch_size=configs.batch_size, shuffle=True)
-    model = model().cuda()  # model = Efficient_Swinv2_Next().cuda()
-    # model = nn.DataParallel(model)
+    model = model(img_size=configs.img_size).cuda()
 
     optimizer = optim.AdamW(model.parameters(), lr=configs.lr, betas=(0.9, 0.999), eps=1e-8,
                             weight_decay=configs.weight_decay)
@@ -82,7 +80,7 @@ def train(model, configs, train_dataset, test_dataset):
     warmup_scheduler = warmup.UntunedLinearWarmup(optimizer)
 
     best_score = 0
-    best_loss = 1
+    best_loss = 10
     best_score_epoch = 0
     for epoch in range(configs.epochs):
         losses = 0
@@ -104,11 +102,9 @@ def train(model, configs, train_dataset, test_dataset):
         if loss < best_loss:
             best_loss = loss
         print("epoch:", epoch, "loss:", loss, "lr:", lr_scheduler.get_last_lr())
-        # wandb.log({"loss": loss, "epoch": epoch})
 
-        if epoch % 1 == 0:
+        if epoch % 15 == 0:
             best_score, best_score_epoch = valid(model, test_dataset, best_score, best_score_epoch, epoch)
-        break
 
     return {"best_score": best_score, "best_score_epoch": best_score_epoch, "best_loss": best_loss}
 

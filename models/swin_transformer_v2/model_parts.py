@@ -38,18 +38,18 @@ class FeedForward(nn.Sequential):
 
 def bchw_to_bhwc(input: torch.Tensor) -> torch.Tensor:
     """
-    Permutes a tensor to the shape [batch size, height, width, channels]
-    :param input: (torch.Tensor) Input tensor of the shape [batch size, height, width, channels]
-    :return: (torch.Tensor) Output tensor of the shape [batch size, height, width, channels]
+    Permutes a tensor to the shape [batch img_size, height, width, channels]
+    :param input: (torch.Tensor) Input tensor of the shape [batch img_size, height, width, channels]
+    :return: (torch.Tensor) Output tensor of the shape [batch img_size, height, width, channels]
     """
     return input.permute(0, 2, 3, 1)
 
 
 def bhwc_to_bchw(input: torch.Tensor) -> torch.Tensor:
     """
-    Permutes a tensor to the shape [batch size, channels, height, width]
-    :param input: (torch.Tensor) Input tensor of the shape [batch size, height, width, channels]
-    :return: (torch.Tensor) Output tensor of the shape [batch size, channels, height, width]
+    Permutes a tensor to the shape [batch img_size, channels, height, width]
+    :param input: (torch.Tensor) Input tensor of the shape [batch img_size, height, width, channels]
+    :return: (torch.Tensor) Output tensor of the shape [batch img_size, channels, height, width]
     """
     return input.permute(0, 3, 1, 2)
 
@@ -57,17 +57,17 @@ def bhwc_to_bchw(input: torch.Tensor) -> torch.Tensor:
 def unfold(input: torch.Tensor,
            window_size: int) -> torch.Tensor:
     """
-    Unfolds (non-overlapping) a given feature map by the given window size (stride = window size)
-    :param input: (torch.Tensor) Input feature map of the shape [batch size, channels, height, width]
-    :param window_size: (int) Window size to be applied
-    :return: (torch.Tensor) Unfolded tensor of the shape [batch size * windows, channels, window size, window size]
+    Unfolds (non-overlapping) a given feature map by the given window img_size (stride = window img_size)
+    :param input: (torch.Tensor) Input feature map of the shape [batch img_size, channels, height, width]
+    :param window_size: (int) Window img_size to be applied
+    :return: (torch.Tensor) Unfolded tensor of the shape [batch img_size * windows, channels, window img_size, window img_size]
     """
     # Get original shape
     _, channels, height, width = input.shape  # type: int, int, int, int
     # Unfold input
     output: torch.Tensor = input.unfold(dimension=3, size=window_size, step=window_size) \
         .unfold(dimension=2, size=window_size, step=window_size)
-    # Reshape to [batch size * windows, channels, window size, window size]
+    # Reshape to [batch img_size * windows, channels, window img_size, window img_size]
     output: torch.Tensor = output.permute(0, 2, 3, 1, 5, 4).reshape(-1, channels, window_size, window_size)
     return output
 
@@ -78,15 +78,15 @@ def fold(input: torch.Tensor,
          width: int) -> torch.Tensor:
     """
     Fold a tensor of windows again to a 4D feature map
-    :param input: (torch.Tensor) Input tensor of windows [batch size * windows, channels, window size, window size]
-    :param window_size: (int) Window size to be reversed
+    :param input: (torch.Tensor) Input tensor of windows [batch img_size * windows, channels, window img_size, window img_size]
+    :param window_size: (int) Window img_size to be reversed
     :param height: (int) Height of the feature map
     :param width: (int) Width of the feature map
-    :return: (torch.Tensor) Folded output tensor of the shape [batch size, channels, height, width]
+    :return: (torch.Tensor) Folded output tensor of the shape [batch img_size, channels, height, width]
     """
     # Get channels of windows
     channels: int = input.shape[1]
-    # Get original batch size
+    # Get original batch img_size
     batch_size: int = int(input.shape[0] // (height * width // window_size // window_size))
     # Reshape input to
     output: torch.Tensor = input.view(batch_size, height // window_size, width // window_size, channels,
@@ -111,7 +111,7 @@ class WindowMultiHeadAttention(nn.Module):
         """
         Constructor method
         :param in_features: (int) Number of input features
-        :param window_size: (int) Window size
+        :param window_size: (int) Window img_size
         :param number_of_heads: (int) Number of attention heads
         :param dropout_attention: (float) Dropout rate of attention map
         :param dropout_projection: (float) Dropout rate after projection
@@ -163,11 +163,11 @@ class WindowMultiHeadAttention(nn.Module):
                           new_window_size: int,
                           **kwargs: Any) -> None:
         """
-        Method updates the window size and so the pair-wise relative positions
-        :param new_window_size: (int) New window size
+        Method updates the window img_size and so the pair-wise relative positions
+        :param new_window_size: (int) New window img_size
         :param kwargs: (Any) Unused
         """
-        # Set new window size
+        # Set new window img_size
         self.window_size: int = new_window_size
         # Make new pair-wise relative positions
         self.__make_pair_wise_relative_positions()
@@ -175,7 +175,7 @@ class WindowMultiHeadAttention(nn.Module):
     def __get_relative_positional_encodings(self) -> torch.Tensor:
         """
         Method computes the relative positional encodings
-        :return: (torch.Tensor) Relative positional encodings [1, number of heads, window size ** 2, window size ** 2]
+        :return: (torch.Tensor) Relative positional encodings [1, number of heads, window img_size ** 2, window img_size ** 2]
         """
         relative_position_bias: torch.Tensor = self.meta_network(self.relative_coordinates_log)
         relative_position_bias: torch.Tensor = relative_position_bias.permute(1, 0)
@@ -193,13 +193,13 @@ class WindowMultiHeadAttention(nn.Module):
                          mask: Optional[torch.Tensor] = None) -> torch.Tensor:
         """
         This function performs standard (non-sequential) scaled cosine self-attention
-        :param query: (torch.Tensor) Query tensor of the shape [batch size * windows, heads, tokens, channels // heads]
-        :param key: (torch.Tensor) Key tensor of the shape [batch size * windows, heads, tokens, channels // heads]
-        :param value: (torch.Tensor) Value tensor of the shape [batch size * windows, heads, tokens, channels // heads]
-        :param batch_size_windows: (int) Size of the first dimension of the input tensor (batch size * windows)
+        :param query: (torch.Tensor) Query tensor of the shape [batch img_size * windows, heads, tokens, channels // heads]
+        :param key: (torch.Tensor) Key tensor of the shape [batch img_size * windows, heads, tokens, channels // heads]
+        :param value: (torch.Tensor) Value tensor of the shape [batch img_size * windows, heads, tokens, channels // heads]
+        :param batch_size_windows: (int) Size of the first dimension of the input tensor (batch img_size * windows)
         :param tokens: (int) Number of tokens in the input
         :param mask: (Optional[torch.Tensor]) Attention mask for the shift case
-        :return: (torch.Tensor) Output feature map of the shape [batch size * windows, tokens, channels]
+        :return: (torch.Tensor) Output feature map of the shape [batch img_size * windows, tokens, channels]
         """
         # Compute attention map with scaled cosine attention
         attention_map: torch.Tensor = torch.einsum("bhqd, bhkd -> bhqk", query, key) \
@@ -233,13 +233,13 @@ class WindowMultiHeadAttention(nn.Module):
                                     mask: Optional[torch.Tensor] = None) -> torch.Tensor:
         """
         This function performs sequential scaled cosine self-attention
-        :param query: (torch.Tensor) Query tensor of the shape [batch size * windows, heads, tokens, channels // heads]
-        :param key: (torch.Tensor) Key tensor of the shape [batch size * windows, heads, tokens, channels // heads]
-        :param value: (torch.Tensor) Value tensor of the shape [batch size * windows, heads, tokens, channels // heads]
-        :param batch_size_windows: (int) Size of the first dimension of the input tensor (batch size * windows)
+        :param query: (torch.Tensor) Query tensor of the shape [batch img_size * windows, heads, tokens, channels // heads]
+        :param key: (torch.Tensor) Key tensor of the shape [batch img_size * windows, heads, tokens, channels // heads]
+        :param value: (torch.Tensor) Value tensor of the shape [batch img_size * windows, heads, tokens, channels // heads]
+        :param batch_size_windows: (int) Size of the first dimension of the input tensor (batch img_size * windows)
         :param tokens: (int) Number of tokens in the input
         :param mask: (Optional[torch.Tensor]) Attention mask for the shift case
-        :return: (torch.Tensor) Output feature map of the shape [batch size * windows, tokens, channels]
+        :return: (torch.Tensor) Output feature map of the shape [batch img_size * windows, tokens, channels]
         """
         # Init output tensor
         output: torch.Tensor = torch.ones_like(query)
@@ -278,14 +278,14 @@ class WindowMultiHeadAttention(nn.Module):
                 mask: Optional[torch.Tensor] = None) -> torch.Tensor:
         """
         Forward pass
-        :param input: (torch.Tensor) Input tensor of the shape [batch size * windows, channels, height, width]
+        :param input: (torch.Tensor) Input tensor of the shape [batch img_size * windows, channels, height, width]
         :param mask: (Optional[torch.Tensor]) Attention mask for the shift case
-        :return: (torch.Tensor) Output tensor of the shape [batch size * windows, channels, height, width]
+        :return: (torch.Tensor) Output tensor of the shape [batch img_size * windows, channels, height, width]
         """
         # Save original shape
         batch_size_windows, channels, height, width = input.shape  # type: int, int, int, int
         tokens: int = height * width
-        # Reshape input to [batch size * windows, tokens (height * width), channels]
+        # Reshape input to [batch img_size * windows, tokens (height * width), channels]
         input: torch.Tensor = input.reshape(batch_size_windows, channels, tokens).permute(0, 2, 1)
         # Perform query, key, and value mapping
         query_key_value: torch.Tensor = self.mapping_qkv(input)
@@ -304,7 +304,7 @@ class WindowMultiHeadAttention(nn.Module):
                                                          mask=mask)
         # Perform linear mapping and dropout
         output: torch.Tensor = self.projection_dropout(self.projection(output))
-        # Reshape output to original shape [batch size * windows, channels, height, width]
+        # Reshape output to original shape [batch img_size * windows, channels, height, width]
         output: torch.Tensor = output.permute(0, 2, 1).view(batch_size_windows, channels, height, width)
         return output
 
@@ -330,8 +330,8 @@ class SwinTransformerBlock(nn.Module):
         :param in_channels: (int) Number of input channels
         :param input_resolution: (Tuple[int, int]) Input resolution
         :param number_of_heads: (int) Number of attention heads to be utilized
-        :param window_size: (int) Window size to be utilized
-        :param shift_size: (int) Shifting size to be used
+        :param window_size: (int) Window img_size to be utilized
+        :param shift_size: (int) Shifting img_size to be used
         :param ff_feature_ratio: (int) Ratio of the hidden dimension in the FFN to the input channels
         :param dropout: (float) Dropout in input mapping
         :param dropout_attention: (float) Dropout rate of attention map
@@ -343,7 +343,7 @@ class SwinTransformerBlock(nn.Module):
         # Save parameters
         self.in_channels: int = in_channels
         self.input_resolution: Tuple[int, int] = input_resolution
-        # Catch case if resolution is smaller than the window size
+        # Catch case if resolution is smaller than the window img_size
         if min(self.input_resolution) <= window_size:
             self.window_size: int = min(self.input_resolution)
             self.shift_size: int = 0
@@ -407,13 +407,13 @@ class SwinTransformerBlock(nn.Module):
                           new_window_size: int,
                           new_input_resolution: Tuple[int, int]) -> None:
         """
-        Method updates the window size and so the pair-wise relative positions
-        :param new_window_size: (int) New window size
+        Method updates the window img_size and so the pair-wise relative positions
+        :param new_window_size: (int) New window img_size
         :param new_input_resolution: (Tuple[int, int]) New input resolution
         """
         # Update input resolution
         self.input_resolution: Tuple[int, int] = new_input_resolution
-        # Catch case if resolution is smaller than the window size
+        # Catch case if resolution is smaller than the window img_size
         if min(self.input_resolution) <= new_window_size:
             self.window_size: int = min(self.input_resolution)
             self.shift_size: int = 0
@@ -431,8 +431,8 @@ class SwinTransformerBlock(nn.Module):
                 input: torch.Tensor) -> torch.Tensor:
         """
         Forward pass
-        :param input: (torch.Tensor) Input tensor of the shape [batch size, in channels, height, width]
-        :return: (torch.Tensor) Output tensor of the shape [batch size, in channels, height, width]
+        :param input: (torch.Tensor) Input tensor of the shape [batch img_size, in channels, height, width]
+        :return: (torch.Tensor) Output tensor of the shape [batch img_size, in channels, height, width]
         """
         # Save shape
         batch_size, channels, height, width = input.shape  # type: int, int, int, int
@@ -492,8 +492,8 @@ class DeformableSwinTransformerBlock(SwinTransformerBlock):
         :param in_channels: (int) Number of input channels
         :param input_resolution: (Tuple[int, int]) Input resolution
         :param number_of_heads: (int) Number of attention heads to be utilized
-        :param window_size: (int) Window size to be utilized
-        :param shift_size: (int) Shifting size to be used
+        :param window_size: (int) Window img_size to be utilized
+        :param shift_size: (int) Shifting img_size to be used
         :param ff_feature_ratio: (int) Ratio of the hidden dimension in the FFN to the input channels
         :param dropout: (float) Dropout in input mapping
         :param dropout_attention: (float) Dropout rate of attention map
@@ -549,11 +549,11 @@ class DeformableSwinTransformerBlock(SwinTransformerBlock):
 
     def update_resolution(self, new_window_size: int, new_input_resolution: Tuple[int, int]) -> None:
         """
-        Method updates the window size and so the pair-wise relative positions
-        :param new_window_size: (int) New window size
+        Method updates the window img_size and so the pair-wise relative positions
+        :param new_window_size: (int) New window img_size
         :param new_input_resolution: (Tuple[int, int]) New input resolution
         """
-        # Update resolution and window size
+        # Update resolution and window img_size
         super(DeformableSwinTransformerBlock, self).update_resolution(new_window_size=new_window_size,
                                                                       new_input_resolution=new_input_resolution)
         # Update default sampling grid
@@ -563,27 +563,27 @@ class DeformableSwinTransformerBlock(SwinTransformerBlock):
                 input: torch.Tensor) -> torch.Tensor:
         # Get input shape
         batch_size, channels, height, width = input.shape
-        # Compute offsets of the shape [batch size, 2, height / r, width / r]
+        # Compute offsets of the shape [batch img_size, 2, height / r, width / r]
         offsets: torch.Tensor = self.offset_network(input)
-        # Upscale offsets to the shape [batch size, 2 * number of heads, height, width]
+        # Upscale offsets to the shape [batch img_size, 2 * number of heads, height, width]
         offsets: torch.Tensor = F.interpolate(input=offsets,
                                               size=(height, width), mode="bilinear", align_corners=True)
-        # Reshape offsets to [batch size, number of heads, height, width, 2]
+        # Reshape offsets to [batch img_size, number of heads, height, width, 2]
         offsets: torch.Tensor = offsets.reshape(batch_size, -1, 2, height, width).permute(0, 1, 3, 4, 2)
-        # Flatten batch size and number of heads and apply tanh
+        # Flatten batch img_size and number of heads and apply tanh
         offsets: torch.Tensor = offsets.view(-1, height, width, 2).tanh()
         # Cast offset grid to input data type
         if input.dtype != self.default_grid.dtype:
             self.default_grid = self.default_grid.type(input.dtype)
         # Construct offset grid
         offset_grid: torch.Tensor = self.default_grid.repeat_interleave(repeats=offsets.shape[0], dim=0) + offsets
-        # Reshape input to [batch size * number of heads, channels / number of heads, height, width]
+        # Reshape input to [batch img_size * number of heads, channels / number of heads, height, width]
         input: torch.Tensor = input.view(batch_size, self.number_of_heads, channels // self.number_of_heads, height,
                                          width).flatten(start_dim=0, end_dim=1)
         # Apply sampling grid
         input_resampled: torch.Tensor = F.grid_sample(input=input, grid=offset_grid.clip(min=-1, max=1),
                                                       mode="bilinear", align_corners=True, padding_mode="reflection")
-        # Reshape resampled tensor again to [batch size, channels, height, width]
+        # Reshape resampled tensor again to [batch img_size, channels, height, width]
         input_resampled: torch.Tensor = input_resampled.view(batch_size, channels, height, width)
         return super(DeformableSwinTransformerBlock, self).forward(input=input_resampled)
 
@@ -611,12 +611,12 @@ class PatchMerging(nn.Module):
                 input: torch.Tensor) -> torch.Tensor:
         """
         Forward pass
-        :param input: (torch.Tensor) Input tensor of the shape [batch size, in channels, height, width]
-        :return: (torch.Tensor) Output tensor of the shape [batch size, 2 * in channels, height // 2, width // 2]
+        :param input: (torch.Tensor) Input tensor of the shape [batch img_size, in channels, height, width]
+        :return: (torch.Tensor) Output tensor of the shape [batch img_size, 2 * in channels, height // 2, width // 2]
         """
         # Get original shape
         batch_size, channels, height, width = input.shape  # type: int, int, int, int
-        # Reshape input to [batch size, in channels, height, width]
+        # Reshape input to [batch img_size, in channels, height, width]
         input: torch.Tensor = bchw_to_bhwc(input)
         # Unfold input
         input: torch.Tensor = input.unfold(dimension=1, size=2, step=2).unfold(dimension=2, size=2, step=2)
@@ -641,8 +641,8 @@ class PatchEmbedding(nn.Module):
         Constructor method
         :param in_channels: (int) Number of input channels
         :param out_channels: (int) Number of output channels
-        :param patch_size: (int) Patch size to be utilized
-        :param image_size: (int) Image size to be used
+        :param patch_size: (int) Patch img_size to be utilized
+        :param image_size: (int) Image img_size to be used
         """
         # Call super constructor
         super(PatchEmbedding, self).__init__()
@@ -658,8 +658,8 @@ class PatchEmbedding(nn.Module):
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         """
         Forward pass transforms a given batch of images into a patch embedding
-        :param input: (torch.Tensor) Input images of the shape [batch size, in channels, height, width]
-        :return: (torch.Tensor) Patch embedding of the shape [batch size, patches + 1, out channels]
+        :param input: (torch.Tensor) Input images of the shape [batch img_size, in channels, height, width]
+        :return: (torch.Tensor) Patch embedding of the shape [batch img_size, patches + 1, out channels]
         """
         # Perform linear embedding
         embedding: torch.Tensor = self.linear_embedding(input)
@@ -694,8 +694,8 @@ class SwinTransformerStage(nn.Module):
         :param downscale: (bool) If true input is downsampled (see Fig. 3 or V1 paper)
         :param input_resolution: (Tuple[int, int]) Input resolution
         :param number_of_heads: (int) Number of attention heads to be utilized
-        :param window_size: (int) Window size to be utilized
-        :param shift_size: (int) Shifting size to be used
+        :param window_size: (int) Window img_size to be utilized
+        :param shift_size: (int) Shifting img_size to be used
         :param ff_feature_ratio: (int) Ratio of the hidden dimension in the FFN to the input channels
         :param dropout: (float) Dropout in input mapping
         :param dropout_attention: (float) Dropout rate of attention map
@@ -733,8 +733,8 @@ class SwinTransformerStage(nn.Module):
 
     def update_resolution(self, new_window_size: int, new_input_resolution: Tuple[int, int]) -> None:
         """
-        Method updates the window size and so the pair-wise relative positions
-        :param new_window_size: (int) New window size
+        Method updates the window img_size and so the pair-wise relative positions
+        :param new_window_size: (int) New window img_size
         :param new_input_resolution: (Tuple[int, int]) New input resolution
         """
         # Update resolution
@@ -747,8 +747,8 @@ class SwinTransformerStage(nn.Module):
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         """
         Forward pass
-        :param input: (torch.Tensor) Input tensor of the shape [batch size, channels, height, width]
-        :return: (torch.Tensor) Output tensor of the shape [batch size, 2 * channels, height // 2, width // 2]
+        :param input: (torch.Tensor) Input tensor of the shape [batch img_size, channels, height, width]
+        :return: (torch.Tensor) Output tensor of the shape [batch img_size, 2 * channels, height // 2, width // 2]
         """
         # Downscale input tensor
         output: torch.Tensor = self.downsample(input)

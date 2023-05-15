@@ -174,7 +174,7 @@ class MixBlock(nn.Module):
 
 
 class Efficientnet_Swin(nn.Module):
-    def __init__(self, img_size=256, hidden_dim=64, layers=(2, 2, 18,
+    def __init__(self, img_size=512, hidden_dim=64, layers=(2, 2, 18,
                                                             2), heads=(3, 6, 12, 24), channels=1, head_dim=32,
                  window_size=8, downscaling_factors=(2, 2, 2, 2), relative_pos_embedding=True, use_mix=True):
         super(Efficientnet_Swin, self).__init__()
@@ -296,7 +296,7 @@ class Efficientnet_Swin(nn.Module):
         e4 = self.out_conv3(e4)
         outs = self.out_conv4(e4)+e4
 
-        outs = outs.view(outs.shape[0], -1)
+        outs = outs.reshape(outs.shape[0], -1)
         outs = self.dropout(self.fc1(outs))
         outs = F.relu(outs)
         outs = F.relu(self.fc2(outs))
