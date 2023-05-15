@@ -39,7 +39,7 @@ configs = {
     "epochs": 251,
     "lr": 3e-4,
     "min_lr": 1e-6,
-    "weight_decay": 1e-3,
+    "weight_decay": 1e-4,
     "split_num": 900,
 }
 
@@ -58,6 +58,7 @@ for root, dirs, files in os.walk(data_dir):
                 image = tif.pages[0].asarray()
                 img = Image.fromarray(image)
                 imgs_list.append(img)
+random.shuffle(imgs_list)
 
 
 def valid(model, test_dataset, best_score):
@@ -135,7 +136,7 @@ if __name__ == "__main__":
 
     run = wandb.init(
         project="CTImageQuality-regression",
-        notes="My first experiment",
+        notes="Experiment",
         tags=["baselines"],
         config=configs,
     )
