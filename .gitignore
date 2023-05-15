@@ -1,8 +1,9 @@
 ./LDCTIQAG2023_train
+LDCTIQAG2023_train
 weight.pkl
 data/
 output/
-wandb/
+wandb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
