@@ -13,7 +13,7 @@ import json
 import pytorch_warmup as warmup
 import wandb
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+
 def set_seed(seed):
     """Set all random seeds and settings for reproducibility (deterministic behavior)."""
     torch.manual_seed(seed)
@@ -94,7 +94,7 @@ def train(img_dir, label_dir, configs):
 
     # Instantiate the ResNet model
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = efficientnet_b0(pretrained=True)
+    model = efficientnet_b7(pretrained=True)
     model = adapt_efficientnet_to_grayscale(model)
     model.classifier[1] = nn.Linear(model.classifier[1].in_features, 1)
     print(model)
@@ -158,11 +158,12 @@ if __name__ == "__main__":
     label_json = r'C:\EpochProjects\CTImageQuality\data\LDCTIQAG2023_train\train.json'
 
     configs = {
-        "batch_size": 32,
+        "batch_size": 8,
         "epochs": 251,
         "lr": 3e-4,
         "min_lr": 1e-6,
         "weight_decay": 1e-4
+
     }
 
     wandb.init(
