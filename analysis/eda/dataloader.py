@@ -23,22 +23,22 @@ class CTIDataset(Dataset):
         self.split = split
 
         if self.split == 'train':
-            # self.transform = Compose([
-            #     ToPILImage(),
-            #     # RandomHorizontalFlip(),
-            #     # RandomVerticalFlip(),
-            #     RandomRotation(15),
-            #     ToTensor(),
-            # ])
-
             self.transform = Compose([
                 ToPILImage(),
-                # Random rotation within the range of -15 to 15 degrees
-                RandomRotation(degrees=(-15, 15)),
-                # Random resized crop
-                RandomResizedCrop(size=(256, 256), scale=(0.8, 1.0)),
-                # Convert the image to tensor
-                ToTensor(),])
+                # RandomHorizontalFlip(),
+                # RandomVerticalFlip(),
+                RandomRotation(15),
+                ToTensor(),
+            ])
+
+            # self.transform = Compose([
+            #     ToPILImage(),
+            #     # Random rotation within the range of -15 to 15 degrees
+            #     RandomRotation(degrees=(-15, 15)),
+            #     # Random resized crop
+            #     RandomResizedCrop(size=(256, 256), scale=(0.8, 1.0)),
+            #     # Convert the image to tensor
+            #     ToTensor(),])
         else:
             self.transform = Compose([
                 ToPILImage(),
