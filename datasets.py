@@ -5,30 +5,41 @@ from PIL import Image
 
 
 class CT_Dataset(torch.utils.data.Dataset):
-    def __init__(self, imgs_list, label_list, split, image_size=512):
+    def __init__(self, imgs_list, label_list, split, config):
         self.imgs_list = imgs_list
         self.label_list = label_list
         self.split = split
-        self.image_size = image_size
+        self.image_size = config['image_size']
+        self.config = config
 
         if self.split == 'train':
-            self.transform = torchvision.transforms.Compose([
-                torchvision.transforms.ToPILImage(),
-                # torchvision.transforms.RandomHorizontalFlip(),
-                # torchvision.transforms.RandomVerticalFlip(),
-                torchvision.transforms.RandomRotation(15),
-                # torchvision.transforms.RandomAffine(degrees=(30, 70), translate=(0.1, 0.3), scale=(0.7, 0.9)),
-                # torchvision.transforms.RandomPerspective(),
-                torchvision.transforms.RandomApply([
+
+            operations = [torchvision.transforms.ToPILImage()]
+
+            if self.config['augment']['RandomHorizontalFlip']:
+                operations.append(torchvision.transforms.RandomHorizontalFlip())
+
+            if self.config['augment']['RandomVerticalFlip']:
+                operations.append(torchvision.transforms.RandomVerticalFlip())
+
+            if self.config['augment']['RandomRotation']:
+                operations.append(torchvision.transforms.RandomRotation(15))
+
+            if self.config['augment']['ZoomIn']:
+                operations.append(torchvision.transforms.RandomApply([
                     torchvision.transforms.CenterCrop(size=480),
                     torchvision.transforms.Resize(size=(self.image_size, self.image_size)),
-                ], p=0.1),
-                torchvision.transforms.RandomApply([
+                ], p=0.1))
+            if self.config['augment']['ZoomOut']:
+                operations.append(torchvision.transforms.RandomApply([
                     torchvision.transforms.Pad(padding=20),
                     torchvision.transforms.Resize((self.image_size, self.image_size)),
-                ], p=0.1),
-                torchvision.transforms.ToTensor(),
-            ])
+                ], p=0.1))
+
+            operations += [torchvision.transforms.ToTensor()]
+
+            self.transform = torchvision.transforms.Compose(operations)
+
         else:
             self.transform = torchvision.transforms.Compose([
                 torchvision.transforms.ToPILImage(),

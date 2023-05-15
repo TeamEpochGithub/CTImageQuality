@@ -54,8 +54,8 @@ def evaluate_k_fold(config, name="model", folds=5):
     for i in range(folds):
         left_bound, right_bound = i * int(len(imgs_list) / folds), (i + 1) * int(len(imgs_list) / folds)
 
-        train_dataset = CT_Dataset(imgs_list[:left_bound] + imgs_list[right_bound:], label_list[:left_bound] + label_list[right_bound:], split="train", image_size=config['image_size'])
-        test_dataset = CT_Dataset(imgs_list[left_bound:right_bound], label_list[left_bound:right_bound], split="test", image_size=config['image_size'])
+        train_dataset = CT_Dataset(imgs_list[:left_bound] + imgs_list[right_bound:], label_list[:left_bound] + label_list[right_bound:], split="train", config=config)
+        test_dataset = CT_Dataset(imgs_list[left_bound:right_bound], label_list[left_bound:right_bound], split="test", config=config)
 
         scores_dict = train(config["model"], config, train_dataset, test_dataset)
 
