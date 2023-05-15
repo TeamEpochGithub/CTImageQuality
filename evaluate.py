@@ -36,13 +36,13 @@ def create_datalists():
     return imgs_list, label_list
 
 
-def evaluate_k_fold(model, configs, name="model", folds=5):
+def evaluate_k_fold(config, name="model", folds=5):
     wandb.login()
     run = wandb.init(
         project=f"CTImageQuality-regression",
         notes="My first experiment",
         tags=["baselines"],
-        config=configs,
+        config=config,
         name=f"{name}-average-{folds}fold"
     )
 
@@ -57,7 +57,7 @@ def evaluate_k_fold(model, configs, name="model", folds=5):
         train_dataset = CT_Dataset(imgs_list[:left_bound] + imgs_list[right_bound:], label_list[:left_bound] + label_list[right_bound:], split="train")
         test_dataset = CT_Dataset(imgs_list[left_bound:right_bound], label_list[left_bound:right_bound], split="test")
 
-        scores_dict = train(model, configs, train_dataset, test_dataset)
+        scores_dict = train(config["model"], config, train_dataset, test_dataset)
 
         best_scores.append(scores_dict['best_score'])
         best_score_epochs.append(scores_dict['best_score_epoch'])
@@ -72,27 +72,47 @@ if __name__ == '__main__':
     names = ['Efficientnet_Swin', 'Efficientnet_Swinv2', 'Resnet34_Swin', 'Resnet34_Swinv2']
     models = [Efficientnet_Swin, Efficientnet_Swinv2, Resnet34_Swin, Resnet34_Swinv2]
 
-    efficient_config = {
+    efficient_swin_config = {
+        "model": Efficientnet_Swin,
         "batch_size": 8,
-        "epochs": 1,
+        "epochs": 151,
         "lr": 3e-4,
         "min_lr": 1e-6,
         "weight_decay": 1e-4,
+        "name": 'Efficientnet_Swin'
     }
 
-    resnet_config = {
+    efficient_swinv2_config = {
+        "model": Efficientnet_Swinv2,
+        "batch_size": 8,
+        "epochs": 151,
+        "lr": 3e-4,
+        "min_lr": 1e-6,
+        "weight_decay": 1e-4,
+        "name": 'Efficientnet_Swinv2'
+    }
+
+    resnet_swin_config = {
+        "model": Resnet34_Swin,
         "batch_size": 16,
-        "epochs": 1,
+        "epochs": 151,
         "lr": 3e-4,
         "min_lr": 1e-6,
         "weight_decay": 1e-4,
+        "name": 'Resnet34_Swin'
     }
 
-    all_configs = {'Efficientnet_Swin': efficient_config,
-                   'Efficientnet_Swinv2': efficient_config,
-                   'Resnet34_Swin': resnet_config,
-                   'Resnet34_Swinv2': resnet_config
-                   }
+    resnet_swinv2_config = {
+        "model": Resnet34_Swinv2,
+        "batch_size": 16,
+        "epochs": 151,
+        "lr": 3e-4,
+        "min_lr": 1e-6,
+        "weight_decay": 1e-4,
+        "name": 'Resnet34_Swinv2'
+    }
 
-    for ind, model in enumerate(models):
-        evaluate_k_fold(model, all_configs[names[ind]], name=names[ind], folds=2)
+    all_configs = [efficient_swin_config, efficient_swinv2_config, resnet_swin_config, resnet_swinv2_config]
+
+    for config in all_configs:
+        evaluate_k_fold(config, name=config['name'], folds=5)
