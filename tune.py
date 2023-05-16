@@ -66,7 +66,7 @@ if __name__ == '__main__':
                 'values': ['Efficientnet_Swin', 'Efficientnet_Swinv2', 'Resnet34_Swin', 'Resnet34_Swinv2']
             },
             'epochs': {
-                'values': [150, 200, 250, 300, 400]
+                'values': [3]
             },
             'batch_size': {
                 'values': [2, 4, 8, 16]
@@ -78,10 +78,10 @@ if __name__ == '__main__':
                 "max": 1e-3
             },
             'lr': {
-                'values': [1e-2, 1e-3, 3e-3, 2e-4, 3e-4, 1e-4, 5e-5]
-                # "distribution": "uniform",
-                # "min": 5e-5,
-                # "max": 1e-2
+                # 'values': [1e-2, 1e-3, 3e-3, 2e-4, 3e-4, 1e-4, 5e-5]
+                "distribution": "uniform",
+                "min": 1e-4,
+                "max": 1e-2
             },
             'min_lr': {
                 # 'values': [1e-5, 1e-6, 1e-7, 1e-8]
@@ -107,7 +107,8 @@ if __name__ == '__main__':
         }
     }
 
-    sweep_id = wandb.sweep(sweep_config, project="CTImageQuality-regression")
+    # sweep_id = wandb.sweep(sweep_config, project="CTImageQuality-regression")
+    # print(sweep_id)
 
-    wandb.agent(sweep_id, hypertune, count=20)
+    wandb.agent(sweep_id='4nf8mksa', project="CTImageQuality-regression", function=hypertune, count=7)
     wandb.finish()
