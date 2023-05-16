@@ -27,8 +27,7 @@ def set_seed(seed):
 
 set_seed(0)
 
-
-def valid(model, device, criterion, val_dataloader):
+def valid(model, device, criterion, val_dataset, batch_size):
     # Validation
     model.eval()
     val_loss = 0.0
@@ -36,18 +35,22 @@ def valid(model, device, criterion, val_dataloader):
     total_gt = []
 
     with torch.no_grad():
-        for images, labels in val_dataloader:
-            images, labels = images.to(device), labels.to(device).unsqueeze(1)
+        for i in range(0, len(val_dataset), batch_size):
+            images, labels = zip(*[val_dataset[j] for j in range(i, min(i + batch_size, len(val_dataset)))])
+
+            images = torch.stack(images).to(device)
+            labels = torch.stack(labels).to(device).unsqueeze(1)
 
             outputs = model(images)
             loss = criterion(outputs, labels)
 
             val_loss += loss.item()
+            outputs = outputs.squeeze(1).cpu().numpy()
+            labels = labels.squeeze(1).cpu().numpy()
+            total_pred.append(outputs[0])
+            total_gt.append(labels[0])
 
-            total_pred.extend(outputs.squeeze().cpu().numpy())
-            total_gt.extend(labels.squeeze().cpu().numpy())
-
-    val_loss = val_loss / len(val_dataloader)
+    val_loss = val_loss / (len(val_dataset) // batch_size + (len(val_dataset) % batch_size > 0))
 
     total_pred = np.array(total_pred)
     total_gt = np.array(total_gt)
@@ -60,6 +63,38 @@ def valid(model, device, criterion, val_dataloader):
         spearmanr(total_pred, total_gt)[0]) + abs(kendalltau(total_pred, total_gt)[0])
 
     return val_loss, aggregate_results
+# def valid(model, device, criterion, val_dataloader):
+#     # Validation
+#     model.eval()
+#     val_loss = 0.0
+#     total_pred = []
+#     total_gt = []
+#
+#     with torch.no_grad():
+#         for images, labels in val_dataloader:
+#             images, labels = images.to(device), labels.to(device).unsqueeze(1)
+#
+#             outputs = model(images)
+#             loss = criterion(outputs, labels)
+#
+#             val_loss += loss.item()
+#
+#             total_pred.extend(outputs.squeeze().cpu().numpy())
+#             total_gt.extend(labels.squeeze().cpu().numpy())
+#
+#     val_loss = val_loss / len(val_dataloader)
+#
+#     total_pred = np.array(total_pred)
+#     total_gt = np.array(total_gt)
+#
+#     aggregate_results = dict()
+#     aggregate_results["plcc"] = abs(pearsonr(total_pred, total_gt)[0])
+#     aggregate_results["srocc"] = abs(spearmanr(total_pred, total_gt)[0])
+#     aggregate_results["krocc"] = abs(kendalltau(total_pred, total_gt)[0])
+#     aggregate_results["overall"] = abs(pearsonr(total_pred, total_gt)[0]) + abs(
+#         spearmanr(total_pred, total_gt)[0]) + abs(kendalltau(total_pred, total_gt)[0])
+#
+#     return val_loss, aggregate_results
 
 
 def adapt_resnet_to_grayscale(model):
@@ -137,7 +172,7 @@ def train(img_dir, label_dir, configs):
             running_loss += loss.item()
 
         train_loss = running_loss / len(train_dataloader)
-        val_loss, aggregate_results = valid(model, device, criterion, val_dataloader)
+        val_loss, aggregate_results = valid(model, device, criterion, val_dataset, 1)
         eval_score = aggregate_results['overall']
         if eval_score > best_score:
             best_score = eval_score
