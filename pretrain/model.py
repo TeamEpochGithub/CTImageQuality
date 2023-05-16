@@ -2,8 +2,6 @@ import torch
 import torch.nn as nn
 from models.swin import StageModule
 import torchvision
-import torch.nn.functional as F
-from models.swin_transformer_v2.model_parts import SwinTransformerStage
 
 # Conv Block: Conv+BatchNorm+ReLU
 class Conv_3(nn.Module):
@@ -31,6 +29,21 @@ class DConv(nn.Module):
     def forward(self, x):
         return self.conv3(x)
 
+# Single Decoder Block
+class Decoder(nn.Module):
+    def __init__(self, in_channels, middle_channels, out_channels, alpha=0.2):
+        super(Decoder, self).__init__()
+        self.up = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2)
+        self.conv_relu = nn.Sequential(
+            nn.Conv2d(middle_channels, out_channels, kernel_size=3, padding=1),
+            nn.LeakyReLU(inplace=True)
+        )
+
+    def forward(self, x1, x2):
+        x1 = self.up(x1)
+        x1 = torch.cat((x1, x2), dim=1)
+        x1 = self.conv_relu(x1)
+        return x1
 
 # Auxiliary branch of swin transformer module, conv + layernorm
 class Channel_wise(nn.Module):
@@ -108,57 +121,30 @@ class DConv_5(nn.Module):
         e5 = e5+e3
         return e5
 
-# UNet34-Swin
-class Resnet34_Swinv2(nn.Module):
+class Resnet34_Swin(nn.Module):
     def __init__(self, img_size=512, hidden_dim=64, layers=(2, 2, 18,
-                                                            2), heads=(4, 8, 16, 32), channels=1, head_dim=32,
-                 window_size=8, downscaling_factors=(2, 2, 2, 2), relative_pos_embedding=True, use_avg = True):
-        super(Resnet34_Swinv2, self).__init__()
+                                                            2), heads=(3, 6, 12, 24), channels=1, head_dim=32,
+                 window_size=8, downscaling_factors=(2, 2, 2, 2), relative_pos_embedding=True):
+        super(Resnet34_Swin, self).__init__()
         self.base_model = torchvision.models.resnet34(True)
         self.base_layers = list(self.base_model.children())
-        self.use_avg = use_avg
         self.layer0 = nn.Sequential(
-            Conv_3(channels, hidden_dim//2, 3, 2, 1),
-            Conv_3(hidden_dim//2, hidden_dim//2, 3, 1, 1),
-            Conv_3(hidden_dim//2, hidden_dim//2, 3, 1, 1),
+            Conv_3(channels, hidden_dim, 3, 2, 1),
+            Conv_3(hidden_dim, hidden_dim, 3, 1, 1),
+            Conv_3(hidden_dim, hidden_dim, 3, 1, 1),
         )
 
-        dropout_path = torch.linspace(0., 0.24, 24).tolist()
-        self.stage1 = SwinTransformerStage(
-                in_channels=hidden_dim//2,
-                depth=layers[0],
-                downscale=downscaling_factors[0],
-                input_resolution=(img_size // 2, img_size // 2),
-                number_of_heads=heads[0],
-                window_size=window_size,
-                ff_feature_ratio=4,
-                dropout=0.0,
-                dropout_attention=0.0,
-                dropout_path=dropout_path[0:2],
-                use_checkpoint=False,
-                sequential_self_attention=False,
-                use_deformable_block=False
-            )
+        self.stage1 = StageModule(in_channels=hidden_dim, hidden_dimension=hidden_dim, layers=layers[0],
+                                  downscaling_factor=downscaling_factors[0], num_heads=heads[0], head_dim=head_dim,
+                                  window_size=window_size, relative_pos_embedding=relative_pos_embedding)
 
-        self.avg1 = Channel_wise(hidden_dim // 2, hidden_dim, [hidden_dim, img_size // 4, img_size // 4])
+        self.avg1 = Channel_wise(hidden_dim, hidden_dim, [hidden_dim, img_size // 4, img_size // 4])
 
         self.res_convs1 = nn.Sequential(*self.base_layers[4])
 
-        self.stage2 = SwinTransformerStage(
-                in_channels=hidden_dim,
-                depth=layers[1],
-                downscale=downscaling_factors[1],
-                input_resolution=(img_size // 4, img_size // 4),
-                number_of_heads=heads[1],
-                window_size=window_size,
-                ff_feature_ratio=4,
-                dropout=0.0,
-                dropout_attention=0.0,
-                dropout_path=dropout_path[2:4],
-                use_checkpoint=False,
-                sequential_self_attention=False,
-                use_deformable_block=False
-            )
+        self.stage2 = StageModule(in_channels=hidden_dim, hidden_dimension=hidden_dim * 2, layers=layers[1],
+                                  downscaling_factor=downscaling_factors[1], num_heads=heads[1], head_dim=head_dim,
+                                  window_size=window_size, relative_pos_embedding=relative_pos_embedding)
 
         self.avg2 = Channel_wise(hidden_dim, hidden_dim * 2, [hidden_dim * 2, img_size // 8, img_size // 8])
 
@@ -166,59 +152,30 @@ class Resnet34_Swinv2(nn.Module):
 
         self.avg3 = Channel_wise(hidden_dim * 2, hidden_dim * 4, [hidden_dim * 4, img_size // 16, img_size // 16])
 
-        self.stage3 = SwinTransformerStage(
-                in_channels=hidden_dim*2,
-                depth=layers[2],
-                downscale=downscaling_factors[2],
-                input_resolution=(img_size // 8, img_size // 8),
-                number_of_heads=heads[2],
-                window_size=window_size,
-                ff_feature_ratio=4,
-                dropout=0.0,
-                dropout_attention=0.0,
-                dropout_path=dropout_path[4:22],
-                use_checkpoint=False,
-                sequential_self_attention=False,
-                use_deformable_block=False
-            )
+        self.stage3 = StageModule(in_channels=hidden_dim * 2, hidden_dimension=hidden_dim * 4, layers=layers[2],
+                                  downscaling_factor=downscaling_factors[2], num_heads=heads[2], head_dim=head_dim,
+                                  window_size=window_size, relative_pos_embedding=relative_pos_embedding)
 
         self.res_convs3 = nn.Sequential(*(self.base_layers[6][1:]))
 
         self.avg4 = Channel_wise(hidden_dim * 4, hidden_dim * 8, [hidden_dim * 8, img_size // 32, img_size // 32])
 
-        self.stage4 = SwinTransformerStage(
-                in_channels=hidden_dim*4,
-                depth=layers[3],
-                downscale=downscaling_factors[3],
-                input_resolution=(img_size // 16, img_size // 16),
-                number_of_heads=heads[3],
-                window_size=window_size,
-                ff_feature_ratio=4,
-                dropout=0.0,
-                dropout_attention=0.0,
-                dropout_path=dropout_path[22:],
-                use_checkpoint=False,
-                sequential_self_attention=False,
-                use_deformable_block=False
-            )
+        self.stage4 = StageModule(in_channels=hidden_dim * 4, hidden_dimension=hidden_dim * 8, layers=layers[3],
+                                  downscaling_factor=downscaling_factors[3], num_heads=heads[3], head_dim=head_dim,
+                                  window_size=window_size, relative_pos_embedding=relative_pos_embedding)
 
         self.res_convs4 = nn.Sequential(*(self.base_layers[7][1:]))
 
-        self.out_conv1 = Conv_3(512, 512, 3, 2, 1)
-        self.out_conv2 = DConv_5(512)
-        self.out_conv3 = Conv_3(512, 512, 3, 2, 1)
-        self.out_conv4 = DConv_5(512)
-
-        if self.use_avg:
-            f_size = img_size // 128
-            self.avg_pool = nn.AvgPool2d(f_size)
-        else:
-            f_size = 512 * (img_size // 128) ** 2
-            self.fc1 = nn.Linear(f_size, 512)
-            self.l_relu = nn.LeakyReLU(inplace=True)
-        self.fc2 = nn.Linear(512, 1)
-
-
+        self.decode4 = Decoder(512, 256 + 256, 256)
+        self.decode3 = Decoder(256, 128 + 128, 128)
+        self.decode2 = Decoder(128, 64 + 64, 64)
+        self.decode1 = Decoder(64, 64 + 64, 64)
+        self.decode0 = nn.Sequential(
+            nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
+            nn.Conv2d(64, 64, kernel_size=3, padding=1),
+            nn.LeakyReLU(inplace=True)
+        )
+        self.conv_last = nn.Conv2d(64, channels, 1)
 
     def forward(self, x):
         e0 = self.layer0(x)
@@ -234,21 +191,14 @@ class Resnet34_Swinv2(nn.Module):
         e4_swin_tmp = self.stage4(e3) + self.avg4(e3)
         e4 = self.res_convs4(e4_swin_tmp)+e4_swin_tmp
 
-        e4 = self.out_conv1(e4)
-        e4 = self.out_conv2(e4)+e4
-        e4 = self.out_conv3(e4)
-        outs = self.out_conv4(e4)+e4
+        d4 = self.decode4(e4, e3)  # 256,16,16
+        d3 = self.decode3(d4, e2)  # 256,32,32
+        d2 = self.decode2(d3, e1)  # 128,64,64
+        d1 = self.decode1(d2, e0)  # 64,128,128
+        d0 = self.decode0(d1)  # 64,256,256
+        out = self.conv_last(d0)  # 1,256,256
+        return out
 
-        if self.use_avg:
-            outs = self.avg_pool(outs)
-            outs = outs.reshape(outs.shape[0], -1)
-        else:
-            outs = outs.reshape(outs.shape[0], -1)
-            outs = self.l_relu(self.fc1(outs))
-        outs = 4 * F.sigmoid(self.fc2(outs))
-        return outs
-
-# ins = torch.rand((8, 1, 256, 256))
-# model = Resnet34_Swinv2()
-# ous = model(ins)
-# print(ous.shape)
+# ins = torch.rand(8, 1, 512, 512)
+# model = Resnet34_Swin()
+# print(model(ins).shape)
