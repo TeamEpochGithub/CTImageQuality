@@ -72,7 +72,7 @@ if __name__ == '__main__':
                 'values': ['Efficientnet_Swin', 'Efficientnet_Swinv2', 'Resnet34_Swin', 'Resnet34_Swinv2']
             },
             'epochs': {
-                'values': [3]
+                'values': [250]
             },
             'batch_size': {
                 'values': [2, 4, 8, 16]
