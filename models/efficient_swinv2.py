@@ -94,7 +94,7 @@ class Efficientnet_Swinv2(nn.Module):
                                                             2), heads=(4, 8, 16, 32), channels=1, head_dim=32,
                  window_size=8, downscaling_factors=(2, 2, 2, 2), relative_pos_embedding=True):
         super(Efficientnet_Swinv2, self).__init__()
-        self.input_size = configs.img_size
+        self.img_size = configs.img_size
         self.hidden_dim = hidden_dim
         self.efficientnet = EfficientNet_v1(input_dim=32)
         self.stem = nn.Sequential(
@@ -110,7 +110,7 @@ class Efficientnet_Swinv2(nn.Module):
                 in_channels=self.hidden_dim // 2,
                 depth=layers[0],
                 downscale=downscaling_factors[0],
-                input_resolution=(self.input_size // 2, self.input_size // 2),
+                input_resolution=(self.img_size // 2, self.img_size // 2),
                 number_of_heads=heads[0],
                 window_size=window_size,
                 ff_feature_ratio=4,
@@ -132,7 +132,7 @@ class Efficientnet_Swinv2(nn.Module):
                 in_channels=self.hidden_dim,
                 depth=layers[1],
                 downscale=downscaling_factors[1],
-                input_resolution=(self.input_size // 4, self.input_size // 4),
+                input_resolution=(self.img_size // 4, self.img_size // 4),
                 number_of_heads=heads[1],
                 window_size=window_size,
                 ff_feature_ratio=4,
@@ -154,7 +154,7 @@ class Efficientnet_Swinv2(nn.Module):
                 in_channels=self.hidden_dim*2,
                 depth=layers[2],
                 downscale=downscaling_factors[2],
-                input_resolution=(self.input_size // 8, self.input_size // 8),
+                input_resolution=(self.img_size // 8, self.img_size // 8),
                 number_of_heads=heads[2],
                 window_size=window_size,
                 ff_feature_ratio=4,
@@ -176,7 +176,7 @@ class Efficientnet_Swinv2(nn.Module):
                 in_channels=self.hidden_dim*4,
                 depth=layers[3],
                 downscale=downscaling_factors[3],
-                input_resolution=(self.input_size // 16, self.input_size // 16),
+                input_resolution=(self.img_size // 16, self.img_size // 16),
                 number_of_heads=heads[3],
                 window_size=window_size,
                 ff_feature_ratio=4,
@@ -200,10 +200,10 @@ class Efficientnet_Swinv2(nn.Module):
         self.out_conv4 = DConv_5(512)
 
         if self.use_avg:
-            f_size = img_size // 128
+            f_size = self.img_size // 128
             self.avg_pool = nn.AvgPool2d(f_size)
         else:
-            f_size = 512 * (img_size // 128) ** 2
+            f_size = 512 * (self.img_size // 128) ** 2
             self.fc1 = nn.Linear(f_size, 512)
             self.l_relu = nn.LeakyReLU(inplace=True)
         self.fc2 = nn.Linear(512, 1)

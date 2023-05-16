@@ -121,15 +121,15 @@ if __name__ == '__main__':
                 "min": 5,
                 "max": 20
             },
-            'zoomout_factor': {
-                "distribution": "uniform",
-                "min": 0.05,
-                "max": 0.3
-            },
             'zoomin_factor': {
                 "distribution": "uniform",
                 "min": 0.8,
                 "max": 0.95
+            },
+            'zoomout_factor': {
+                "distribution": "uniform",
+                "min": 0.05,
+                "max": 0.3
             }
         }
     }
