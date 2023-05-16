@@ -6,7 +6,8 @@ import json
 
 import os.path as osp
 import os
-
+from models.efficientnet import load_efficientnet_model
+from models.resnet import load_resnet_model
 from models.efficient_swin import Efficientnet_Swin
 from models.efficient_swinv2 import Efficientnet_Swinv2
 from models.res34_swin import Resnet34_Swin
@@ -120,6 +121,18 @@ if __name__ == '__main__':
         "min_lr": 1e-6,
         "weight_decay": 1e-4,
         "name": 'Resnet34_Swinv2',
+        'image_size': image_size,
+        'augment': aug_config
+    }
+
+    effientnet_config = {
+        "model": load_efficientnet_model('b0'),
+        "batch_size": 32,
+        "epochs": 3,
+        "lr": 3e-4,
+        "min_lr": 1e-6,
+        "weight_decay": 1e-4,
+        "name": 'Efficientnet_B0',
         'image_size': image_size,
         'augment': aug_config
     }

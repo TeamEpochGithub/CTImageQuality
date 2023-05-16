@@ -69,12 +69,18 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch):
     return best_score, best_score_epoch
 
 
-def train(model, configs, train_dataset, test_dataset, judge_mix):
+def train(model, configs, train_dataset, test_dataset, judge_mix, judge_b0):
     train_loader = DataLoader(train_dataset, batch_size=configs.batch_size, shuffle=True)
     if judge_mix:
-        model = model(img_size=configs.img_size, use_avg = configs.use_avg, use_mix = configs.use_mix).cuda()
+        if "Swin" in configs["name"]:
+            model = model(configs).cuda()  # img_size=configs.img_size, use_avg=configs.use_avg, use_mix=configs.use_mix).cuda()
+        else:
+            model = model.cuda()
     else:
-        model = model(img_size=configs.img_size, use_avg=configs.use_avg).cuda()
+        if "Swin" in configs["name"]:
+            model = model(img_size=configs.img_size, use_avg=configs.use_avg).cuda()
+        else:
+            model = model.cuda()
 
     optimizer = optim.AdamW(model.parameters(), lr=configs.lr, betas=(0.9, 0.999), eps=1e-8,
                             weight_decay=configs.weight_decay)
@@ -110,4 +116,3 @@ def train(model, configs, train_dataset, test_dataset, judge_mix):
             best_score, best_score_epoch = valid(model, test_dataset, best_score, best_score_epoch, epoch)
 
     return {"best_score": best_score, "best_score_epoch": best_score_epoch, "best_loss": best_loss}
-

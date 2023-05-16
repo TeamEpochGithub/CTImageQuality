@@ -161,6 +161,7 @@ class Efficientnet_Swin(nn.Module):
                                                             2), heads=(4, 8, 16, 32), channels=1, head_dim=32,
                  window_size=8, downscaling_factors=(2, 2, 2, 2), relative_pos_embedding=True, use_mix=True, use_avg = True):
         super(Efficientnet_Swin, self).__init__()
+        self.img_size = configs.img_size
         self.base_model = torchvision.models.resnet34(True)
         self.base_layers = list(self.base_model.children())
         self.layer0 = nn.Sequential(

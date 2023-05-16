@@ -4,6 +4,8 @@ from models.efficient_swin import Efficientnet_Swin
 from models.efficient_swinv2 import Efficientnet_Swinv2
 from models.res34_swin import Resnet34_Swin
 from models.res34_swinv2 import Resnet34_Swinv2
+from models.efficientnet import load_efficientnet_model
+from models.resnet import load_resnet_model
 from train import train
 import wandb
 
@@ -34,12 +36,16 @@ def hypertune():
     print("config:", wandb.config)
 
     models = {'Efficientnet_Swin': Efficientnet_Swin, 'Efficientnet_Swinv2': Efficientnet_Swinv2,
-              'Resnet34_Swin': Resnet34_Swin, 'Resnet34_Swinv2': Resnet34_Swinv2}
+              'Resnet34_Swin': Resnet34_Swin, 'Resnet34_Swinv2': Resnet34_Swinv2, 'Efficientnet_B0': load_efficientnet_model('b0')}
 
     judge_mix = True
+    judge_b0 = False
     if "Resnet34" in wandb.config.model:
         model = models[wandb.config.model]
         judge_mix = False
+    if "B0" in wandb.config.model:
+        model = models[wandb.config.model]
+        judge_b0 = True
 
     imgs_list, label_list = create_datalists()
 
@@ -50,7 +56,7 @@ def hypertune():
     test_dataset = CT_Dataset(imgs_list[left_bound:right_bound], label_list[left_bound:right_bound], split="test",
                               config=wandb.config)
 
-    scores_dict = train(model, wandb.config, train_dataset, test_dataset, judge_mix)
+    scores_dict = train(model, wandb.config, train_dataset, test_dataset, judge_mix, judge_b0)
 
     wandb.log({"best_score": scores_dict['best_score']})
 
@@ -69,7 +75,7 @@ if __name__ == '__main__':
                 'values': [256, 512]
             },
             'model': {
-                'values': ['Efficientnet_Swin', 'Efficientnet_Swinv2', 'Resnet34_Swin', 'Resnet34_Swinv2']
+                'values': ['Efficientnet_Swin', 'Efficientnet_Swinv2', 'Resnet34_Swin', 'Resnet34_Swinv2', 'Efficientnet_B0']
             },
             'epochs': {
                 'values': [3]
