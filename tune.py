@@ -22,7 +22,10 @@ def hypertune():
         'ZoomIn': False,
         'ZoomOut': False,
         'use_mix': True,
-        'use_avg': True
+        'use_avg': True,
+        'rotation_angle': 15,
+        'zoomout_factor': 0.15,
+        'zoomin_factor': 0.9
     }
 
     wandb.init(
