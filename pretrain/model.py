@@ -199,6 +199,6 @@ class Resnet34_Swin(nn.Module):
         out = self.conv_last(d0)  # 1,256,256
         return out
 
-ins = torch.rand(8, 1, 512, 512)
-model = Resnet34_Swin()
-print(model(ins).shape)
+# ins = torch.rand(8, 1, 512, 512)
+# model = Resnet34_Swin()
+# print(model(ins).shape)

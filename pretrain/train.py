@@ -23,11 +23,11 @@ def set_seed(seed):
     np.random.seed(seed)
     random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
+
 set_seed(0)
 
-
 class CT_Dataset(Dataset):
-    def __init__(self, mode, saved_path, test_patient, transform=None):
+    def __init__(self, mode, saved_path, test_patient="test", transform=None):
         assert mode in ['train', 'test'], "mode is 'train' or 'test'"
 
         input_path = sorted(glob(os.path.join(saved_path, '*input*.npy')))
@@ -121,8 +121,8 @@ def test(model, test_dataset, mx, mn):
 
 def train(configs):
     data_path = osp.join(osp.dirname(pretrain.__file__), 'npy_imgs')
-    train_dataset = CT_Dataset("train", saved_path=data_path, test_patient="test", transform=train_transform)
-    test_dataset = CT_Dataset("test", saved_path=data_path, test_patient="test", transform=test_transform)
+    train_dataset = CT_Dataset("train", saved_path=data_path, transform=train_transform)
+    test_dataset = CT_Dataset("test", saved_path=data_path, transform=test_transform)
     train_loader = DataLoader(train_dataset, batch_size=configs["batch_size"], shuffle=True)
 
     mx, mn = statistics(data_path)
@@ -155,7 +155,7 @@ def train(configs):
 
 if __name__ == '__main__':
     configs = {
-        "batch_size": 4,
+        "batch_size": 8,
         "epochs": 200,
         "lr": 3e-4,
         "min_lr": 1e-6,
