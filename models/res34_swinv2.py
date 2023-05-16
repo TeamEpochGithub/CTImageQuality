@@ -123,7 +123,7 @@ class Resnet34_Swinv2(nn.Module):
             Conv_3(hidden_dim//2, hidden_dim//2, 3, 1, 1),
         )
 
-        dropout_path = torch.linspace(0., 0.2, 8).tolist()
+        dropout_path = torch.linspace(0., 0.24, 24).tolist()
         self.stage1 = SwinTransformerStage(
                 in_channels=hidden_dim//2,
                 depth=layers[0],
@@ -176,7 +176,7 @@ class Resnet34_Swinv2(nn.Module):
                 ff_feature_ratio=4,
                 dropout=0.0,
                 dropout_attention=0.0,
-                dropout_path=dropout_path[4:6],
+                dropout_path=dropout_path[4:22],
                 use_checkpoint=False,
                 sequential_self_attention=False,
                 use_deformable_block=False
@@ -196,7 +196,7 @@ class Resnet34_Swinv2(nn.Module):
                 ff_feature_ratio=4,
                 dropout=0.0,
                 dropout_attention=0.0,
-                dropout_path=dropout_path[6:8],
+                dropout_path=dropout_path[22:],
                 use_checkpoint=False,
                 sequential_self_attention=False,
                 use_deformable_block=False

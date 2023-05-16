@@ -102,7 +102,7 @@ class Efficientnet_Swinv2(nn.Module):
             Conv_3(self.hidden_dim, self.hidden_dim, 3, 1, 1),
             Conv_3(self.hidden_dim, self.hidden_dim // 2, 3, 1, 1),
         )
-        dropout_path = torch.linspace(0., 0.2, 8).tolist()
+        dropout_path = torch.linspace(0., 0.24, 24).tolist()
         self.use_mix = use_mix
         self.use_avg = use_avg
 
@@ -150,7 +150,6 @@ class Efficientnet_Swinv2(nn.Module):
             self.conv21 = Conv_3(hidden_dim * 4, hidden_dim * 2, 3, 1, 1)
             self.conv22 = DConv_5(hidden_dim * 2)
 
-
         self.stage3 = SwinTransformerStage(
                 in_channels=self.hidden_dim*2,
                 depth=layers[2],
@@ -161,7 +160,7 @@ class Efficientnet_Swinv2(nn.Module):
                 ff_feature_ratio=4,
                 dropout=0.0,
                 dropout_attention=0.0,
-                dropout_path=dropout_path[4:6],
+                dropout_path=dropout_path[4:22],
                 use_checkpoint=False,
                 sequential_self_attention=False,
                 use_deformable_block=False
@@ -183,7 +182,7 @@ class Efficientnet_Swinv2(nn.Module):
                 ff_feature_ratio=4,
                 dropout=0.0,
                 dropout_attention=0.0,
-                dropout_path=dropout_path[6:8],
+                dropout_path=dropout_path[22:24],
                 use_checkpoint=False,
                 sequential_self_attention=False,
                 use_deformable_block=False
@@ -211,7 +210,7 @@ class Efficientnet_Swinv2(nn.Module):
 
     def forward(self, x):
         if self.use_mix:
-            e0 = self.layer0(x)
+            e0 = self.stem(x)
             e1_swin_tmp = self.stage1(e0)
             e1_res = self.eff1(e0)
             e1_swin_tmp, e1_res = self.mix1(e1_swin_tmp, e1_res)
@@ -249,7 +248,7 @@ class Efficientnet_Swinv2(nn.Module):
 
         e4 = torch.cat((e4_swin_tmp, e4_res), dim=1)
         e4 = self.conv41(e4)
-        e4 = self.con42(e4) + e4
+        e4 = self.conv42(e4) + e4
 
         e4 = self.out_conv1(e4)
         e4 = self.out_conv2(e4)+e4

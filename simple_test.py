@@ -170,14 +170,14 @@ def train(model, configs):
     return {"best_score": best_score, "best_score_epoch": best_score_epoch, "best_loss": best_loss}
 
 if __name__ == '__main__':
-    image_size = 512
+    image_size = 256
     resnet_swin_config = {
-        "batch_size": 4,
+        "batch_size": 2,
         "epochs": 200,
         "lr": 3e-4,
         "min_lr": 1e-6,
         "weight_decay": 1e-4,
-        "name": 'Resnet34_Swinv2',
+        "name": 'Efficientnet_Swinv2',
         'image_size': image_size,
     }
-    train(Resnet34_Swin, resnet_swin_config)
+    train(Efficientnet_Swinv2, resnet_swin_config)
