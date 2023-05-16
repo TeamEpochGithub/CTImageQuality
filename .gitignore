@@ -1,4 +1,4 @@
-./LDCTIQAG2023_train
+pretrain/
 LDCTIQAG2023_train
 weight.pkl
 data/
@@ -168,3 +168,4 @@ cython_debug/
 .idea/
 .idea
 
+/pretrain/npy_imgs/
