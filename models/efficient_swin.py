@@ -157,9 +157,9 @@ class MixBlock(nn.Module):
 
 
 class Efficientnet_Swin(nn.Module):
-    def __init__(self, img_size=512, hidden_dim=64, layers=(2, 2, 18,
+    def __init__(self, configs, hidden_dim=64, layers=(2, 2, 18,
                                                             2), heads=(4, 8, 16, 32), channels=1, head_dim=32,
-                 window_size=8, downscaling_factors=(2, 2, 2, 2), relative_pos_embedding=True, use_mix=True, use_avg = True):
+                 window_size=8, downscaling_factors=(2, 2, 2, 2), relative_pos_embedding=True):
         super(Efficientnet_Swin, self).__init__()
         self.base_model = torchvision.models.resnet34(True)
         self.base_layers = list(self.base_model.children())
@@ -175,8 +175,9 @@ class Efficientnet_Swin(nn.Module):
 
         self.efficient_model = EfficientNet_v1(input_dim=64)
         self.res_convs1 = self.efficient_model.blocks1
-        self.use_mix = use_mix
-        self.use_avg = use_avg
+        self.img_size = configs.img_size
+        self.use_mix = configs.use_mix
+        self.use_avg = configs.use_avg
 
         if self.use_mix:
             self.mix1 = MixBlock(hidden_dim)
@@ -223,10 +224,10 @@ class Efficientnet_Swin(nn.Module):
         self.out_conv4 = DConv_5(512)
 
         if self.use_avg:
-            f_size = img_size // 128
+            f_size = self.img_size // 128
             self.avg_pool = nn.AvgPool2d(f_size)
         else:
-            f_size = 512 * (img_size // 128) ** 2
+            f_size = 512 * (self.img_size // 128) ** 2
             self.fc1 = nn.Linear(f_size, 512)
             self.l_relu = nn.LeakyReLU(inplace=True)
         self.fc2 = nn.Linear(512, 1)

@@ -110,13 +110,16 @@ class DConv_5(nn.Module):
 
 # UNet34-Swin
 class Resnet34_Swinv2(nn.Module):
-    def __init__(self, img_size=512, hidden_dim=64, layers=(2, 2, 18,
+    def __init__(self, configs, hidden_dim=64, layers=(2, 2, 18,
                                                             2), heads=(4, 8, 16, 32), channels=1, head_dim=32,
-                 window_size=8, downscaling_factors=(2, 2, 2, 2), relative_pos_embedding=True, use_avg = True):
+                 window_size=8, downscaling_factors=(2, 2, 2, 2), relative_pos_embedding=True):
         super(Resnet34_Swinv2, self).__init__()
         self.base_model = torchvision.models.resnet34(True)
         self.base_layers = list(self.base_model.children())
-        self.use_avg = use_avg
+
+        self.img_size = configs.img_size
+        self.use_avg = configs.use_avg
+
         self.layer0 = nn.Sequential(
             Conv_3(channels, hidden_dim//2, 3, 2, 1),
             Conv_3(hidden_dim//2, hidden_dim//2, 3, 1, 1),
@@ -128,7 +131,7 @@ class Resnet34_Swinv2(nn.Module):
                 in_channels=hidden_dim//2,
                 depth=layers[0],
                 downscale=downscaling_factors[0],
-                input_resolution=(img_size // 2, img_size // 2),
+                input_resolution=(self.img_size // 2, self.img_size // 2),
                 number_of_heads=heads[0],
                 window_size=window_size,
                 ff_feature_ratio=4,
@@ -140,7 +143,7 @@ class Resnet34_Swinv2(nn.Module):
                 use_deformable_block=False
             )
 
-        self.avg1 = Channel_wise(hidden_dim // 2, hidden_dim, [hidden_dim, img_size // 4, img_size // 4])
+        self.avg1 = Channel_wise(hidden_dim // 2, hidden_dim, [hidden_dim, self.img_size // 4, self.img_size // 4])
 
         self.res_convs1 = nn.Sequential(*self.base_layers[4])
 
@@ -148,7 +151,7 @@ class Resnet34_Swinv2(nn.Module):
                 in_channels=hidden_dim,
                 depth=layers[1],
                 downscale=downscaling_factors[1],
-                input_resolution=(img_size // 4, img_size // 4),
+                input_resolution=(self.img_size // 4, self.img_size // 4),
                 number_of_heads=heads[1],
                 window_size=window_size,
                 ff_feature_ratio=4,
@@ -160,17 +163,17 @@ class Resnet34_Swinv2(nn.Module):
                 use_deformable_block=False
             )
 
-        self.avg2 = Channel_wise(hidden_dim, hidden_dim * 2, [hidden_dim * 2, img_size // 8, img_size // 8])
+        self.avg2 = Channel_wise(hidden_dim, hidden_dim * 2, [hidden_dim * 2, self.img_size // 8, self.img_size // 8])
 
         self.res_convs2 = nn.Sequential(*(self.base_layers[5][1:]))
 
-        self.avg3 = Channel_wise(hidden_dim * 2, hidden_dim * 4, [hidden_dim * 4, img_size // 16, img_size // 16])
+        self.avg3 = Channel_wise(hidden_dim * 2, hidden_dim * 4, [hidden_dim * 4, self.img_size // 16, self.img_size // 16])
 
         self.stage3 = SwinTransformerStage(
                 in_channels=hidden_dim*2,
                 depth=layers[2],
                 downscale=downscaling_factors[2],
-                input_resolution=(img_size // 8, img_size // 8),
+                input_resolution=(self.img_size // 8, self.img_size // 8),
                 number_of_heads=heads[2],
                 window_size=window_size,
                 ff_feature_ratio=4,
@@ -184,13 +187,13 @@ class Resnet34_Swinv2(nn.Module):
 
         self.res_convs3 = nn.Sequential(*(self.base_layers[6][1:]))
 
-        self.avg4 = Channel_wise(hidden_dim * 4, hidden_dim * 8, [hidden_dim * 8, img_size // 32, img_size // 32])
+        self.avg4 = Channel_wise(hidden_dim * 4, hidden_dim * 8, [hidden_dim * 8, self.img_size // 32, self.img_size // 32])
 
         self.stage4 = SwinTransformerStage(
                 in_channels=hidden_dim*4,
                 depth=layers[3],
                 downscale=downscaling_factors[3],
-                input_resolution=(img_size // 16, img_size // 16),
+                input_resolution=(self.img_size // 16, self.img_size // 16),
                 number_of_heads=heads[3],
                 window_size=window_size,
                 ff_feature_ratio=4,
@@ -210,10 +213,10 @@ class Resnet34_Swinv2(nn.Module):
         self.out_conv4 = DConv_5(512)
 
         if self.use_avg:
-            f_size = img_size // 128
+            f_size = self.img_size // 128
             self.avg_pool = nn.AvgPool2d(f_size)
         else:
-            f_size = 512 * (img_size // 128) ** 2
+            f_size = 512 * (self.img_size // 128) ** 2
             self.fc1 = nn.Linear(f_size, 512)
             self.l_relu = nn.LeakyReLU(inplace=True)
         self.fc2 = nn.Linear(512, 1)

@@ -90,11 +90,11 @@ class DConv_5(nn.Module):
 
 
 class Efficientnet_Swinv2(nn.Module):
-    def __init__(self, img_size=512, hidden_dim=64, layers=(2, 2, 18,
+    def __init__(self, configs, hidden_dim=64, layers=(2, 2, 18,
                                                             2), heads=(4, 8, 16, 32), channels=1, head_dim=32,
-                 window_size=8, downscaling_factors=(2, 2, 2, 2), relative_pos_embedding=True, use_mix = True, use_avg = True):
+                 window_size=8, downscaling_factors=(2, 2, 2, 2), relative_pos_embedding=True):
         super(Efficientnet_Swinv2, self).__init__()
-        self.input_size = img_size
+        self.input_size = configs.img_size
         self.hidden_dim = hidden_dim
         self.efficientnet = EfficientNet_v1(input_dim=32)
         self.stem = nn.Sequential(
@@ -103,8 +103,8 @@ class Efficientnet_Swinv2(nn.Module):
             Conv_3(self.hidden_dim, self.hidden_dim // 2, 3, 1, 1),
         )
         dropout_path = torch.linspace(0., 0.24, 24).tolist()
-        self.use_mix = use_mix
-        self.use_avg = use_avg
+        self.use_mix = configs.use_mix
+        self.use_avg = configs.use_avg
 
         self.stage1 = SwinTransformerStage(
                 in_channels=self.hidden_dim // 2,

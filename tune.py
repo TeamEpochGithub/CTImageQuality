@@ -36,10 +36,7 @@ def hypertune():
     models = {'Efficientnet_Swin': Efficientnet_Swin, 'Efficientnet_Swinv2': Efficientnet_Swinv2,
               'Resnet34_Swin': Resnet34_Swin, 'Resnet34_Swinv2': Resnet34_Swinv2}
 
-    judge_mix = True
-    if "Resnet34" in wandb.config.model:
-        model = models[wandb.config.model]
-        judge_mix = False
+    model = models[wandb.config.model]
 
     imgs_list, label_list = create_datalists()
 
@@ -50,7 +47,7 @@ def hypertune():
     test_dataset = CT_Dataset(imgs_list[left_bound:right_bound], label_list[left_bound:right_bound], split="test",
                               config=wandb.config)
 
-    scores_dict = train(model, wandb.config, train_dataset, test_dataset, judge_mix)
+    scores_dict = train(model, wandb.config, train_dataset, test_dataset)
 
     wandb.log({"best_score": scores_dict['best_score']})
 
@@ -115,6 +112,21 @@ if __name__ == '__main__':
             },
             'use_avg': {
                 'values': [True, False]
+            },
+            'rotation_angle': {
+                "distribution": "uniform",
+                "min": 5,
+                "max": 20
+            },
+            'zoomout_factor': {
+                "distribution": "uniform",
+                "min": 0.05,
+                "max": 0.3
+            },
+            'zoomin_factor': {
+                "distribution": "uniform",
+                "min": 0.8,
+                "max": 0.95
             }
         }
     }
