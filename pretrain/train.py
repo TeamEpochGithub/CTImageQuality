@@ -172,7 +172,7 @@ def train(configs):
 if __name__ == '__main__':
     configs = {
         "batch_size": 4,
-        "epochs": 200,
+        "epochs": 500,
         "lr": 3e-4,
         "min_lr": 1e-6,
         "weight_decay": 1e-4,
