@@ -52,7 +52,7 @@ def hypertune():
 
     scores_dict = train(model, wandb.config, train_dataset, test_dataset)
 
-    wandb.log({"best_score": scores_dict['best_score']})
+    wandb.log({"best_score": scores_dict['best_score'], "best_score_epoch": scores_dict['best_score_epoch']})
 
     wandb.finish()
 
