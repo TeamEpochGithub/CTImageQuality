@@ -175,9 +175,9 @@ class Efficientnet_Swin(nn.Module):
 
         self.efficient_model = EfficientNet_v1(input_dim=64)
         self.res_convs1 = self.efficient_model.blocks1
-        self.img_size = configs.img_size
-        self.use_mix = configs.use_mix
-        self.use_avg = configs.use_avg
+        self.img_size = configs["img_size"]
+        self.use_mix = configs["use_mix"]
+        self.use_avg = configs["use_avg"]
 
         if self.use_mix:
             self.mix1 = MixBlock(hidden_dim)
