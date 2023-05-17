@@ -9,7 +9,7 @@ parameters:
   model:
     values: ['Efficientnet_Swin', 'Efficientnet_Swinv2', 'Resnet34_Swin', 'Resnet34_Swinv2']
   epochs:
-    values: [3]
+    values: [15]
   batch_size:
     values: [2, 4, 8, 16]
   weight_decay:

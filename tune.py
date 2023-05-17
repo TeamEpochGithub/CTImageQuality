@@ -56,7 +56,7 @@ def hypertune():
 
 
 if __name__ == '__main__':
-    wandb.login()
+    # wandb.login()
 
     sweep_config = {
         'method': 'bayes',
@@ -133,8 +133,9 @@ if __name__ == '__main__':
             }
         }
     }
-
+    # sweep_config = wandb.sweep("sweep.yaml", project="CTImageQuality-regression")
     # sweep_id = wandb.sweep(sweep_config, project="CTImageQuality-regression")
-
-    wandb.agent(sweep_id='4nf8mksa', project="CTImageQuality-regression", function=hypertune, count=7)
-    wandb.finish()
+    # print(sweep_id)
+    #
+    # wandb.agent(sweep_id=sweep_id,project="CTImageQuality-regression", function=hypertune, count=7)
+    # wandb.finish()

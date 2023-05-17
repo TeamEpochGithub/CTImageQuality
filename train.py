@@ -103,7 +103,7 @@ def train(model, configs, train_dataset, test_dataset):
             best_loss = loss
         print("epoch:", epoch, "loss:", loss, "lr:", lr_scheduler.get_last_lr())
 
-        if epoch % 15 == 0:
+        if epoch % 1 == 0:
             best_score, best_score_epoch = valid(model, test_dataset, best_score, best_score_epoch, epoch)
 
     return {"best_score": best_score, "best_score_epoch": best_score_epoch, "best_loss": best_loss}
