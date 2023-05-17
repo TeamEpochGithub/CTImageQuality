@@ -170,3 +170,5 @@ cython_debug/
 /pretrain/npy_imgs/
 /pretrain/weights/
 /pretrain/output_imgs/
+
+/tt.py

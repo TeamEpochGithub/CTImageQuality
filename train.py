@@ -7,12 +7,6 @@ import numpy as np
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-
-from datasets import CT_Dataset
-from models.res34_swin import Resnet34_Swin
-from models.res34_swinv2 import Resnet34_Swinv2
-from models.efficient_swinv2 import Efficientnet_Swinv2
-from models.efficient_swin import Efficientnet_Swin
 import pytorch_warmup as warmup
 from scipy.stats import pearsonr, spearmanr, kendalltau
 import wandb
@@ -69,9 +63,16 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch):
     return best_score, best_score_epoch
 
 
-def train(model, configs, train_dataset, test_dataset):
+def train(model, configs, train_dataset, test_dataset, pretrain = True):
     train_loader = DataLoader(train_dataset, batch_size=configs.batch_size, shuffle=True)
     model = model(configs=configs).cuda()
+
+    if pretrain:
+        weight_path = osp.join(osp.dirname(osp.abspath(__file__)), "pretrain\weights\pretrain_weight.pkl")
+        pre_weights = torch.load(weight_path, map_location=torch.device("cuda"))
+        for name, param in model.named_parameters():
+            if name in pre_weights:
+                param.data.copy_(pre_weights[name])
 
     optimizer = optim.AdamW(model.parameters(), lr=configs.lr, betas=(0.9, 0.999), eps=1e-8,
                             weight_decay=configs.weight_decay)

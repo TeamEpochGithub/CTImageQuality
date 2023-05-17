@@ -101,8 +101,8 @@ class Resnet34_Swin(nn.Module):
         super(Resnet34_Swin, self).__init__()
         self.base_model = torchvision.models.resnet34(True)
         self.base_layers = list(self.base_model.children())
-        self.img_size = configs.img_size
-        self.use_avg = configs.use_avg
+        self.img_size = configs["img_size"]
+        self.use_avg = configs["use_avg"]
         self.layer0 = nn.Sequential(
             Conv_3(channels, hidden_dim, 3, 2, 1),
             Conv_3(hidden_dim, hidden_dim, 3, 1, 1),
