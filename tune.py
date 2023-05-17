@@ -29,10 +29,10 @@ def hypertune():
     }
 
     wandb.init(
-        project=f"CTImageQuality-regression",
-        notes="My first experiment",
-        tags=["baselines"],
-        config=config_defaults,
+        # project=f"CTImageQuality-regression",
+        # notes="My first experiment",
+        # tags=["baselines"],
+        # config=config_defaults,
     )
     print("config:", wandb.config)
 
@@ -53,6 +53,8 @@ def hypertune():
     scores_dict = train(model, wandb.config, train_dataset, test_dataset)
 
     wandb.log({"best_score": scores_dict['best_score']})
+
+    wandb.finish()
 
 
 if __name__ == '__main__':
@@ -133,9 +135,12 @@ if __name__ == '__main__':
             }
         }
     }
+
+    hypertune()
+
     # sweep_config = wandb.sweep("sweep.yaml", project="CTImageQuality-regression")
     # sweep_id = wandb.sweep(sweep_config, project="CTImageQuality-regression")
     # print(sweep_id)
     #
-    # wandb.agent(sweep_id=sweep_id,project="CTImageQuality-regression", function=hypertune, count=7)
+    # wandb.agent(sweep_id=sweep_id, project="CTImageQuality-regression", function=hypertune, count=7)
     # wandb.finish()
