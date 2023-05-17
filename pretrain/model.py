@@ -1,9 +1,10 @@
 import torch
 import torch.nn as nn
 import sys
-sys.path.append('../')
-from models.swin import StageModule
+
+from swin import StageModule
 import torchvision
+
 
 # Conv Block: Conv+BatchNorm+ReLU
 class Conv_3(nn.Module):
@@ -18,6 +19,7 @@ class Conv_3(nn.Module):
     def forward(self, x):
         return self.conv3(x)
 
+
 # DConv Block: DConv+BatchNorm+ReLU
 class DConv(nn.Module):
     def __init__(self, in_channels, out_channels, kernel, stride, padding, dilation, alpha=0.2):
@@ -30,6 +32,7 @@ class DConv(nn.Module):
 
     def forward(self, x):
         return self.conv3(x)
+
 
 # Single Decoder Block
 class Decoder(nn.Module):
@@ -47,6 +50,7 @@ class Decoder(nn.Module):
         x1 = self.conv_relu(x1)
         return x1
 
+
 # Auxiliary branch of swin transformer module, conv + layernorm
 class Channel_wise(nn.Module):
     def __init__(self, in_channels, out_channels, sizes):
@@ -60,13 +64,14 @@ class Channel_wise(nn.Module):
     def forward(self, x):
         return self.avg(x)
 
+
 # MCNN (3 layers)
 class DConv_3(nn.Module):
     def __init__(self, channels, alpha=0.2):
         super().__init__()
         self.layer1 = Conv_3(channels, channels, 3, 1, 1)
         self.layer2 = nn.Sequential(
-            nn.Conv2d(channels, channels,3, 1, padding=2, dilation=2),
+            nn.Conv2d(channels, channels, 3, 1, padding=2, dilation=2),
             nn.BatchNorm2d(channels, affine=True),
             nn.LeakyReLU(inplace=True)
         )
@@ -75,10 +80,11 @@ class DConv_3(nn.Module):
     def forward(self, x):
         e1 = self.layer1(x)
         e2 = self.layer2(e1)
-        e2 = e2+x
+        e2 = e2 + x
         e3 = self.layer3(e2)
-        e3 = e3+e1
+        e3 = e3 + e1
         return e3
+
 
 # Conv*2
 class DConv_2(nn.Module):
@@ -90,8 +96,9 @@ class DConv_2(nn.Module):
     def forward(self, x):
         e1 = self.layer1(x)
         e2 = self.layer2(e1)
-        e2=e2+x
+        e2 = e2 + x
         return e2
+
 
 # MCNN (5 layers)
 class DConv_5(nn.Module):
@@ -99,13 +106,13 @@ class DConv_5(nn.Module):
         super().__init__()
         self.layer1 = Conv_3(channels, channels, 3, 1, 1)
         self.layer2 = nn.Sequential(
-            nn.Conv2d(channels, channels,3, 1, padding=2, dilation=2),
+            nn.Conv2d(channels, channels, 3, 1, padding=2, dilation=2),
             nn.BatchNorm2d(channels, affine=True),
             nn.LeakyReLU(inplace=True)
         )
         self.layer3 = Conv_3(channels, channels, 3, 1, 1)
         self.layer4 = nn.Sequential(
-            nn.Conv2d(channels, channels,3, 1, padding=4, dilation=4),
+            nn.Conv2d(channels, channels, 3, 1, padding=4, dilation=4),
             nn.BatchNorm2d(channels, affine=True),
             nn.LeakyReLU(inplace=True)
         )
@@ -114,18 +121,19 @@ class DConv_5(nn.Module):
     def forward(self, x):
         e1 = self.layer1(x)
         e2 = self.layer2(e1)
-        e2 = e2+x
+        e2 = e2 + x
         e3 = self.layer3(e2)
-        e3 = e3+e1
+        e3 = e3 + e1
         e4 = self.layer4(e3)
-        e4 = e4+e2
+        e4 = e4 + e2
         e5 = self.layer5(e4)
-        e5 = e5+e3
+        e5 = e5 + e3
         return e5
+
 
 class Resnet34_Swin(nn.Module):
     def __init__(self, img_size=512, hidden_dim=64, layers=(2, 2, 18,
-                                                            2), heads=(3, 6, 12, 24), channels=1, head_dim=32,
+                                                            2), heads=(4, 8, 16, 32), channels=1, head_dim=32,
                  window_size=8, downscaling_factors=(2, 2, 2, 2), relative_pos_embedding=True):
         super(Resnet34_Swin, self).__init__()
         self.base_model = torchvision.models.resnet34(True)
@@ -182,16 +190,16 @@ class Resnet34_Swin(nn.Module):
     def forward(self, x):
         e0 = self.layer0(x)
         e1_swin_tmp = self.stage1(e0) + self.avg1(e0)
-        e1 = self.res_convs1(e1_swin_tmp)+e1_swin_tmp
+        e1 = self.res_convs1(e1_swin_tmp) + e1_swin_tmp
 
         e2_swin_tmp = self.stage2(e1) + self.avg2(e1)
-        e2 = self.res_convs2(e2_swin_tmp)+e2_swin_tmp
+        e2 = self.res_convs2(e2_swin_tmp) + e2_swin_tmp
 
         e3_swin_tmp = self.stage3(e2) + self.avg3(e2)
-        e3 = self.res_convs3(e3_swin_tmp)+e3_swin_tmp
+        e3 = self.res_convs3(e3_swin_tmp) + e3_swin_tmp
 
         e4_swin_tmp = self.stage4(e3) + self.avg4(e3)
-        e4 = self.res_convs4(e4_swin_tmp)+e4_swin_tmp
+        e4 = self.res_convs4(e4_swin_tmp) + e4_swin_tmp
 
         d4 = self.decode4(e4, e3)  # 256,16,16
         d3 = self.decode3(d4, e2)  # 256,32,32

@@ -9,9 +9,14 @@ import torch.nn.functional as F
 from albumentations.pytorch import ToTensorV2
 from torch.utils.data import DataLoader, Dataset
 import os.path as osp
+
+from tqdm import tqdm
+
 from model import Resnet34_Swin
 import pytorch_warmup as warmup
 from measure import compute_PSNR, compute_SSIM
+from torch.nn.parallel import DistributedDataParallel as DDP
+
 
 def set_seed(seed):
     """Set all random seeds and settings for reproducibility (deterministic behavior)."""
@@ -23,8 +28,9 @@ def set_seed(seed):
     random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
 
+
 set_seed(0)
-pretrain_path = osp.abspath(osp.dirname(osp.dirname(__file__)))
+pretrain_path = osp.dirname(__file__)
 
 class CT_Dataset(Dataset):
     def __init__(self, mode, saved_path, test_patient="test", norm=True, transform=None):
@@ -53,12 +59,13 @@ class CT_Dataset(Dataset):
         input_img, target_img = self.input_[idx], self.target_[idx]
         input_img, target_img = np.float32(np.load(input_img)), np.float32(np.load(target_img))
         if self.norm:
-            input_img = (input_img-np.min(input_img))/(np.max(input_img)-np.min(input_img))
-            target_img = (target_img-np.min(target_img))/(np.max(target_img)-np.min(target_img))
+            input_img = (input_img - np.min(input_img)) / (np.max(input_img) - np.min(input_img))
+            target_img = (target_img - np.min(target_img)) / (np.max(target_img) - np.min(target_img))
         augmentations = self.transform(image=input_img, mask=target_img)
         image = augmentations["image"]
         label = augmentations["mask"]
         return image, label
+
 
 train_transform = A.Compose([
     A.HorizontalFlip(p=0.5),
@@ -70,6 +77,7 @@ train_transform = A.Compose([
 test_transform = A.Compose([
     ToTensorV2()
 ])
+
 
 def statistics(path):
     target_path = sorted(glob(os.path.join(path, '*target*.npy')))
@@ -84,6 +92,8 @@ def statistics(path):
 
 best_psnr = 0
 best_ssim = 0
+
+
 def test(model, test_dataset):
     global best_psnr
     global best_ssim
@@ -104,7 +114,7 @@ def test(model, test_dataset):
         for i, (img, label) in enumerate(test_dataset):
             img = img.unsqueeze(0).float().cuda()
             noise = model(img)
-            pred = img-noise
+            pred = img - noise
             pred = pred.cpu()
             pred_new = pred.numpy().squeeze(0)
             pred_new = pred_new.reshape(512, 512)
@@ -137,7 +147,15 @@ def test(model, test_dataset):
     print("best SSIM:", best_ssim)
 
 
-def train(configs):
+def train(training_data, parameters, context):
+    configs = {
+        "batch_size": 8,
+        "epochs": 1000,
+        "lr": 3e-4,
+        "min_lr": 1e-6,
+        "weight_decay": 1e-4,
+    }
+
     data_path = osp.join(pretrain_path, 'npy_imgs')
     train_dataset = CT_Dataset("train", saved_path=data_path, transform=train_transform, norm=True)
     test_dataset = CT_Dataset("test", saved_path=data_path, transform=test_transform, norm=True)
@@ -145,19 +163,20 @@ def train(configs):
     model = Resnet34_Swin().cuda()
 
     nepoch = configs["epochs"]
-    optimizer = optim.AdamW(model.parameters(), lr=configs["lr"], betas=(0.9, 0.999), eps=1e-8, weight_decay=configs["weight_decay"])
+    optimizer = optim.AdamW(model.parameters(), lr=configs["lr"], betas=(0.9, 0.999), eps=1e-8,
+                            weight_decay=configs["weight_decay"])
     num_steps = len(train_loader) * configs["epochs"]
     lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_steps, eta_min=configs["min_lr"])
     warmup_scheduler = warmup.UntunedLinearWarmup(optimizer)
 
-    for epoch in range(nepoch + 1):
+    for epoch in tqdm(range(nepoch + 1), colour='yellow', leave=False):
         losses = 0
         model.train()
-        for i, (image, target) in enumerate(train_loader):
+        for i, (image, target) in tqdm(enumerate(train_loader), total=len(train_loader), colour='blue'):
             image = image.cuda()
             target = target.unsqueeze(1).cuda()
             pred = model(image)
-            loss = F.mse_loss(pred, image-target)
+            loss = F.mse_loss(pred, image - target)
             losses += loss.item()
             optimizer.zero_grad()
             loss.backward()
@@ -169,12 +188,13 @@ def train(configs):
         if epoch % 15 == 0:
             test(model, test_dataset)
 
-if __name__ == '__main__':
-    configs = {
-        "batch_size": 4,
-        "epochs": 500,
-        "lr": 3e-4,
-        "min_lr": 1e-6,
-        "weight_decay": 1e-4,
+    return {
+        "artifact": "None",
+        "metadata": {},
+        "metrics": {"no_metric": -1},
+        "additional_output_files": []
     }
-    train(configs)
+
+
+if __name__ == '__main__':
+    train(None, None, None)
