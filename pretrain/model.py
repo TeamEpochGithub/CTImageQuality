@@ -1,5 +1,7 @@
 import torch
 import torch.nn as nn
+import sys
+sys.path.append('../')
 from models.swin import StageModule
 import torchvision
 
