@@ -1,5 +1,7 @@
 import os
 import random
+import time
+
 import torch
 import torch.optim as optim
 import numpy as np
@@ -15,7 +17,6 @@ from tqdm import tqdm
 from model import Resnet34_Swin
 import pytorch_warmup as warmup
 from measure import compute_PSNR, compute_SSIM
-from torch.nn.parallel import DistributedDataParallel as DDP
 
 
 def set_seed(seed):
@@ -31,6 +32,7 @@ def set_seed(seed):
 
 set_seed(0)
 pretrain_path = osp.dirname(__file__)
+
 
 class CT_Dataset(Dataset):
     def __init__(self, mode, saved_path, test_patient="test", norm=True, transform=None):
@@ -111,8 +113,8 @@ def test(model, test_dataset):
 
     model.eval()
     with torch.no_grad():
-        for i, (img, label) in enumerate(test_dataset):
-            img = img.unsqueeze(0).float().cuda()
+        for i, (img, label) in tqdm(enumerate(test_dataset), total=len(test_dataset), desc="testing: ", colour='blue'):
+            img = img.unsqueeze(0).float().to("cuda")
             noise = model(img)
             pred = img - noise
             pred = pred.cpu()
@@ -130,11 +132,11 @@ def test(model, test_dataset):
 
             psnrs.append(compute_PSNR(label_new, pred_new, data_range=1))
             ssims.append(compute_SSIM(label, pred, data_range=1))
-    print("PSNR:", np.mean(np.array(psnrs)))
-    print("SSIM:", np.mean(np.array(ssims)))
 
     pt = np.mean(np.array(psnrs))
     st = np.mean(np.array(ssims))
+    print("PSNR:", round(pt, 2))
+    print("SSIM:", round(st, 2))
 
     if pt > best_psnr and st > best_ssim:
         best_psnr = pt
@@ -148,33 +150,28 @@ def test(model, test_dataset):
 
 
 def train(training_data, parameters, context):
-    configs = {
-        "batch_size": 8,
-        "epochs": 1000,
-        "lr": 3e-4,
-        "min_lr": 1e-6,
-        "weight_decay": 1e-4,
-    }
-
     data_path = osp.join(pretrain_path, 'npy_imgs')
     train_dataset = CT_Dataset("train", saved_path=data_path, transform=train_transform, norm=True)
     test_dataset = CT_Dataset("test", saved_path=data_path, transform=test_transform, norm=True)
-    train_loader = DataLoader(train_dataset, batch_size=configs["batch_size"], shuffle=True)
-    model = Resnet34_Swin().cuda()
+    train_loader = DataLoader(train_dataset, batch_size=parameters["batch_size"], shuffle=True)
+    model = Resnet34_Swin().to("cuda")
 
-    nepoch = configs["epochs"]
-    optimizer = optim.AdamW(model.parameters(), lr=configs["lr"], betas=(0.9, 0.999), eps=1e-8,
-                            weight_decay=configs["weight_decay"])
-    num_steps = len(train_loader) * configs["epochs"]
-    lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_steps, eta_min=configs["min_lr"])
+    nepoch = parameters["epochs"]
+    optimizer = optim.AdamW(model.parameters(), lr=parameters["lr"], betas=(0.9, 0.999), eps=1e-8,
+                            weight_decay=parameters["weight_decay"])
+    num_steps = len(train_loader) * parameters["epochs"]
+    lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_steps, eta_min=parameters["min_lr"])
     warmup_scheduler = warmup.UntunedLinearWarmup(optimizer)
 
-    for epoch in tqdm(range(nepoch + 1), colour='yellow', leave=False):
+    for epoch in range(nepoch + 1):  # , colour='yellow', leave=False, position=0):
+        start_time = time.time()
         losses = 0
         model.train()
-        for i, (image, target) in tqdm(enumerate(train_loader), total=len(train_loader), colour='blue'):
-            image = image.cuda()
-            target = target.unsqueeze(1).cuda()
+
+        t = tqdm(enumerate(train_loader), total=len(train_loader), desc="epoch " + f"{epoch:04d}", colour='cyan')
+        for i, (image, target) in t:
+            image = image.to("cuda")
+            target = target.unsqueeze(1).to("cuda")
             pred = model(image)
             loss = F.mse_loss(pred, image - target)
             losses += loss.item()
@@ -183,7 +180,17 @@ def train(training_data, parameters, context):
             optimizer.step()
             with warmup_scheduler.dampening():
                 lr_scheduler.step()
-        print("epoch:", epoch, "loss:", float(losses / len(train_dataset)))
+
+            if i == len(train_loader) - 1:
+                t.set_postfix({"loss": float(losses / len(train_dataset))})
+
+        end_time = time.time()
+        execution_time = end_time - start_time
+        minutes = int(execution_time // 60)
+        seconds = int(execution_time % 60)
+        formatted_time = f"{minutes:02d}:{seconds:02d}"
+
+        # print("epoch:", epoch, "loss:", float(losses / len(train_dataset)), f"time: {formatted_time}")
 
         if epoch % 15 == 0:
             test(model, test_dataset)
@@ -197,4 +204,11 @@ def train(training_data, parameters, context):
 
 
 if __name__ == '__main__':
-    train(None, None, None)
+    parameters = {
+        "batch_size": 12,
+        "epochs": 100000,
+        "lr": 3e-4,
+        "min_lr": 1e-6,
+        "weight_decay": 1e-4
+    }
+    train(None, parameters, None)
