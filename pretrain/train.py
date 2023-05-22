@@ -108,7 +108,7 @@ best_psnr = 0
 best_ssim = 0
 
 
-def test(model, test_dataset):
+def test(parameters, model, test_dataset):
     pretrain_path = osp.dirname(__file__)
 
     global best_psnr
@@ -118,9 +118,14 @@ def test(model, test_dataset):
     imgs = []
     names = []
 
-    save_path = osp.join(pretrain_path, 'weights')
-    if not os.path.exists(save_path):
+    if parameters["name"] == "resnet":
+        save_path = osp.join(pretrain_path, 'weights', "Resnet34_Swin")
+    else:
+        save_path = osp.join(pretrain_path, 'weights', "Efficientnet_Swin")
+
+    if not osp.exists(save_path):
         os.mkdir(save_path)
+
     img_path = osp.join(pretrain_path, 'output_imgs')
     if not os.path.exists(img_path):
         os.mkdir(img_path)
@@ -246,7 +251,7 @@ def train(training_data, parameters, context):
         # print("epoch:", epoch, "loss:", float(losses / len(train_dataset)), f"time: {formatted_time}")
 
         if epoch % 15 == 0:
-            test(model, test_dataset)
+            test(parameters, model, test_dataset)
 
     return {
         "artifact": "None",

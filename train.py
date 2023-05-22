@@ -63,12 +63,12 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch):
     return best_score, best_score_epoch
 
 
-def train(model, configs, train_dataset, test_dataset, pretrain = True):
+def train(model, configs, train_dataset, test_dataset):
     train_loader = DataLoader(train_dataset, batch_size=configs.batch_size, shuffle=True)
     model = model(configs=configs).cuda()
 
-    if pretrain:
-        weight_path = osp.join(osp.dirname(osp.abspath(__file__)), "pretrain", "weights", "pretrain_weight.pkl")
+    if configs.pretrain:
+        weight_path = osp.join(osp.dirname(osp.abspath(__file__)), "pretrain", "weights", configs.model, "pretrain_weight.pkl")
 
         pre_weights = torch.load(weight_path, map_location=torch.device("cuda"))
         for name, param in model.named_parameters():

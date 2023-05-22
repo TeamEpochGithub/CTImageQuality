@@ -118,6 +118,9 @@ if __name__ == '__main__':
             'use_avg': {
                 'values': [True, False]
             },
+            'pretrain': {
+                'values': [True, False]
+            },
             'rotation_angle': {
                 "distribution": "uniform",
                 "min": 5,
