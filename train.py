@@ -68,7 +68,8 @@ def train(model, configs, train_dataset, test_dataset, pretrain = True):
     model = model(configs=configs).cuda()
 
     if pretrain:
-        weight_path = osp.join(osp.dirname(osp.abspath(__file__)), "pretrain\weights\pretrain_weight.pkl")
+        weight_path = osp.join(osp.dirname(osp.abspath(__file__)), "pretrain", "weights", "pretrain_weight.pkl")
+
         pre_weights = torch.load(weight_path, map_location=torch.device("cuda"))
         for name, param in model.named_parameters():
             if name in pre_weights:
