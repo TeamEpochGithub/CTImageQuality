@@ -16,7 +16,10 @@ from tqdm import tqdm
 from model import Resnet34_Swin
 import pytorch_warmup as warmup
 from measure import compute_PSNR, compute_SSIM
-from pretrain.warmup_scheduler.scheduler import GradualWarmupScheduler
+from warmup_scheduler.scheduler import GradualWarmupScheduler
+
+
+# torch.cuda.set_device(1)
 
 
 def set_seed(seed):
@@ -34,50 +37,52 @@ set_seed(0)
 pretrain_path = osp.dirname(__file__)
 
 
-class CT_Dataset(Dataset):
-    def __init__(self, mode, saved_path, test_patient="test", norm=True, transform=None):
-        assert mode in ['train', 'test'], "mode is 'train' or 'test'"
+# class CT_Dataset(Dataset):
+#     def __init__(self, mode, saved_path, test_patient="test", norm=True, transform=None):
+#         assert mode in ['train', 'test'], "mode is 'train' or 'test'"
+#
+#         input_path = sorted(glob(os.path.join(saved_path, '*input*.npy')))
+#         target_path = sorted(glob(os.path.join(saved_path, '*target*.npy')))
+#         self.transform = transform
+#         self.norm = norm
+#
+#         if mode == "train":
+#             input_ = [f for f in input_path if test_patient not in f]
+#             target_ = [f for f in target_path if test_patient not in f]
+#             self.input_ = input_
+#             self.target_ = target_
+#         elif mode == "test":
+#             input_ = [f for f in input_path if test_patient in f]
+#             target_ = [f for f in target_path if test_patient in f]
+#             self.input_ = input_
+#             self.target_ = target_
+#
+#     def __len__(self):
+#         return len(self.target_)
+#
+#     def __getitem__(self, idx):
+#         input_img, target_img = self.input_[idx], self.target_[idx]
+#         input_img, target_img = np.float32(np.load(input_img)), np.float32(np.load(target_img))
+#         if self.norm:
+#             input_img = (input_img - np.min(input_img)) / (np.max(input_img) - np.min(input_img))
+#             target_img = (target_img - np.min(target_img)) / (np.max(target_img) - np.min(target_img))
+#         augmentations = self.transform(image=input_img, mask=target_img)
+#         image = augmentations["image"]
+#         label = augmentations["mask"]
+#         return image, label
 
-        input_path = sorted(glob(os.path.join(saved_path, '*input*.npy')))
-        target_path = sorted(glob(os.path.join(saved_path, '*target*.npy')))
-        self.transform = transform
-        self.norm = norm
-
-        if mode == "train":
-            input_ = [f for f in input_path if test_patient not in f]
-            target_ = [f for f in target_path if test_patient not in f]
-            self.input_ = input_
-            self.target_ = target_
-        elif mode == "test":
-            input_ = [f for f in input_path if test_patient in f]
-            target_ = [f for f in target_path if test_patient in f]
-            self.input_ = input_
-            self.target_ = target_
-
-    def __len__(self):
-        return len(self.target_)
-
-    def __getitem__(self, idx):
-        input_img, target_img = self.input_[idx], self.target_[idx]
-        input_img, target_img = np.float32(np.load(input_img)), np.float32(np.load(target_img))
-        if self.norm:
-            input_img = (input_img - np.min(input_img)) / (np.max(input_img) - np.min(input_img))
-            target_img = (target_img - np.min(target_img)) / (np.max(target_img) - np.min(target_img))
-        augmentations = self.transform(image=input_img, mask=target_img)
-        image = augmentations["image"]
-        label = augmentations["mask"]
-        return image, label
 
 class CT_Dataset_v1(Dataset):
     def __init__(self, lists, norm=True, transform=None):
         self.lists = lists
         self.norm = norm
         self.transform = transform
+
     def __len__(self):
         return len(self.lists)
 
     def __getitem__(self, idx):
-        input_img, target_img = self.lists[idx], self.lists[idx]
+        input_img, target_img = self.lists[idx]
         input_img, target_img = np.float32(np.load(input_img)), np.float32(np.load(target_img))
         if self.norm:
             input_img = (input_img - np.min(input_img)) / (np.max(input_img) - np.min(input_img))
@@ -168,22 +173,26 @@ def test(model, test_dataset):
     print("best SSIM:", best_ssim)
 
 
-def train(parameters):
+def create_datasets(parameters):
     data_path = osp.join(pretrain_path, 'npy_imgs')
-    if parameters["split_ratio"] == 0.5:
-        train_dataset = CT_Dataset("train", saved_path=data_path, transform=train_transform, norm=True)
-        test_dataset = CT_Dataset("test", saved_path=data_path, transform=test_transform, norm=True)
-    else:
-        input_path = sorted(glob(os.path.join(data_path, '*input*.npy')))
-        target_path = sorted(glob(os.path.join(data_path, '*target*.npy')))
-        lists = []
-        for i in range(len(input_path)):
-            lists.append((input_path[i], target_path[i]))
-        random.shuffle(lists)
-        train_lists = lists[:int(len(input_path)*parameters["split_ratio"])]
-        test_lists = lists[int(len(input_path) * parameters["split_ratio"]):]
-        train_dataset = CT_Dataset_v1(train_lists, transform=train_transform, norm=True)
-        test_dataset = CT_Dataset_v1(test_lists, transform=test_transform, norm=True)
+
+    input_path = sorted(glob(os.path.join(data_path, '*input*.npy')))
+    target_path = sorted(glob(os.path.join(data_path, '*target*.npy')))
+    lists = []
+    for i in range(len(input_path)):
+        lists.append((input_path[i], target_path[i]))
+    random.shuffle(lists)
+    train_lists = lists[:int(len(input_path) * parameters["split_ratio"])]
+    test_lists = lists[int(len(input_path) * parameters["split_ratio"]):]
+    train_dataset = CT_Dataset_v1(train_lists, transform=train_transform, norm=True)
+    test_dataset = CT_Dataset_v1(test_lists, transform=test_transform, norm=True)
+
+    return train_dataset, test_dataset
+
+
+# training_data, parameters, context are necessary to make UbiOps work
+def train(training_data, parameters, context):
+    train_dataset, test_dataset = create_datasets(parameters)
     train_loader = DataLoader(train_dataset, batch_size=parameters["batch_size"], shuffle=True)
     model = Resnet34_Swin().to("cuda")
 
@@ -194,7 +203,8 @@ def train(parameters):
     nepoch = parameters["nepoch"]
     scheduler_cosine = optim.lr_scheduler.CosineAnnealingLR(optimizer, nepoch - warmup_epochs,
                                                             eta_min=parameters["min_lr"])
-    scheduler = GradualWarmupScheduler(optimizer, multiplier=1, total_epoch=warmup_epochs, after_scheduler=scheduler_cosine)
+    scheduler = GradualWarmupScheduler(optimizer, multiplier=1, total_epoch=warmup_epochs,
+                                       after_scheduler=scheduler_cosine)
 
     # num_steps = len(train_loader) * parameters["epochs"]
     # lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_steps, eta_min=parameters["min_lr"])
@@ -218,7 +228,8 @@ def train(parameters):
             scheduler.step()
 
             if i == len(train_loader) - 1:
-                t.set_postfix({"loss": round(float(losses / len(train_dataset)), 5), "lr": round(scheduler.get_lr()[0], 8)})
+                t.set_postfix(
+                    {"loss": round(float(losses / len(train_dataset)), 5), "lr": round(scheduler.get_lr()[0], 8)})
 
         end_time = time.time()
         execution_time = end_time - start_time
@@ -250,4 +261,4 @@ if __name__ == '__main__':
         "min_lr": 1e-6,
         "weight_decay": 1e-4
     }
-    train(parameters)
+    train(None, parameters, None)
