@@ -11,7 +11,7 @@ import torch.nn.functional as F
 from albumentations.pytorch import ToTensorV2
 from torch.utils.data import DataLoader, Dataset
 import os.path as osp
-
+from warmup_scheduler import GradualWarmupScheduler
 from tqdm import tqdm
 
 from model import Resnet34_Swin
@@ -156,14 +156,20 @@ def train(training_data, parameters, context):
     train_loader = DataLoader(train_dataset, batch_size=parameters["batch_size"], shuffle=True)
     model = Resnet34_Swin().to("cuda")
 
-    nepoch = parameters["epochs"]
+    epochs = parameters["epochs"]
     optimizer = optim.AdamW(model.parameters(), lr=parameters["lr"], betas=(0.9, 0.999), eps=1e-8,
                             weight_decay=parameters["weight_decay"])
-    num_steps = len(train_loader) * parameters["epochs"]
-    lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_steps, eta_min=parameters["min_lr"])
-    warmup_scheduler = warmup.UntunedLinearWarmup(optimizer)
+    warmup_epochs = parameters["warmup_epochs"]
+    nepoch = parameters["nepoch"]
+    scheduler_cosine = optim.lr_scheduler.CosineAnnealingLR(optimizer,nepoch-warmup_epochs,eta_min=parameters["min_lr"])
+    scheduler = GradualWarmupScheduler(optimizer,
+            multiplier=1,total_epoch=warmup_epochs,
+            after_scheduler=scheduler_cosine)
+    # num_steps = len(train_loader) * parameters["epochs"]
+    # lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_steps, eta_min=parameters["min_lr"])
+    # warmup_scheduler = warmup.UntunedLinearWarmup(optimizer)
 
-    for epoch in range(nepoch + 1):  # , colour='yellow', leave=False, position=0):
+    for epoch in range(epochs + 1):  # , colour='yellow', leave=False, position=0):
         start_time = time.time()
         losses = 0
         model.train()
@@ -178,8 +184,7 @@ def train(training_data, parameters, context):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            with warmup_scheduler.dampening():
-                lr_scheduler.step()
+            scheduler.step()
 
             if i == len(train_loader) - 1:
                 t.set_postfix({"loss": float(losses / len(train_dataset))})
@@ -205,8 +210,10 @@ def train(training_data, parameters, context):
 
 if __name__ == '__main__':
     parameters = {
-        "batch_size": 12,
+        "batch_size": 8,
+        "warmup_epochs": 20,
         "epochs": 100000,
+        "nepoch": 500,
         "lr": 3e-4,
         "min_lr": 1e-6,
         "weight_decay": 1e-4
