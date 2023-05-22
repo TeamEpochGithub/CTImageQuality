@@ -20,7 +20,7 @@ new_run = training_instance.experiment_runs_create(
         training_code='../pretrain/train.py',
         training_data='ubiops-file://default/npy_imgs.zip',
         parameters={
-            'nr_epochs': 15,  # example parameters
+            'nr_epochs': 15,  # example given_params
             'batch_size': 32
         },
         timeout=14400

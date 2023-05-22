@@ -191,7 +191,7 @@ def create_datasets(parameters):
     return train_dataset, test_dataset
 
 
-# training_data, parameters, context are necessary to make UbiOps work
+# training_data, given_params, context are necessary to make UbiOps work
 def train(training_data, parameters, context):
     train_dataset, test_dataset = create_datasets(parameters)
     train_loader = DataLoader(train_dataset, batch_size=parameters["batch_size"], shuffle=True)
@@ -210,8 +210,8 @@ def train(training_data, parameters, context):
     scheduler = GradualWarmupScheduler(optimizer, multiplier=1, total_epoch=warmup_epochs,
                                        after_scheduler=scheduler_cosine)
 
-    # num_steps = len(train_loader) * parameters["epochs"]
-    # lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_steps, eta_min=parameters["min_lr"])
+    # num_steps = len(train_loader) * given_params["epochs"]
+    # lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_steps, eta_min=given_params["min_lr"])
     # warmup_scheduler = warmup.UntunedLinearWarmup(optimizer)
 
     for epoch in range(epochs + 1):  # , colour='yellow', leave=False, position=0):

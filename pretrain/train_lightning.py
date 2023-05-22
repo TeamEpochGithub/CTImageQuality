@@ -11,17 +11,20 @@ from model_efficientnet import Efficient_Swin
 from model_resnet import Resnet34_Swin
 from pretrain.train import create_datasets, set_seed
 from warmup_scheduler.scheduler import GradualWarmupScheduler
+torch.set_float32_matmul_precision('medium')
 
 set_seed(0)
 
 
 # Define your LightningModule
 class LightningModule(pl.LightningModule):
-    def __init__(self, parameters, model):
+    def __init__(self, params, model):
         super(LightningModule, self).__init__()
         self.model = model
-        self.parameters = parameters
+        self.given_params = params
         self.loss_fn = F.mse_loss
+
+        self.outputs = []
 
     def forward(self, x):
         return self.model(x)
@@ -53,28 +56,32 @@ class LightningModule(pl.LightningModule):
         # self.log('val_loss', loss)
         # Calculate validation metrics
         # self.log('val_metric', metric_value)
-        return {'loss': loss, 'psnrs': psnrs, "ssims": ssims}
+        metric_dict = {'loss': loss, 'psnrs': psnrs, "ssims": ssims}
+        self.outputs.append(metric_dict)
 
-    def validation_epoch_end(self, outputs):
+        return metric_dict
+
+    def on_validation_epoch_end(self):
         # Calculate the average loss across all validation batches
-        avg_loss = torch.stack([x['loss'] for x in outputs]).mean()
-        avg_psnr = torch.stack([x['psnrs'] for x in outputs]).mean()
-        avg_ssim = torch.stack([x['ssims'] for x in outputs]).mean()
+        avg_loss = torch.stack([x['loss'] for x in self.outputs]).mean()
+        avg_psnr = torch.stack([x['psnrs'] for x in self.outputs]).mean()
+        avg_ssim = torch.stack([x['ssims'] for x in self.outputs]).mean()
         # Log the average loss
         self.log('val_loss', avg_loss, on_epoch=True, prog_bar=True)
         self.log('val_psnr', avg_psnr, on_epoch=True, prog_bar=True)
         self.log('val_ssim', avg_ssim, on_epoch=True, prog_bar=True)
+        self.outputs = []
 
     def configure_optimizers(self):
-        optimizer = optim.AdamW(self.model.parameters(), lr=self.parameters["lr"], betas=(0.9, 0.999), eps=1e-8,
-                                weight_decay=self.parameters["weight_decay"])
-        scheduler_cosine = optim.lr_scheduler.CosineAnnealingLR(self.optimizer,
-                                                                self.parameters["nepoch"] - self.parameters[
+        optimizer = optim.AdamW(self.model.parameters(), lr=self.given_params["lr"], betas=(0.9, 0.999), eps=1e-8,
+                                weight_decay=self.given_params["weight_decay"])
+        scheduler_cosine = optim.lr_scheduler.CosineAnnealingLR(optimizer,
+                                                                self.given_params["nepoch"] - self.given_params[
                                                                     "warmup_epochs"],
-                                                                eta_min=self.parameters["min_lr"])
-        scheduler = GradualWarmupScheduler(self.optimizer, multiplier=1, total_epoch=self.parameters["warmup_epochs"],
+                                                                eta_min=self.given_params["min_lr"])
+        scheduler = GradualWarmupScheduler(optimizer, multiplier=1, total_epoch=self.given_params["warmup_epochs"],
                                            after_scheduler=scheduler_cosine)
-        return [optimizer, scheduler]
+        return [optimizer], [scheduler]
 
 
 def train(training_data, parameters, context):
