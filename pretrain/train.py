@@ -68,6 +68,25 @@ class CT_Dataset(Dataset):
         label = augmentations["mask"]
         return image, label
 
+class CT_Dataset_v1(Dataset):
+    def __init__(self, lists, norm=True, transform=None):
+        self.lists = lists
+        self.norm = norm
+        self.transform = transform
+    def __len__(self):
+        return len(self.lists)
+
+    def __getitem__(self, idx):
+        input_img, target_img = self.lists[idx], self.lists[idx]
+        input_img, target_img = np.float32(np.load(input_img)), np.float32(np.load(target_img))
+        if self.norm:
+            input_img = (input_img - np.min(input_img)) / (np.max(input_img) - np.min(input_img))
+            target_img = (target_img - np.min(target_img)) / (np.max(target_img) - np.min(target_img))
+        augmentations = self.transform(image=input_img, mask=target_img)
+        image = augmentations["image"]
+        label = augmentations["mask"]
+        return image, label
+
 
 train_transform = A.Compose([
     A.HorizontalFlip(p=0.5),
@@ -149,10 +168,22 @@ def test(model, test_dataset):
     print("best SSIM:", best_ssim)
 
 
-def train(training_data, parameters, context):
+def train(parameters):
     data_path = osp.join(pretrain_path, 'npy_imgs')
-    train_dataset = CT_Dataset("train", saved_path=data_path, transform=train_transform, norm=True)
-    test_dataset = CT_Dataset("test", saved_path=data_path, transform=test_transform, norm=True)
+    if parameters["split_ratio"] == 0.5:
+        train_dataset = CT_Dataset("train", saved_path=data_path, transform=train_transform, norm=True)
+        test_dataset = CT_Dataset("test", saved_path=data_path, transform=test_transform, norm=True)
+    else:
+        input_path = sorted(glob(os.path.join(data_path, '*input*.npy')))
+        target_path = sorted(glob(os.path.join(data_path, '*target*.npy')))
+        lists = []
+        for i in range(len(input_path)):
+            lists.append((input_path[i], target_path[i]))
+        random.shuffle(lists)
+        train_lists = lists[:int(len(input_path)*parameters["split_ratio"])]
+        test_lists = lists[int(len(input_path) * parameters["split_ratio"]):]
+        train_dataset = CT_Dataset_v1(train_lists, transform=train_transform, norm=True)
+        test_dataset = CT_Dataset_v1(test_lists, transform=test_transform, norm=True)
     train_loader = DataLoader(train_dataset, batch_size=parameters["batch_size"], shuffle=True)
     model = Resnet34_Swin().to("cuda")
 
@@ -210,6 +241,7 @@ def train(training_data, parameters, context):
 
 if __name__ == '__main__':
     parameters = {
+        "split_ratio": 0.8,
         "batch_size": 8,
         "warmup_epochs": 20,
         "epochs": 100000,
@@ -218,4 +250,4 @@ if __name__ == '__main__':
         "min_lr": 1e-6,
         "weight_decay": 1e-4
     }
-    train(None, parameters, None)
+    train(parameters)
