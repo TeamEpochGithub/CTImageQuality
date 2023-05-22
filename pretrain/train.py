@@ -14,6 +14,7 @@ import os.path as osp
 from tqdm import tqdm
 
 from model import Resnet34_Swin
+from model_efficientnet import Efficient_Swin
 import pytorch_warmup as warmup
 from measure import compute_PSNR, compute_SSIM
 from warmup_scheduler.scheduler import GradualWarmupScheduler
@@ -197,7 +198,10 @@ def create_datasets(parameters):
 def train(training_data, parameters, context):
     train_dataset, test_dataset = create_datasets(parameters)
     train_loader = DataLoader(train_dataset, batch_size=parameters["batch_size"], shuffle=True)
-    model = Resnet34_Swin().to("cuda")
+    if parameters["model_name"] == "resnet":
+        model = Resnet34_Swin().to("cuda")
+    elif parameters["model_name"] == "efficientnet":
+        model = Efficient_Swin().to("cuda")
 
     epochs = parameters["epochs"]
     optimizer = optim.AdamW(model.parameters(), lr=parameters["lr"], betas=(0.9, 0.999), eps=1e-8,
@@ -262,6 +266,7 @@ if __name__ == '__main__':
         "nepoch": 500,
         "lr": 3e-4,
         "min_lr": 1e-6,
-        "weight_decay": 1e-4
+        "weight_decay": 1e-4,
+        "model_name": "efficientnet"
     }
     train(None, parameters, None)
