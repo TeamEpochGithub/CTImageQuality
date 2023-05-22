@@ -11,12 +11,12 @@ import torch.nn.functional as F
 from albumentations.pytorch import ToTensorV2
 from torch.utils.data import DataLoader, Dataset
 import os.path as osp
-from warmup_scheduler import GradualWarmupScheduler
 from tqdm import tqdm
 
 from model import Resnet34_Swin
 import pytorch_warmup as warmup
 from measure import compute_PSNR, compute_SSIM
+from pretrain.warmup_scheduler.scheduler import GradualWarmupScheduler
 
 
 def set_seed(seed):
@@ -161,10 +161,10 @@ def train(training_data, parameters, context):
                             weight_decay=parameters["weight_decay"])
     warmup_epochs = parameters["warmup_epochs"]
     nepoch = parameters["nepoch"]
-    scheduler_cosine = optim.lr_scheduler.CosineAnnealingLR(optimizer,nepoch-warmup_epochs,eta_min=parameters["min_lr"])
-    scheduler = GradualWarmupScheduler(optimizer,
-            multiplier=1,total_epoch=warmup_epochs,
-            after_scheduler=scheduler_cosine)
+    scheduler_cosine = optim.lr_scheduler.CosineAnnealingLR(optimizer, nepoch - warmup_epochs,
+                                                            eta_min=parameters["min_lr"])
+    scheduler = GradualWarmupScheduler(optimizer, multiplier=1, total_epoch=warmup_epochs, after_scheduler=scheduler_cosine)
+
     # num_steps = len(train_loader) * parameters["epochs"]
     # lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_steps, eta_min=parameters["min_lr"])
     # warmup_scheduler = warmup.UntunedLinearWarmup(optimizer)
@@ -187,7 +187,7 @@ def train(training_data, parameters, context):
             scheduler.step()
 
             if i == len(train_loader) - 1:
-                t.set_postfix({"loss": float(losses / len(train_dataset))})
+                t.set_postfix({"loss": round(float(losses / len(train_dataset)), 5), "lr": round(scheduler.get_lr()[0], 8)})
 
         end_time = time.time()
         execution_time = end_time - start_time
