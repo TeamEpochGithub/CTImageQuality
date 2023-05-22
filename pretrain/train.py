@@ -34,10 +34,6 @@ def set_seed(seed):
     os.environ['PYTHONHASHSEED'] = str(seed)
 
 
-set_seed(0)
-pretrain_path = osp.dirname(__file__)
-
-
 # class CT_Dataset(Dataset):
 #     def __init__(self, mode, saved_path, test_patient="test", norm=True, transform=None):
 #         assert mode in ['train', 'test'], "mode is 'train' or 'test'"
@@ -95,18 +91,6 @@ class CT_Dataset_v1(Dataset):
         image = augmentations["image"]
         label = augmentations["mask"]
         return image, label
-
-
-train_transform = A.Compose([
-    A.HorizontalFlip(p=0.5),
-    A.VerticalFlip(p=0.5),
-    A.ShiftScaleRotate(shift_limit=0.0625, scale_limit=0.2, rotate_limit=45, p=0.2),
-    ToTensorV2()
-])
-
-test_transform = A.Compose([
-    ToTensorV2()
-])
 
 
 def statistics(path):
@@ -178,6 +162,7 @@ def test(model, test_dataset):
 
 
 def create_datasets(parameters):
+    pretrain_path = osp.dirname(__file__)
     data_path = osp.join(pretrain_path, 'npy_imgs')
 
     input_path = sorted(glob(os.path.join(data_path, '*input*.npy')))
@@ -188,6 +173,18 @@ def create_datasets(parameters):
     random.shuffle(lists)
     train_lists = lists[:int(len(input_path) * parameters["split_ratio"])]
     test_lists = lists[int(len(input_path) * parameters["split_ratio"]):]
+
+    train_transform = A.Compose([
+        A.HorizontalFlip(p=0.5),
+        A.VerticalFlip(p=0.5),
+        A.ShiftScaleRotate(shift_limit=0.0625, scale_limit=0.2, rotate_limit=45, p=0.2),
+        ToTensorV2()
+    ])
+
+    test_transform = A.Compose([
+        ToTensorV2()
+    ])
+
     train_dataset = CT_Dataset_v1(train_lists, transform=train_transform, norm=True)
     test_dataset = CT_Dataset_v1(test_lists, transform=test_transform, norm=True)
 
