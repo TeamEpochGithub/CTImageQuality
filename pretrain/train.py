@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader, Dataset
 import os.path as osp
 from tqdm import tqdm
 
-from model import Resnet34_Swin
+from model_resnet import Resnet34_Swin
 from model_efficientnet import Efficient_Swin
 import pytorch_warmup as warmup
 from measure import compute_PSNR, compute_SSIM
