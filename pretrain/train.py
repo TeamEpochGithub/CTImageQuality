@@ -77,6 +77,9 @@ class CT_Dataset_v1(Dataset):
         self.lists = lists
         self.norm = norm
         self.transform = transform
+        self.target_ = []
+        for i in range(len(self.lists)):
+            self.target_.append(self.lists[i][1])
 
     def __len__(self):
         return len(self.lists)
