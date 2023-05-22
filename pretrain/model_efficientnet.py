@@ -292,8 +292,3 @@ class Efficient_Swin(nn.Module):
         d0 = self.decode0(d1)  # 64,256,256
         out = self.conv_last(d0)  # 1,256,256
         return out
-
-ins = torch.rand(8, 1, 512, 512)
-model = Efficient_Swin()
-ous = model(ins)
-print(ous.shape)
