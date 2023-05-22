@@ -4,13 +4,15 @@ import torch.nn.functional as F
 import torch.optim as optim
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.strategies import DDPStrategy
 from torch.utils.data import DataLoader
 
 from measure import compute_PSNR, compute_SSIM
 from model_efficientnet import Efficient_Swin
 from model_resnet import Resnet34_Swin
-from pretrain.train import create_datasets, set_seed
+from train import create_datasets, set_seed
 from warmup_scheduler.scheduler import GradualWarmupScheduler
+
 torch.set_float32_matmul_precision('medium')
 
 set_seed(0)
@@ -31,19 +33,18 @@ class LightningModule(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         inputs, labels = batch
-        outputs = self(inputs)
+        outputs = self.model(inputs)
         loss = self.loss_fn(inputs - outputs, labels)
-        self.log('train_loss', loss)
+        self.log('train_loss', loss, prog_bar=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         inputs, labels = batch
-        img = inputs.unsqueeze(0).float()
+        img = inputs.float()
         noise = self.model(img)
         pred = img - noise
         loss = self.loss_fn(pred, labels)
-        pred = pred.cpu()
-        pred_new = pred.numpy().squeeze(0)
+        pred_new = pred.cpu().numpy().squeeze(0)
         pred_new = pred_new.reshape(512, 512)
 
         label_new = labels.cpu().numpy()
@@ -51,34 +52,17 @@ class LightningModule(pl.LightningModule):
 
         psnrs = compute_PSNR(label_new, pred_new, data_range=1)
         ssims = compute_SSIM(labels, pred, data_range=1)
-        # outputs = self(inputs)
 
-        # self.log('val_loss', loss)
+        self.log('val_loss', loss, on_epoch=True, prog_bar=True, sync_dist=True)
+        self.log("val_psnr", psnrs, on_epoch=True, prog_bar=True, sync_dist=True)
+        self.log("val_ssim", ssims, on_epoch=True, prog_bar=True, sync_dist=True)
         # Calculate validation metrics
         # self.log('val_metric', metric_value)
-        metric_dict = {'loss': loss, 'psnrs': psnrs, "ssims": ssims}
-        self.outputs.append(metric_dict)
-
-        return metric_dict
-
-    def on_validation_epoch_end(self):
-        # Calculate the average loss across all validation batches
-        avg_loss = torch.stack([x['loss'] for x in self.outputs]).mean()
-        avg_psnr = torch.stack([x['psnrs'] for x in self.outputs]).mean()
-        avg_ssim = torch.stack([x['ssims'] for x in self.outputs]).mean()
-        # Log the average loss
-        self.log('val_loss', avg_loss, on_epoch=True, prog_bar=True)
-        self.log('val_psnr', avg_psnr, on_epoch=True, prog_bar=True)
-        self.log('val_ssim', avg_ssim, on_epoch=True, prog_bar=True)
-        self.outputs = []
+        return loss, psnrs, ssims
 
     def configure_optimizers(self):
-        optimizer = optim.AdamW(self.model.parameters(), lr=self.given_params["lr"], betas=(0.9, 0.999), eps=1e-8,
-                                weight_decay=self.given_params["weight_decay"])
-        scheduler_cosine = optim.lr_scheduler.CosineAnnealingLR(optimizer,
-                                                                self.given_params["nepoch"] - self.given_params[
-                                                                    "warmup_epochs"],
-                                                                eta_min=self.given_params["min_lr"])
+        optimizer = optim.AdamW(self.model.parameters(), lr=self.given_params["lr"], betas=(0.9, 0.999), eps=1e-8, weight_decay=self.given_params["weight_decay"])
+        scheduler_cosine = optim.lr_scheduler.CosineAnnealingLR(optimizer, self.given_params["nepoch"] - self.given_params["warmup_epochs"], eta_min=self.given_params["min_lr"])
         scheduler = GradualWarmupScheduler(optimizer, multiplier=1, total_epoch=self.given_params["warmup_epochs"],
                                            after_scheduler=scheduler_cosine)
         return [optimizer], [scheduler]
@@ -86,25 +70,25 @@ class LightningModule(pl.LightningModule):
 
 def train(training_data, parameters, context):
     train_dataset, test_dataset = create_datasets(parameters)
-    train_loader = DataLoader(train_dataset, batch_size=parameters["batch_size"], shuffle=True)
-    valid_loader = DataLoader(test_dataset, batch_size=1, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=parameters["batch_size"], shuffle=True, num_workers=4)
+    valid_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=4)
 
     checkpoint_callback = ModelCheckpoint(
         save_top_k=3,
         monitor="val_psnr",
-        mode="min",
+        mode="max",
     )
 
-    # ddp = DDPStrategy(process_group_backend="gloo")
+    ddp = DDPStrategy(process_group_backend="gloo", find_unused_parameters=True)
     trainer = Trainer(
         max_epochs=parameters["epochs"],
         log_every_n_steps=10,
         callbacks=[checkpoint_callback],
         num_sanity_val_steps=0,
         accelerator='gpu',
-        devices=1,
+        devices=2,
         # num_nodes=4,
-        # strategy=ddp
+        strategy=ddp
     )
 
     if parameters["model_name"] == "resnet":
@@ -115,7 +99,7 @@ def train(training_data, parameters, context):
     module = LightningModule(parameters, model)
     trainer.fit(module, train_dataloaders=train_loader, val_dataloaders=valid_loader)
 
-    return str(trainer.callback_metrics['val/loss'].item())
+    return str(trainer.callback_metrics['val_loss'].item())
 
 
 if __name__ == '__main__':
@@ -128,6 +112,6 @@ if __name__ == '__main__':
         "lr": 3e-4,
         "min_lr": 1e-6,
         "weight_decay": 1e-4,
-        "model_name": "efficientnet"
+        "model_name": "resnet"
     }
     train(None, parameters, None)

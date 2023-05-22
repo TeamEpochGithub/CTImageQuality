@@ -109,6 +109,8 @@ best_ssim = 0
 
 
 def test(model, test_dataset):
+    pretrain_path = osp.dirname(__file__)
+
     global best_psnr
     global best_ssim
     psnrs = []
@@ -264,6 +266,6 @@ if __name__ == '__main__':
         "lr": 3e-4,
         "min_lr": 1e-6,
         "weight_decay": 1e-4,
-        "model_name": "efficientnet"
+        "model_name": "resnet"
     }
     train(None, parameters, None)
