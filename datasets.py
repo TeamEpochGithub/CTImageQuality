@@ -23,16 +23,16 @@ class CT_Dataset(torch.utils.data.Dataset):
                 operations.append(torchvision.transforms.RandomVerticalFlip())
 
             if self.config.RandomRotation:
-                operations.append(torchvision.transforms.RandomRotation(15))
+                operations.append(torchvision.transforms.RandomRotation(self.config.rotation_angle))
 
             if self.config.ZoomIn:
                 operations.append(torchvision.transforms.RandomApply([
-                    torchvision.transforms.CenterCrop(size=480),
+                    torchvision.transforms.CenterCrop(size=int(self.config.zoomin_factor * 512)),
                     torchvision.transforms.Resize(size=(self.image_size, self.image_size)),
                 ], p=0.1))
             if self.config.ZoomOut:
                 operations.append(torchvision.transforms.RandomApply([
-                    torchvision.transforms.Pad(padding=20),
+                    torchvision.transforms.Pad(padding=int(512 * self.config.zoomout_factor)),
                     torchvision.transforms.Resize((self.image_size, self.image_size)),
                 ], p=0.1))
 

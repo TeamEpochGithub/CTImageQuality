@@ -22,24 +22,24 @@ def hypertune():
         'ZoomIn': False,
         'ZoomOut': False,
         'use_mix': True,
-        'use_avg': True
+        'use_avg': True,
+        'rotation_angle': 15,
+        'zoomout_factor': 0.15,
+        'zoomin_factor': 0.9
     }
 
     wandb.init(
-        project=f"CTImageQuality-regression",
-        notes="My first experiment",
-        tags=["baselines"],
-        config=config_defaults,
+        # project=f"CTImageQuality-regression",
+        # notes="My first experiment",
+        # tags=["baselines"],
+        # config=config_defaults,
     )
     print("config:", wandb.config)
 
     models = {'Efficientnet_Swin': Efficientnet_Swin, 'Efficientnet_Swinv2': Efficientnet_Swinv2,
               'Resnet34_Swin': Resnet34_Swin, 'Resnet34_Swinv2': Resnet34_Swinv2}
 
-    judge_mix = True
-    if "Resnet34" in wandb.config.model:
-        model = models[wandb.config.model]
-        judge_mix = False
+    model = models[wandb.config.model]
 
     imgs_list, label_list = create_datalists()
 
@@ -50,13 +50,15 @@ def hypertune():
     test_dataset = CT_Dataset(imgs_list[left_bound:right_bound], label_list[left_bound:right_bound], split="test",
                               config=wandb.config)
 
-    scores_dict = train(model, wandb.config, train_dataset, test_dataset, judge_mix)
+    scores_dict = train(model, wandb.config, train_dataset, test_dataset)
 
-    wandb.log({"best_score": scores_dict['best_score']})
+    wandb.log({"best_score": scores_dict['best_score'], "best_score_epoch": scores_dict['best_score_epoch']})
+
+    wandb.finish()
 
 
 if __name__ == '__main__':
-    wandb.login()
+    # wandb.login()
 
     sweep_config = {
         'method': 'bayes',
@@ -72,7 +74,7 @@ if __name__ == '__main__':
                 'values': ['Efficientnet_Swin', 'Efficientnet_Swinv2', 'Resnet34_Swin', 'Resnet34_Swinv2']
             },
             'epochs': {
-                'values': [3]
+                'values': [250]
             },
             'batch_size': {
                 'values': [2, 4, 8, 16]
@@ -115,11 +117,33 @@ if __name__ == '__main__':
             },
             'use_avg': {
                 'values': [True, False]
+            },
+            'pretrain': {
+                'values': [True, False]
+            },
+            'rotation_angle': {
+                "distribution": "uniform",
+                "min": 5,
+                "max": 20
+            },
+            'zoomin_factor': {
+                "distribution": "uniform",
+                "min": 0.8,
+                "max": 0.95
+            },
+            'zoomout_factor': {
+                "distribution": "uniform",
+                "min": 0.05,
+                "max": 0.3
             }
         }
     }
 
-    # sweep_id = wandb.sweep(sweep_config, project="CTImageQuality-regression")
+    hypertune()
 
-    wandb.agent(sweep_id='4nf8mksa', project="CTImageQuality-regression", function=hypertune, count=7)
-    wandb.finish()
+    # sweep_config = wandb.sweep("sweep.yaml", project="CTImageQuality-regression")
+    # sweep_id = wandb.sweep(sweep_config, project="CTImageQuality-regression")
+    # print(sweep_id)
+    #
+    # wandb.agent(sweep_id=sweep_id, project="CTImageQuality-regression", function=hypertune, count=7)
+    # wandb.finish()

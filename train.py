@@ -7,12 +7,6 @@ import numpy as np
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-
-from datasets import CT_Dataset
-from models.res34_swin import Resnet34_Swin
-from models.res34_swinv2 import Resnet34_Swinv2
-from models.efficient_swinv2 import Efficientnet_Swinv2
-from models.efficient_swin import Efficientnet_Swin
 import pytorch_warmup as warmup
 from scipy.stats import pearsonr, spearmanr, kendalltau
 import wandb
@@ -69,12 +63,17 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch):
     return best_score, best_score_epoch
 
 
-def train(model, configs, train_dataset, test_dataset, judge_mix):
+def train(model, configs, train_dataset, test_dataset):
     train_loader = DataLoader(train_dataset, batch_size=configs.batch_size, shuffle=True)
-    if judge_mix:
-        model = model(img_size=configs.img_size, use_avg = configs.use_avg, use_mix = configs.use_mix).cuda()
-    else:
-        model = model(img_size=configs.img_size, use_avg=configs.use_avg).cuda()
+    model = model(configs=configs).cuda()
+
+    if configs.pretrain:
+        weight_path = osp.join(osp.dirname(osp.abspath(__file__)), "pretrain", "weights", configs.model, "pretrain_weight.pkl")
+
+        pre_weights = torch.load(weight_path, map_location=torch.device("cuda"))
+        for name, param in model.named_parameters():
+            if name in pre_weights:
+                param.data.copy_(pre_weights[name])
 
     optimizer = optim.AdamW(model.parameters(), lr=configs.lr, betas=(0.9, 0.999), eps=1e-8,
                             weight_decay=configs.weight_decay)
@@ -106,7 +105,7 @@ def train(model, configs, train_dataset, test_dataset, judge_mix):
             best_loss = loss
         print("epoch:", epoch, "loss:", loss, "lr:", lr_scheduler.get_last_lr())
 
-        if epoch % 15 == 0:
+        if epoch % 1 == 0:
             best_score, best_score_epoch = valid(model, test_dataset, best_score, best_score_epoch, epoch)
 
     return {"best_score": best_score, "best_score_epoch": best_score_epoch, "best_loss": best_loss}

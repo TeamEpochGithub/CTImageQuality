@@ -4,6 +4,7 @@ data/
 output/
 wandb/
 wandb
+lightning_logs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -169,3 +170,6 @@ cython_debug/
 
 /pretrain/npy_imgs/
 /pretrain/weights/
+/pretrain/output_imgs/
+
+/tt.py

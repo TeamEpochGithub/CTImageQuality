@@ -132,7 +132,7 @@ def train(model, configs):
     train_dataset = CT_Dataset(imgs_list[:900], label_list[:900], split="train", image_size = configs["image_size"])
     test_dataset = CT_Dataset(imgs_list[900:], label_list[900:], split="test", image_size = configs["image_size"])
     train_loader = DataLoader(train_dataset, batch_size=configs['batch_size'], shuffle=True)
-    model = model(img_size=configs['image_size']).cuda()
+    model = model(configs=configs).cuda()
 
     optimizer = optim.AdamW(model.parameters(), lr=configs["lr"], betas=(0.9, 0.999), eps=1e-8,
                             weight_decay=configs["weight_decay"])
@@ -177,7 +177,8 @@ if __name__ == '__main__':
         "lr": 3e-4,
         "min_lr": 1e-6,
         "weight_decay": 1e-4,
-        "name": 'Efficientnet_Swinv2',
-        'image_size': image_size,
+        'img_size': image_size,
+        'use_avg': True,
+        'use_mix': True
     }
-    train(Efficientnet_Swinv2, resnet_swin_config)
+    train(Resnet34_Swin, resnet_swin_config)
