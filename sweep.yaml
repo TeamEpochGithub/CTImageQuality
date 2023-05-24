@@ -1,0 +1,55 @@
+program: tune.py
+method: bayes
+#pretrain: True
+metric:
+  name: best_score
+  goal: maximize
+parameters:
+  pretrain:
+    values: [False]
+  img_size:
+    values: [256, 512]
+  model:
+    values: ['Efficientnet_Swin', 'Efficientnet_Swinv2', 'Resnet34_Swin', 'Resnet34_Swinv2', 'Efficientnet_B0', 'Resnet34']
+  epochs:
+    values: [15]
+  batch_size:
+    values: [4, 8, 16]
+  weight_decay:
+    distribution: uniform
+    min: 5e-5
+    max: 1e-3
+  lr:
+    distribution: uniform
+    min: 1e-4
+    max: 1e-2
+  min_lr:
+    distribution: uniform
+    min: 1e-8
+    max: 1e-5
+  RandomHorizontalFlip:
+    values: [True, False]
+  RandomVerticalFlip:
+    values: [True, False]
+  RandomRotation:
+    values: [True, False]
+  ZoomIn:
+    values: [True, False]
+  ZoomOut:
+    values: [True, False]
+  use_mix:
+    values: [True, False]
+  use_avg:
+    values: [True, False]
+  rotation_angle:
+    distribution: uniform
+    min: 5
+    max: 20
+  zoomin_factor:
+    distribution: uniform
+    min: 0.8
+    max: 0.95
+  zoomout_factor:
+    distribution: uniform
+    min: 0.05
+    max: 0.3

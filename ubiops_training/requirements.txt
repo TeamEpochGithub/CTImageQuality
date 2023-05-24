@@ -1,0 +1,9 @@
+numpy
+pandas
+torch
+albumentations
+tqdm
+pytorch_warmup
+torchvision
+einops
+wheel
