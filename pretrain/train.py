@@ -20,7 +20,7 @@ from measure import compute_PSNR, compute_SSIM
 from warmup_scheduler.scheduler import GradualWarmupScheduler
 
 
-# torch.cuda.set_device(1)
+torch.cuda.set_device(0)
 
 
 def set_seed(seed):
@@ -118,7 +118,7 @@ def test(parameters, model, test_dataset):
     imgs = []
     names = []
 
-    if parameters["name"] == "resnet":
+    if parameters["model_name"] == "resnet":
         save_path = osp.join(pretrain_path, 'weights', "Resnet34_Swin")
     else:
         save_path = osp.join(pretrain_path, 'weights', "Efficientnet_Swin")
@@ -154,8 +154,8 @@ def test(parameters, model, test_dataset):
 
     pt = np.mean(np.array(psnrs))
     st = np.mean(np.array(ssims))
-    print("PSNR:", round(pt, 2))
-    print("SSIM:", round(st, 2))
+    print("PSNR:", round(pt, 3))
+    print("SSIM:", round(st, 3))
 
     if pt > best_psnr and st > best_ssim:
         best_psnr = pt
@@ -164,8 +164,8 @@ def test(parameters, model, test_dataset):
         torch.save(model.state_dict(), path_file)
         for j in range(len(names)):
             np.save(names[j], imgs[j])
-    print("best PSNR:", best_psnr)
-    print("best SSIM:", best_ssim)
+    print("best PSNR:", round(best_psnr, 3))
+    print("best SSIM:", round(best_ssim, 3))
 
 
 def create_datasets(parameters):
@@ -201,7 +201,7 @@ def create_datasets(parameters):
 # training_data, given_params, context are necessary to make UbiOps work
 def train(training_data, parameters, context):
     train_dataset, test_dataset = create_datasets(parameters)
-    train_loader = DataLoader(train_dataset, batch_size=parameters["batch_size"], shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=parameters["batch_size"], shuffle=True, num_workers=6)
     if parameters["model_name"] == "resnet":
         model = Resnet34_Swin().to("cuda")
     elif parameters["model_name"] == "efficientnet":
