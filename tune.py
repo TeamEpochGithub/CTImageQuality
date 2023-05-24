@@ -5,6 +5,7 @@ from models.efficient_swinv2 import Efficientnet_Swinv2
 from models.res34_swin import Resnet34_Swin
 from models.res34_swinv2 import Resnet34_Swinv2
 from models.efficientnet import load_efficientnet_model
+from models.resnet import load_resnet_model
 from train import train
 import wandb
 
@@ -39,7 +40,7 @@ def hypertune():
 
     # models = {'Efficientnet_Swin': Efficientnet_Swin, 'Efficientnet_Swinv2': Efficientnet_Swinv2,
     #           'Resnet34_Swin': Resnet34_Swin, 'Resnet34_Swinv2': Resnet34_Swinv2}
-    models = {'Efficientnet_B0': load_efficientnet_model('b0')}
+    models = {'Resnet34': load_resnet_model('34') ,'Efficientnet_B0': load_efficientnet_model('b0')}
 
     print(models[wandb.config.model])
     model = models[wandb.config.model]

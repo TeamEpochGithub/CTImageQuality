@@ -10,7 +10,7 @@ parameters:
   img_size:
     values: [256, 512]
   model:
-    values: ['Efficientnet_Swin', 'Efficientnet_Swinv2', 'Resnet34_Swin', 'Resnet34_Swinv2', 'Efficientnet_B0']
+    values: ['Efficientnet_Swin', 'Efficientnet_Swinv2', 'Resnet34_Swin', 'Resnet34_Swinv2', 'Efficientnet_B0', 'Resnet34']
   epochs:
     values: [15]
   batch_size:
