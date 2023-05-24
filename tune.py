@@ -42,7 +42,6 @@ def hypertune():
               'Efficientnet_Swin': Efficientnet_Swin, 'Efficientnet_Swinv2': Efficientnet_Swinv2,
               'Resnet34_Swin': Resnet34_Swin, 'Resnet34_Swinv2': Resnet34_Swinv2}
 
-    print(models[wandb.config.model])
     model = models[wandb.config.model]
 
     imgs_list, label_list = create_datalists()
