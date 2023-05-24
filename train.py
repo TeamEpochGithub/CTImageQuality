@@ -65,7 +65,10 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch):
 
 def train(model, configs, train_dataset, test_dataset):
     train_loader = DataLoader(train_dataset, batch_size=configs.batch_size, shuffle=True)
-    model = model(configs=configs).cuda()
+    if 'Swin' in configs['model']:
+        model = model(configs=configs).cuda()
+    else:
+        model = model.cuda()
 
     if configs.pretrain:
         weight_path = osp.join(osp.dirname(osp.abspath(__file__)), "pretrain", "weights", configs.model, "pretrain_weight.pkl")
