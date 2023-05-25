@@ -92,10 +92,11 @@ class DConv_5(nn.Module):
 class Efficientnet_Swinv2(nn.Module):
     def __init__(self, configs, hidden_dim=64, layers=(2, 2, 18,
                                                             2), heads=(4, 8, 16, 32), channels=1, head_dim=32,
-                 window_size=8, downscaling_factors=(2, 2, 2, 2), relative_pos_embedding=True):
+                 window_size=8, downscaling_factors=(2, 2, 2, 2), relative_pos_embedding=True, out_channel=1):
         super(Efficientnet_Swinv2, self).__init__()
         self.hidden_dim = hidden_dim
         self.efficientnet = EfficientNet_v1(input_dim=32)
+        self.out_channel = out_channel
         self.stem = nn.Sequential(
             Conv_3(1, self.hidden_dim, 3, 2, 1),
             Conv_3(self.hidden_dim, self.hidden_dim, 3, 1, 1),
@@ -206,7 +207,7 @@ class Efficientnet_Swinv2(nn.Module):
             f_size = 512 * (self.img_size // 128) ** 2
             self.fc1 = nn.Linear(f_size, 512)
             self.l_relu = nn.LeakyReLU(inplace=True)
-        self.fc2 = nn.Linear(512, 1)
+        self.fc2 = nn.Linear(512, out_channel)
 
     def forward(self, x):
         if self.use_mix:
@@ -261,7 +262,10 @@ class Efficientnet_Swinv2(nn.Module):
         else:
             outs = outs.reshape(outs.shape[0], -1)
             outs = self.l_relu(self.fc1(outs))
-        outs = 4 * F.sigmoid(self.fc2(outs))
+        if self.out_channel==1:
+            outs = 4 * F.sigmoid(self.fc2(outs))
+        else:
+            outs = self.fc2(outs)
         return outs
 
 # ins = torch.rand((8, 1, 256, 256))
