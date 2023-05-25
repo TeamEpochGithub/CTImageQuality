@@ -70,11 +70,9 @@ def train(model, configs, train_dataset, test_dataset):
     else:
         model = model.cuda()
 
+    file_dict = {'discrete_classification': "pretrain_weight_classification.pkl", 'denoise': "pretrain_weight_denoise.pkl"}
     if configs.pretrain is not None:
-        if configs.pretrain == 'discrete_classification':
-            weight_path = osp.join(osp.dirname(osp.abspath(__file__)), "pretrain", "weights", configs.model, "pretrain_weight_classification.pkl")
-        elif configs.pretrain == 'denoise':
-            weight_path = osp.join(osp.dirname(osp.abspath(__file__)), "pretrain", "weights", configs.model, "pretrain_weight_denoise.pkl")
+        weight_path = osp.join(osp.dirname(osp.abspath(__file__)), "pretrain", "weights", configs.model, file_dict[configs.pretrain])
 
         if os.path.exists(weight_path):
             pre_weights = torch.load(weight_path, map_location=torch.device("cuda"))
