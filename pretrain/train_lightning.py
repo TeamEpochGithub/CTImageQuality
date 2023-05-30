@@ -8,8 +8,8 @@ from pytorch_lightning.strategies import DDPStrategy
 from torch.utils.data import DataLoader
 
 from measure import compute_PSNR, compute_SSIM
-from model_efficientnet import Efficient_Swin
-from model_resnet import Resnet34_Swin
+from pretrain.pretrain_models.model_efficientnet_denoise import Efficient_Swin_Denoise
+from pretrain.pretrain_models.model_resnet_denoise import Resnet34_Swin
 from train import create_datasets, set_seed
 from warmup_scheduler.scheduler import GradualWarmupScheduler
 
@@ -94,7 +94,7 @@ def train(training_data, parameters, context):
     if parameters["model_name"] == "resnet":
         model = Resnet34_Swin()
     else:
-        model = Efficient_Swin()
+        model = Efficient_Swin_Denoise()
 
     module = LightningModule(parameters, model)
     trainer.fit(module, train_dataloaders=train_loader, val_dataloaders=valid_loader)

@@ -6,6 +6,12 @@ wandb/
 wandb
 lightning_logs/
 
+/pretrain/pretrain_data/
+/pretrain/weights/
+/pretrain/output_imgs/
+
+/tt.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -167,9 +173,3 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
 .idea
-
-/pretrain/npy_imgs/
-/pretrain/weights/
-/pretrain/output_imgs/
-
-/tt.py

@@ -5,7 +5,7 @@ metric:
   goal: maximize
 parameters:
   pretrain:
-    values: [True, False]
+    values: [None, 'denoise', 'discrete_classification']
   img_size:
     values: [256, 512]
   model:

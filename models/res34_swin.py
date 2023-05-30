@@ -97,12 +97,13 @@ class DConv_5(nn.Module):
 class Resnet34_Swin(nn.Module):
     def __init__(self, configs,  hidden_dim=64, layers=(2, 2, 18,
                                                             2), heads=(4, 8, 16, 32), channels=1, head_dim=32,
-                 window_size=8, downscaling_factors=(2, 2, 2, 2), relative_pos_embedding=True):
+                 window_size=8, downscaling_factors=(2, 2, 2, 2), relative_pos_embedding=True, out_channel=1):
         super(Resnet34_Swin, self).__init__()
         self.base_model = torchvision.models.resnet34(True)
         self.base_layers = list(self.base_model.children())
         self.img_size = configs["img_size"]
         self.use_avg = configs["use_avg"]
+        self.out_channel = out_channel
         self.layer0 = nn.Sequential(
             Conv_3(channels, hidden_dim, 3, 2, 1),
             Conv_3(hidden_dim, hidden_dim, 3, 1, 1),
@@ -153,7 +154,7 @@ class Resnet34_Swin(nn.Module):
             f_size = 512 * (self.img_size // 128) ** 2
             self.fc1 = nn.Linear(f_size, 512)
             self.l_relu = nn.LeakyReLU(inplace=True)
-        self.fc2 = nn.Linear(512, 1)
+        self.fc2 = nn.Linear(512, self.out_channel)
 
 
     def forward(self, x):
@@ -181,7 +182,10 @@ class Resnet34_Swin(nn.Module):
         else:
             outs = outs.reshape(outs.shape[0], -1)
             outs = self.l_relu(self.fc1(outs))
-        outs = 4 * F.sigmoid(self.fc2(outs))
+        if self.out_channel == 1:
+            outs = 4 * F.sigmoid(self.fc2(outs))
+        else:
+            outs = self.fc2(outs)
         return outs
 
 # ins = torch.rand((8, 1, 256, 256))
