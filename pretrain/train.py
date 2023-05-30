@@ -25,6 +25,8 @@ from models.efficient_swinv2 import Efficientnet_Swinv2
 from measure import compute_PSNR, compute_SSIM
 from warmup_scheduler.scheduler import GradualWarmupScheduler
 
+import pydicom
+
 torch.cuda.set_device(0)
 
 
@@ -40,6 +42,46 @@ def set_seed(seed):
 
 
 set_seed(0)
+
+class AAPMDataset(Dataset):
+    def __init__(self, input_dir, label_dir, transform=None):
+        self.input_dir = input_dir
+        self.label_dir = label_dir
+        self.transform = transform
+        self.samples = []
+
+        for patient_dir in os.listdir(self.input_dir):
+            patient_input_path = os.path.join(self.input_dir, patient_dir)
+            patient_label_path = os.path.join(self.label_dir, patient_dir)
+
+            if os.path.isdir(patient_input_path) and os.path.isdir(patient_label_path):
+                for file in os.listdir(patient_input_path):
+                    if file.endswith(".IMA"):
+                        input_file_path = os.path.join(patient_input_path, file)
+                        label_file_path = os.path.join(patient_label_path, file)
+                        if os.path.exists(label_file_path):
+                            self.samples.append((input_file_path, label_file_path))
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        input_file_path, label_file_path = self.samples[idx]
+
+        input_image = pydicom.dcmread(input_file_path).pixel_array
+        input_image = torch.from_numpy(input_image).float()
+
+        label_image = pydicom.dcmread(label_file_path).pixel_array
+        label_image = torch.from_numpy(label_image).float()
+
+        if self.transform:
+            input_image = self.transform(input_image)
+            label_image = self.transform(label_image)
+
+        return input_image, label_image
 
 
 class CT_Dataset_v1(Dataset):
