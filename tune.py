@@ -38,20 +38,23 @@ def hypertune():
     )
     print("config:", wandb.config)
 
-    models = {'Resnet18': load_resnet_model('18', wandb.config.pretrain),
-              'Resnet50': load_resnet_model('50', wandb.config.pretrain),
-              'Resnet152': load_resnet_model('152', wandb.config.pretrain),
-              'Efficientnet_B0': load_efficientnet_model('b0', wandb.config.pretrain),
-              'Efficientnet_B4': load_efficientnet_model('b4', wandb.config.pretrain),
-              'Efficientnet_B7': load_efficientnet_model('b7', wandb.config.pretrain),
-              'Efficientnet_Swin': Efficientnet_Swin, 'Efficientnet_Swinv2': Efficientnet_Swinv2,
-              'Resnet34_Swin': Resnet34_Swin, 'Resnet34_Swinv2': Resnet34_Swinv2}
+    # models = {'Resnet18': load_resnet_model('18', wandb.config.pretrain),
+    #           'Resnet50': load_resnet_model('50', wandb.config.pretrain),
+    #           'Resnet152': load_resnet_model('152', wandb.config.pretrain),
+    #           'Efficientnet_B0': load_efficientnet_model('b0', wandb.config.pretrain),
+    #           'Efficientnet_B4': load_efficientnet_model('b4', wandb.config.pretrain),
+    #           'Efficientnet_B7': load_efficientnet_model('b7', wandb.config.pretrain),
+    #           'Efficientnet_Swin': Efficientnet_Swin, 'Efficientnet_Swinv2': Efficientnet_Swinv2,
+    #           'Resnet34_Swin': Resnet34_Swin, 'Resnet34_Swinv2': Resnet34_Swinv2}
+    models = {
+        'Efficientnet_B0': load_efficientnet_model('b0', wandb.config.pretrain)
+    }
 
     model = models[wandb.config.model]
 
     imgs_list, label_list = create_datalists()
 
-    left_bound, right_bound = 900, 1000
+    left_bound, right_bound = 250, 1000
 
     train_dataset = CT_Dataset(imgs_list[:left_bound] + imgs_list[right_bound:],
                                label_list[:left_bound] + label_list[right_bound:], split="train", config=wandb.config)

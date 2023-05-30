@@ -40,9 +40,18 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch):
             label_new = label.cpu().numpy()
             total_pred.append(pred_new[0])
             total_gt.append(label_new)
+            print('prediction:', pred_new)
+            print('target:', label_new)
+            print(abs(pred_new-label_new))
+        # print(np.mean(F.mse_loss(total_pred, total_gt)))
+        print(np.mean([abs(x - y) for x, y in zip(total_pred, total_gt)]))
+
         total_pred = np.array(total_pred)
+        # print(total_pred)
         total_gt = np.array(total_gt)
+
         aggregate_results["plcc"] = abs(pearsonr(total_pred, total_gt)[0])
+        print(pearsonr(total_pred, total_gt))  # statistic=-0.15246117134251358, pvalue=0.1299469453291804
         aggregate_results["srocc"] = abs(spearmanr(total_pred, total_gt)[0])
         aggregate_results["krocc"] = abs(kendalltau(total_pred, total_gt)[0])
         aggregate_results["overall"] = abs(pearsonr(total_pred, total_gt)[0]) + abs(
