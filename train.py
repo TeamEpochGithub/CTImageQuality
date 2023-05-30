@@ -73,10 +73,11 @@ def train(model, configs, train_dataset, test_dataset):
     if configs.pretrain:
         weight_path = osp.join(osp.dirname(osp.abspath(__file__)), "pretrain", "weights", configs.model, "pretrain_weight.pkl")
 
-        pre_weights = torch.load(weight_path, map_location=torch.device("cuda"))
-        for name, param in model.named_parameters():
-            if name in pre_weights:
-                param.data.copy_(pre_weights[name])
+        if os.path.exists(weight_path):
+            pre_weights = torch.load(weight_path, map_location=torch.device("cuda"))
+            for name, param in model.named_parameters():
+                if name in pre_weights:
+                    param.data.copy_(pre_weights[name])
 
     optimizer = optim.AdamW(model.parameters(), lr=configs.lr, betas=(0.9, 0.999), eps=1e-8,
                             weight_decay=configs.weight_decay)
