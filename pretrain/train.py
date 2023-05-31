@@ -276,7 +276,7 @@ def train(training_data, parameters, context):
 
 if __name__ == '__main__':
     parameters = {
-        "folder": "denoise_task_2K",  # weighted_dataset, denoise_task_2K
+        "folder": "weighted_dataset",  # weighted_dataset, denoise_task_2K
         "split_ratio": 0.8,
         "batch_size": 4,
         "warmup_epochs": 20,

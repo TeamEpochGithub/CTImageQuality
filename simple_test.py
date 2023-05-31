@@ -16,6 +16,7 @@ from models.res34_swin import Resnet34_Swin
 from models.res34_swinv2 import Resnet34_Swinv2
 from models.efficient_swinv2 import Efficientnet_Swinv2
 from models.efficient_swin import Efficientnet_Swin
+from models.hr_swin import HR_Transformer
 import pytorch_warmup as warmup
 from scipy.stats import pearsonr, spearmanr, kendalltau
 import tifffile
@@ -132,7 +133,8 @@ def train(model, configs):
     train_dataset = CT_Dataset(imgs_list[:900], label_list[:900], split="train", image_size = configs["image_size"])
     test_dataset = CT_Dataset(imgs_list[900:], label_list[900:], split="test", image_size = configs["image_size"])
     train_loader = DataLoader(train_dataset, batch_size=configs['batch_size'], shuffle=True)
-    model = model(configs=configs).cuda()
+    # model = model(configs=configs).cuda()
+    model = model(img_size=configs["image_size"]).cuda()
 
     optimizer = optim.AdamW(model.parameters(), lr=configs["lr"], betas=(0.9, 0.999), eps=1e-8,
                             weight_decay=configs["weight_decay"])
@@ -169,11 +171,13 @@ def train(model, configs):
 
     return {"best_score": best_score, "best_score_epoch": best_score_epoch, "best_loss": best_loss}
 
+
 if __name__ == '__main__':
     image_size = 256
     resnet_swin_config = {
-        "batch_size": 2,
-        "epochs": 200,
+        "image_size": image_size,
+        "batch_size": 4,
+        "epochs": 250,
         "lr": 3e-4,
         "min_lr": 1e-6,
         "weight_decay": 1e-4,
@@ -181,4 +185,4 @@ if __name__ == '__main__':
         'use_avg': True,
         'use_mix': True
     }
-    train(Resnet34_Swin, resnet_swin_config)
+    train(HR_Transformer, resnet_swin_config)
