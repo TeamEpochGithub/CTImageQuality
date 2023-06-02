@@ -1,5 +1,6 @@
 import os
 import random
+import sys
 import time
 import json
 import torch
@@ -49,18 +50,25 @@ class AAPMDataset(Dataset):
         self.label_dir = label_dir
         self.transform = transform
         self.samples = []
+        for i in range(len(os.listdir(self.input_dir))):
+            image_dir_path = os.path.join(self.input_dir, os.listdir(self.input_dir)[i])
+            label_dir_path = os.path.join(self.label_dir, os.listdir(self.label_dir)[i])
 
-        for patient_dir in os.listdir(self.input_dir):
-            patient_input_path = os.path.join(self.input_dir, patient_dir)
-            patient_label_path = os.path.join(self.label_dir, patient_dir)
+            for j in range(len(os.listdir(image_dir_path))):
+                patient_input_path = os.path.join(image_dir_path, os.listdir(image_dir_path)[j], os.listdir(self.input_dir)[i])
+                # print(patient_input_path)
+                patient_label_path = os.path.join(label_dir_path, os.listdir(label_dir_path)[j], os.listdir(self.label_dir)[i])
 
-            if os.path.isdir(patient_input_path) and os.path.isdir(patient_label_path):
-                for file in os.listdir(patient_input_path):
-                    if file.endswith(".IMA"):
-                        input_file_path = os.path.join(patient_input_path, file)
-                        label_file_path = os.path.join(patient_label_path, file)
-                        if os.path.exists(label_file_path):
-                            self.samples.append((input_file_path, label_file_path))
+                # print(os.listdir(patient_input_path))
+
+                for k in range(len(os.listdir(patient_input_path))):
+                    # print(file)
+                    input_file_path = os.path.join(patient_input_path, os.listdir(patient_input_path)[k])
+                    label_file_path = os.path.join(patient_label_path, os.listdir(patient_label_path)[k])
+                    # print(label_file_path)
+                    if os.path.exists(label_file_path):
+                        # print('file found')
+                        self.samples.append((input_file_path, label_file_path))
 
     def __len__(self):
         return len(self.samples)
@@ -72,15 +80,17 @@ class AAPMDataset(Dataset):
         input_file_path, label_file_path = self.samples[idx]
 
         input_image = pydicom.dcmread(input_file_path).pixel_array
-        input_image = torch.from_numpy(input_image).float()
+        input_image = torch.from_numpy(input_image.astype(np.float32)).unsqueeze(0)
+        # input_image = input_image.mean(dim=0, keepdim=True)
 
         label_image = pydicom.dcmread(label_file_path).pixel_array
-        label_image = torch.from_numpy(label_image).float()
+        label_image = torch.from_numpy(label_image.astype(np.float32)).unsqueeze(0)
+        # label_image = label_image.mean(dim=0, keepdim=True)
 
         if self.transform:
             input_image = self.transform(input_image)
             label_image = self.transform(label_image)
-
+        # print(input_image)
         return input_image, label_image
 
 
@@ -246,7 +256,16 @@ def train(training_data, parameters, context):
     classify_models = {"Resnet34_Swin": Resnet34_Swin, "Resnet34_Swinv2": Resnet34_Swinv2,
               "Efficientnet_Swin": Efficientnet_Swin, "Efficientnet_Swinv2": Efficientnet_Swinv2}
 
-    train_dataset, test_dataset = create_datasets(parameters)
+    if parameters['datasets'] == 'Classic':
+
+        train_dataset, test_dataset = create_datasets(parameters)
+    else:
+        train_dir = r'C:\EpochProjects\CTImageQuality\data\image'
+        label_dir = r'C:\EpochProjects\CTImageQuality\data\label'
+
+        train_dataset = AAPMDataset(train_dir, label_dir)
+    # print(train_dataset[0])
+
     train_loader = DataLoader(train_dataset, batch_size=parameters["batch_size"], shuffle=True, num_workers=6)
     if parameters["folder"] == "denoise_task_2K":
         model = denoise_models[parameters["model_name"]]().to("cuda")
@@ -304,9 +323,9 @@ def train(training_data, parameters, context):
         formatted_time = f"{minutes:02d}:{seconds:02d}"
 
         # print("epoch:", epoch, "loss:", float(losses / len(train_dataset)), f"time: {formatted_time}")
-
-        if epoch % 15 == 0:
-            test(parameters, model, test_dataset)
+        #
+        # if epoch % 15 == 0:
+        #     test(parameters, model, test_dataset)
 
     return {
         "artifact": "None",
@@ -330,9 +349,11 @@ if __name__ == '__main__':
         "model_name": "Resnet34_Swin",  # Resnet34_Swin, Resnet34_Swinv2, Efficientnet_Swin, Efficientnet_Swinv2
         "img_size": 512,
         "use_avg": True,
-        "use_mix": True
+        "use_mix": True,
+        "datasets": "Classic", # "AAPM"
     }
 
+    # model_names = ["Resnet34_Swin"]
     model_names = ["Resnet34_Swin", "Resnet34_Swinv2", "Efficientnet_Swin", "Efficientnet_Swinv2"]
     for m in model_names:
         parameters["model_name"] = m
