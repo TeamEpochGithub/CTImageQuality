@@ -26,7 +26,9 @@ from models.efficient_swinv2 import Efficientnet_Swinv2
 from measure import compute_PSNR, compute_SSIM
 from warmup_scheduler.scheduler import GradualWarmupScheduler
 
-import pydicom
+from pretrain_dataloaders.aapm_dataset import AAPMDataset
+from pretrain_dataloaders.classic_dataset import CT_Dataset_v1
+
 
 torch.cuda.set_device(0)
 
@@ -43,88 +45,6 @@ def set_seed(seed):
 
 
 set_seed(0)
-
-class AAPMDataset(Dataset):
-    def __init__(self, input_dir, label_dir, transform=None):
-        self.input_dir = input_dir
-        self.label_dir = label_dir
-        self.transform = transform
-        self.samples = []
-        for i in range(len(os.listdir(self.input_dir))):
-            image_dir_path = os.path.join(self.input_dir, os.listdir(self.input_dir)[i])
-            label_dir_path = os.path.join(self.label_dir, os.listdir(self.label_dir)[i])
-
-            for j in range(len(os.listdir(image_dir_path))):
-                patient_input_path = os.path.join(image_dir_path, os.listdir(image_dir_path)[j], os.listdir(self.input_dir)[i])
-                # print(patient_input_path)
-                patient_label_path = os.path.join(label_dir_path, os.listdir(label_dir_path)[j], os.listdir(self.label_dir)[i])
-
-                # print(os.listdir(patient_input_path))
-
-                for k in range(len(os.listdir(patient_input_path))):
-                    # print(file)
-                    input_file_path = os.path.join(patient_input_path, os.listdir(patient_input_path)[k])
-                    label_file_path = os.path.join(patient_label_path, os.listdir(patient_label_path)[k])
-                    # print(label_file_path)
-                    if os.path.exists(label_file_path):
-                        # print('file found')
-                        self.samples.append((input_file_path, label_file_path))
-
-    def __len__(self):
-        return len(self.samples)
-
-    def __getitem__(self, idx):
-        if torch.is_tensor(idx):
-            idx = idx.tolist()
-
-        input_file_path, label_file_path = self.samples[idx]
-
-        input_image = pydicom.dcmread(input_file_path).pixel_array
-        input_image = torch.from_numpy(input_image.astype(np.float32)).unsqueeze(0)
-        # input_image = input_image.mean(dim=0, keepdim=True)
-
-        label_image = pydicom.dcmread(label_file_path).pixel_array
-        label_image = torch.from_numpy(label_image.astype(np.float32)).unsqueeze(0)
-        # label_image = label_image.mean(dim=0, keepdim=True)
-
-        if self.transform:
-            input_image = self.transform(input_image)
-            label_image = self.transform(label_image)
-        # print(input_image)
-        return input_image, label_image
-
-
-class CT_Dataset_v1(Dataset):
-    def __init__(self, lists, mode, norm, transform=None):
-        self.lists = lists
-        self.norm = norm
-        self.mode = mode
-        self.transform = transform
-        self.target_ = []
-        for i in range(len(self.lists)):
-            self.target_.append(self.lists[i][1])
-
-    def __len__(self):
-        return len(self.lists)
-
-    def __getitem__(self, idx):
-        if self.mode == "denoise_task_2K":
-            input_img, target_img = self.lists[idx]
-            input_img, target_img = np.float32(np.load(input_img)), np.float32(np.load(target_img))
-            if self.norm:
-                input_img = (input_img - np.min(input_img)) / (np.max(input_img) - np.min(input_img))
-                target_img = (target_img - np.min(target_img)) / (np.max(target_img) - np.min(target_img))
-            augmentations = self.transform(image=input_img, mask=target_img)
-            image = augmentations["image"]
-            label = augmentations["mask"]
-        else:
-            input_img, label = self.lists[idx]
-            input_img = np.float32(np.load(input_img))
-            augmentations = self.transform(image=input_img)
-            image = augmentations["image"]
-            label = torch.tensor(label)
-        return image, label
-
 
 best_psnr = 0
 best_ssim = 0
@@ -265,10 +185,6 @@ def train(training_data, parameters, context):
         train_dir = osp.join(pretrain_path, 'pretrain_data', 'aapm_data', 'image')
         label_dir = osp.join(pretrain_path, 'pretrain_data', 'aapm_data', 'label')
 
-
-        # train_dir = r'C:\EpochProjects\CTImageQuality\data\image'
-        # label_dir = r'C:\EpochProjects\CTImageQuality\data\label'
-
         train_dataset = AAPMDataset(train_dir, label_dir)
     # print(train_dataset[0])
 
@@ -356,7 +272,7 @@ if __name__ == '__main__':
         "img_size": 512,
         "use_avg": True,
         "use_mix": True,
-        "datasets": "AAPM"
+        "datasets": "Classic", # "AAPM"
     }
 
     # model_names = ["Resnet34_Swin"]
