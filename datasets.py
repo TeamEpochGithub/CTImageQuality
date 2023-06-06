@@ -9,30 +9,30 @@ class CT_Dataset(torch.utils.data.Dataset):
         self.imgs_list = imgs_list
         self.label_list = label_list
         self.split = split
-        self.image_size = config.img_size
+        self.image_size = config['img_size']
         self.config = config
 
         if self.split == 'train':
 
             operations = [torchvision.transforms.ToPILImage()]
 
-            if self.config.RandomHorizontalFlip:
+            if self.config['RandomHorizontalFlip']:
                 operations.append(torchvision.transforms.RandomHorizontalFlip())
 
-            if self.config.RandomVerticalFlip:
+            if self.config['RandomVerticalFlip']:
                 operations.append(torchvision.transforms.RandomVerticalFlip())
 
-            if self.config.RandomRotation:
-                operations.append(torchvision.transforms.RandomRotation(self.config.rotation_angle))
+            if self.config['RandomRotation']:
+                operations.append(torchvision.transforms.RandomRotation(self.config['rotation_angle']))
 
-            if self.config.ZoomIn:
+            if self.config['ZoomIn']:
                 operations.append(torchvision.transforms.RandomApply([
-                    torchvision.transforms.CenterCrop(size=int(self.config.zoomin_factor * 512)),
+                    torchvision.transforms.CenterCrop(size=int(self.config['zoomin_factor'] * 512)),
                     torchvision.transforms.Resize(size=(self.image_size, self.image_size)),
                 ], p=0.1))
-            if self.config.ZoomOut:
+            if self.config['ZoomOut']:
                 operations.append(torchvision.transforms.RandomApply([
-                    torchvision.transforms.Pad(padding=int(512 * self.config.zoomout_factor)),
+                    torchvision.transforms.Pad(padding=int(512 * self.config['zoomout_factor'])),
                     torchvision.transforms.Resize((self.image_size, self.image_size)),
                 ], p=0.1))
 

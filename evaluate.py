@@ -11,7 +11,7 @@ from models.efficient_swin import Efficientnet_Swin
 from models.efficient_swinv2 import Efficientnet_Swinv2
 from models.res34_swin import Resnet34_Swin
 from models.res34_swinv2 import Resnet34_Swinv2
-from train import train
+# from train import train
 import wandb
 import numpy as np
 
