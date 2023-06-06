@@ -58,7 +58,7 @@ def hypertune():
     test_dataset = CT_Dataset(imgs_list[left_bound:right_bound], label_list[left_bound:right_bound], split="test",
                               config=wandb.config)
 
-    scores_dict = train(model, wandb.config, train_dataset, test_dataset)
+    scores_dict = train(model, wandb.config, train_dataset, test_dataset, wandb_run=True)
 
     wandb.log({"best_score": scores_dict['best_score'], "best_score_epoch": scores_dict['best_score_epoch']})
 
