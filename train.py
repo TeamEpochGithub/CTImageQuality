@@ -10,8 +10,7 @@ from tqdm import tqdm
 import pytorch_warmup as warmup
 from scipy.stats import pearsonr, spearmanr, kendalltau
 import wandb
-from datasets import CT_Dataset
-from evaluate import create_datalists
+from datasets import CT_Dataset, create_datalists
 from models.efficient_swin import Efficientnet_Swin
 from models.efficient_swinv2 import Efficientnet_Swinv2
 from models.efficientnet import load_efficientnet_model

@@ -1,5 +1,4 @@
-from datasets import CT_Dataset
-from evaluate import create_datalists
+from datasets import CT_Dataset, create_datalists
 from models.efficient_swin import Efficientnet_Swin
 from models.efficient_swinv2 import Efficientnet_Swinv2
 from models.res34_swin import Resnet34_Swin

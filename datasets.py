@@ -1,11 +1,37 @@
 import numpy as np
 import torch
 import torchvision
+import tifffile
 from PIL import Image
+import LDCTIQAG2023_train as train_data
+import json
+
+import os.path as osp
+import os
+
+
+def create_datalists():
+    data_dir = osp.join(osp.dirname(train_data.__file__), 'image')
+    label_dir = osp.join(osp.dirname(train_data.__file__), 'train.json')
+    with open(label_dir, 'r') as f:
+        label_dict = json.load(f)
+
+    imgs_list = []
+    label_list = []
+    for root, dirs, files in os.walk(data_dir):
+        for file in files:
+            if file.endswith('.tif'):
+                label_list.append(label_dict[file])
+                with tifffile.TiffFile(os.path.join(root, file)) as tif:
+                    image = tif.pages[0].asarray()
+                    img = Image.fromarray(image)
+                    imgs_list.append(img)
+
+    return imgs_list, label_list
 
 
 class CT_Dataset(torch.utils.data.Dataset):
-    def __init__(self, imgs_list, label_list, split, config):
+    def __init__(self, imgs_list, label_list, split='validation', config={'img_size': 512}):
         self.imgs_list = imgs_list
         self.label_list = label_list
         self.split = split
