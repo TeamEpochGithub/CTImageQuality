@@ -260,8 +260,14 @@ def train(training_data, parameters, context):
 
         train_dataset, test_dataset = create_datasets(parameters)
     else:
-        train_dir = r'C:\EpochProjects\CTImageQuality\data\image'
-        label_dir = r'C:\EpochProjects\CTImageQuality\data\label'
+
+        pretrain_path = osp.dirname(__file__)
+        train_dir = osp.join(pretrain_path, 'pretrain_data', 'aapm_data', 'image')
+        label_dir = osp.join(pretrain_path, 'pretrain_data', 'aapm_data', 'label')
+
+
+        # train_dir = r'C:\EpochProjects\CTImageQuality\data\image'
+        # label_dir = r'C:\EpochProjects\CTImageQuality\data\label'
 
         train_dataset = AAPMDataset(train_dir, label_dir)
     # print(train_dataset[0])
@@ -350,7 +356,7 @@ if __name__ == '__main__':
         "img_size": 512,
         "use_avg": True,
         "use_mix": True,
-        "datasets": "Classic", # "AAPM"
+        "datasets": "AAPM"
     }
 
     # model_names = ["Resnet34_Swin"]
