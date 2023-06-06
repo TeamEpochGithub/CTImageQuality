@@ -46,6 +46,7 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_run=Fa
             pred = model(img.cuda())
             pred_new = pred.cpu().numpy().squeeze(0)
             label_new = label.cpu().numpy()
+            # print(round(pred_new[0], 2), label_new)
             total_pred.append(pred_new[0])
             total_gt.append(label_new)
             if i == len(test_dataset) - 1:
@@ -56,6 +57,8 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_run=Fa
                 aggregate_results["krocc"] = abs(kendalltau(total_pred, total_gt)[0])
                 aggregate_results["overall"] = abs(pearsonr(total_pred, total_gt)[0]) + abs(
                     spearmanr(total_pred, total_gt)[0]) + abs(kendalltau(total_pred, total_gt)[0])
+                std = np.std(total_pred - total_gt)
+                aggregate_results["std"] = std
                 t.set_postfix({key: round(value, 3) for key, value in aggregate_results.items()})
 
     aggregate_results['epoch'] = epoch
