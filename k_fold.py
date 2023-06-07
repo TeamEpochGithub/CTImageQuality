@@ -1,21 +1,12 @@
 import os.path as osp
-
 import numpy as np
-
-import wandb
-
 import analysis
 from datasets import create_datalists, CT_Dataset
-from models.efficient_swin import Efficientnet_Swin
-from models.efficient_swinv2 import Efficientnet_Swinv2
-from models.efficientnet import load_efficientnet_model
-from models.res34_swin import Resnet34_Swin
-from models.res34_swinv2 import Resnet34_Swinv2
-from models.resnet import load_resnet_model
+from models.get_models import get_model
 from train import train
 
 
-def k_fold_patients_train(model, configs, wandb_single_experiment=False):
+def k_fold_patients_train(configs, wandb_single_experiment=False):
     best_scores = []
     best_score_epochs = []
     best_losses = []
@@ -33,6 +24,7 @@ def k_fold_patients_train(model, configs, wandb_single_experiment=False):
         test_dataset = CT_Dataset([imgs_list[x] for x in patient_indices], [label_list[x] for x in patient_indices],
                                   split="test", config=configs)
 
+        model = get_model(configs)
         scores_dict = train(model, configs, train_dataset, test_dataset, wandb_single_experiment)
         best_scores.append(scores_dict['best_score'])
         best_score_epochs.append(scores_dict['best_score_epoch'])
@@ -64,15 +56,4 @@ if __name__ == '__main__':
         'zoomout_factor': 0.27,
     }
 
-    models = {'Resnet18': load_resnet_model('18', configs['pretrain']),
-              'Resnet50': load_resnet_model('50', configs['pretrain']),
-              'Resnet152': load_resnet_model('152', configs['pretrain']),
-              'Efficientnet_B0': load_efficientnet_model('b0', configs['pretrain']),
-              'Efficientnet_B4': load_efficientnet_model('b4', configs['pretrain']),
-              'Efficientnet_B7': load_efficientnet_model('b7', configs['pretrain']),
-              'Efficientnet_Swin': Efficientnet_Swin, 'Efficientnet_Swinv2': Efficientnet_Swinv2,
-              'Resnet34_Swin': Resnet34_Swin, 'Resnet34_Swinv2': Resnet34_Swinv2}
-
-    model = models['Resnet50']
-
-    k_fold_patients_train(model, configs, wandb_single_experiment=False)
+    k_fold_patients_train(configs, wandb_single_experiment=False)
