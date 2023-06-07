@@ -1,5 +1,4 @@
-from datasets import CT_Dataset
-from evaluate import create_datalists
+from datasets import CT_Dataset, create_datalists, create_datasets
 from models.efficient_swin import Efficientnet_Swin
 from models.efficient_swinv2 import Efficientnet_Swinv2
 from models.res34_swin import Resnet34_Swin
@@ -51,14 +50,9 @@ def hypertune():
 
     imgs_list, label_list = create_datalists()
 
-    left_bound, right_bound = 900, 1000
+    train_dataset, test_dataset = create_datasets(imgs_list, label_list, wandb.config)
 
-    train_dataset = CT_Dataset(imgs_list[:left_bound] + imgs_list[right_bound:],
-                               label_list[:left_bound] + label_list[right_bound:], split="train", config=wandb.config)
-    test_dataset = CT_Dataset(imgs_list[left_bound:right_bound], label_list[left_bound:right_bound], split="test",
-                              config=wandb.config)
-
-    scores_dict = train(model, wandb.config, train_dataset, test_dataset)
+    scores_dict = train(model, wandb.config, train_dataset, test_dataset, wandb_run=True)
 
     wandb.log({"best_score": scores_dict['best_score'], "best_score_epoch": scores_dict['best_score_epoch']})
 

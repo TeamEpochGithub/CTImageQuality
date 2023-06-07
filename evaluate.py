@@ -1,39 +1,12 @@
-from datasets import CT_Dataset
-import tifffile
-from PIL import Image
-import LDCTIQAG2023_train as train_data
-import json
-
-import os.path as osp
-import os
+from datasets import CT_Dataset, create_datalists
 
 from models.efficient_swin import Efficientnet_Swin
 from models.efficient_swinv2 import Efficientnet_Swinv2
 from models.res34_swin import Resnet34_Swin
 from models.res34_swinv2 import Resnet34_Swinv2
-from train import train
+# from train import train
 import wandb
 import numpy as np
-
-
-def create_datalists():
-    data_dir = osp.join(osp.dirname(train_data.__file__), 'image')
-    label_dir = osp.join(osp.dirname(train_data.__file__), 'train.json')
-    with open(label_dir, 'r') as f:
-        label_dict = json.load(f)
-
-    imgs_list = []
-    label_list = []
-    for root, dirs, files in os.walk(data_dir):
-        for file in files:
-            if file.endswith('.tif'):
-                label_list.append(label_dict[file])
-                with tifffile.TiffFile(os.path.join(root, file)) as tif:
-                    image = tif.pages[0].asarray()
-                    img = Image.fromarray(image)
-                    imgs_list.append(img)
-
-    return imgs_list, label_list
 
 
 def evaluate_k_fold(config, name="model", folds=5):
