@@ -33,7 +33,7 @@ def hypertune():
 
     scores_dict = k_fold_patients_train(wandb.config, wandb_single_experiment=False)
 
-    wandb.log({"avg_best_score": scores_dict['best_score'], "avg_best_score_epoch": scores_dict['best_score_epoch'], "avg_best_loss": scores_dict['avg_best_loss']})
+    wandb.log({"avg_best_score": scores_dict['avg_best_score'], "avg_best_score_epoch": scores_dict['avg_best_score_epoch'], "avg_best_loss": scores_dict['avg_best_loss']})
 
     wandb.finish()
 
