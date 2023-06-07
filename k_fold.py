@@ -15,7 +15,7 @@ from models.resnet import load_resnet_model
 from train import train
 
 
-def k_fold_patients_train(model, configs, wandb_run=False):
+def k_fold_patients_train(model, configs, wandb_single_experiment=False):
     best_scores = []
     best_score_epochs = []
     best_losses = []
@@ -33,17 +33,13 @@ def k_fold_patients_train(model, configs, wandb_run=False):
         test_dataset = CT_Dataset([imgs_list[x] for x in patient_indices], [label_list[x] for x in patient_indices],
                                   split="test", config=configs)
 
-        scores_dict = train(model, configs, train_dataset, test_dataset, wandb_run)
+        scores_dict = train(model, configs, train_dataset, test_dataset, wandb_single_experiment)
         best_scores.append(scores_dict['best_score'])
         best_score_epochs.append(scores_dict['best_score_epoch'])
         best_losses.append(scores_dict['best_loss'])
 
     print({'avg_best_score': np.mean(best_scores), 'avg_best_score_epoch': np.mean(best_score_epochs), 'avg_best_loss': np.mean(best_losses)})
-
-    if wandb_run:
-        wandb.log({'avg_best_score': np.mean(best_scores), 'avg_best_score_epoch': np.mean(best_score_epochs),
-                   'avg_best_loss': np.mean(best_losses)})
-        wandb.finish()
+    return {'avg_best_score': np.mean(best_scores), 'avg_best_score_epoch': np.mean(best_score_epochs), 'avg_best_loss': np.mean(best_losses)}
 
 
 if __name__ == '__main__':
@@ -79,4 +75,4 @@ if __name__ == '__main__':
 
     model = models['Resnet50']
 
-    k_fold_patients_train(model, configs, wandb_run=False)
+    k_fold_patients_train(model, configs, wandb_single_experiment=False)

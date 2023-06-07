@@ -1,4 +1,5 @@
 from datasets import CT_Dataset, create_datalists, create_datasets
+from k_fold import k_fold_patients_train
 from models.efficient_swin import Efficientnet_Swin
 from models.efficient_swinv2 import Efficientnet_Swinv2
 from models.res34_swin import Resnet34_Swin
@@ -38,10 +39,17 @@ def hypertune():
     print("config:", wandb.config)
 
     models = {'Resnet18': load_resnet_model('18', wandb.config.pretrain),
+              'Resnet34': load_resnet_model('34', wandb.config.pretrain),
               'Resnet50': load_resnet_model('50', wandb.config.pretrain),
+              'Resnet101': load_resnet_model('101', wandb.config.pretrain),
               'Resnet152': load_resnet_model('152', wandb.config.pretrain),
               'Efficientnet_B0': load_efficientnet_model('b0', wandb.config.pretrain),
+              'Efficientnet_B1': load_efficientnet_model('b1', wandb.config.pretrain),
+              'Efficientnet_B2': load_efficientnet_model('b2', wandb.config.pretrain),
+              'Efficientnet_B3': load_efficientnet_model('b3', wandb.config.pretrain),
               'Efficientnet_B4': load_efficientnet_model('b4', wandb.config.pretrain),
+              'Efficientnet_B5': load_efficientnet_model('b5', wandb.config.pretrain),
+              'Efficientnet_B6': load_efficientnet_model('b6', wandb.config.pretrain),
               'Efficientnet_B7': load_efficientnet_model('b7', wandb.config.pretrain),
               'Efficientnet_Swin': Efficientnet_Swin, 'Efficientnet_Swinv2': Efficientnet_Swinv2,
               'Resnet34_Swin': Resnet34_Swin, 'Resnet34_Swinv2': Resnet34_Swinv2}
@@ -50,9 +58,10 @@ def hypertune():
 
     imgs_list, label_list = create_datalists()
 
-    train_dataset, test_dataset = create_datasets(imgs_list, label_list, wandb.config)
+    # train_dataset, test_dataset = create_datasets(imgs_list, label_list, wandb.config)
+    # scores_dict = train(model, wandb.config, train_dataset, test_dataset, wandb_single_experiment=True)
 
-    scores_dict = train(model, wandb.config, train_dataset, test_dataset, wandb_run=True)
+    scores_dict = k_fold_patients_train(model, wandb.config, wandb_single_experiment=False)
 
     wandb.log({"best_score": scores_dict['best_score'], "best_score_epoch": scores_dict['best_score_epoch']})
 

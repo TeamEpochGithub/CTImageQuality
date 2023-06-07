@@ -33,7 +33,7 @@ def set_seed(seed):
 set_seed(0)
 
 
-def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_run=False):
+def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_single_experiment=False):
     model.eval()
     total_pred = []
     total_gt = []
@@ -74,23 +74,22 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_run=Fa
         if not os.path.exists('output'):
             os.makedirs('output')
         torch.save(model.state_dict(), osp.join('output', "model.pth"))
-        if wandb_run:
+        if wandb_single_experiment:
             wandb.save("model.pth")
 
     return best_score, best_score_epoch
 
 
-def train(model, configs, train_dataset, test_dataset, wandb_run=False):
-    errors = []
+def train(model, configs, train_dataset, test_dataset, wandb_single_experiment=False):
+
     train_loader = DataLoader(train_dataset, batch_size=configs['batch_size'], shuffle=True)
     if 'Swin' in configs['model']:
-        model = model(configs=configs).cuda()
-    else:
-        model = model.cuda()
+        model = model(configs=configs)
+    model = model.cuda()
 
-    file_dict = {'discrete_classification': "pretrain_weight_classification.pkl",
-                 'denoise': "pretrain_weight_denoise.pkl"}
     if configs['pretrain'] != 'None':
+        file_dict = {'discrete_classification': "pretrain_weight_classification.pkl",
+                     'denoise': "pretrain_weight_denoise.pkl"}
         weight_path = osp.join(osp.dirname(osp.abspath(__file__)), "pretrain", "weights", configs['model'],
                                file_dict[configs['pretrain']])
 
@@ -137,7 +136,7 @@ def train(model, configs, train_dataset, test_dataset, wandb_run=False):
             best_loss = loss
 
         if epoch % 1 == 0:
-            best_score, best_score_epoch = valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_run)
+            best_score, best_score_epoch = valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_single_experiment)
 
     return {"best_score": best_score, "best_score_epoch": best_score_epoch, "best_loss": best_loss}
 
@@ -180,4 +179,4 @@ if __name__ == '__main__':
 
     train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs)
 
-    train(model, configs, train_dataset, test_dataset, wandb_run=False)
+    train(model, configs, train_dataset, test_dataset, wandb_single_experiment=False)
