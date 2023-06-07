@@ -40,14 +40,12 @@ class AAPMDataset(Dataset):
 
         input_image = pydicom.dcmread(input_file_path).pixel_array
         input_image = torch.from_numpy(input_image.astype(np.float32)).unsqueeze(0)
-        # input_image = input_image.mean(dim=0, keepdim=True)
 
         label_image = pydicom.dcmread(label_file_path).pixel_array
         label_image = torch.from_numpy(label_image.astype(np.float32)).unsqueeze(0)
-        # label_image = label_image.mean(dim=0, keepdim=True)
 
         if self.transform:
             input_image = self.transform(input_image)
             label_image = self.transform(label_image)
-        # print(input_image)
+
         return input_image, label_image

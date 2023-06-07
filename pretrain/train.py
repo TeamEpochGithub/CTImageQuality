@@ -73,7 +73,7 @@ def test(parameters, model, test_dataset):
         os.mkdir(img_path)
 
     model.eval()
-    if parameters["folder"] == "denoise_task_2K":
+    if parameters["folder"] == "denoise_task_2K" or isinstance(test_dataset, AAPMDataset):
         with torch.no_grad():
             for i, (img, label) in tqdm(enumerate(test_dataset), total=len(test_dataset), desc="testing: ",
                                         colour='blue'):
@@ -81,13 +81,19 @@ def test(parameters, model, test_dataset):
                 noise = model(img)
                 pred = img - noise
                 pred = pred.cpu()
+
                 pred_new = pred.numpy().squeeze(0)
-                pred_new = pred_new.reshape(512, 512)
-
                 label_new = label.cpu().numpy()
-                label_new = label_new.reshape(512, 512)
 
-                img_name = test_dataset.target_[i]
+                if pred_new.ndim > 2:
+                    pred_new = pred_new.reshape(pred_new.shape[-2], pred_new.shape[-1])
+                if label_new.ndim > 2:
+                    label_new = label_new.reshape(label_new.shape[-2], label_new.shape[-1])
+
+                if parameters['datasets'] == "AAPM":
+                    img_name = test_dataset.dataset.samples[i][0]
+                else:
+                    img_name = test_dataset.target_[i]
                 image_name = img_name.split("\\")[-1]
                 out_path = os.path.join(img_path, image_name)
                 names.append(out_path)
@@ -95,6 +101,28 @@ def test(parameters, model, test_dataset):
 
                 psnrs.append(compute_PSNR(label_new, pred_new, data_range=1))
                 ssims.append(compute_SSIM(label, pred, data_range=1))
+        # if parameters["folder"] == "denoise_task_2K":
+        #     with torch.no_grad():
+        #         for i, (img, label) in tqdm(enumerate(test_dataset), total=len(test_dataset), desc="testing: ",
+        #                                     colour='blue'):
+        #             img = img.unsqueeze(0).float().to("cuda")
+        #             noise = model(img)
+        #             pred = img - noise
+        #             pred = pred.cpu()
+        #             pred_new = pred.numpy().squeeze(0)
+        #             pred_new = pred_new.reshape(512, 512)
+        #
+        #             label_new = label.cpu().numpy()
+        #             label_new = label_new.reshape(512, 512)
+        #
+        #             img_name = test_dataset.target_[i]
+        #             image_name = img_name.split("\\")[-1]
+        #             out_path = os.path.join(img_path, image_name)
+        #             names.append(out_path)
+        #             imgs.append(pred_new)
+        #
+        #             psnrs.append(compute_PSNR(label_new, pred_new, data_range=1))
+        #             ssims.append(compute_SSIM(label, pred, data_range=1))
 
         pt = np.mean(np.array(psnrs))
         st = np.mean(np.array(ssims))
@@ -137,7 +165,7 @@ def test(parameters, model, test_dataset):
 def train(training_data, parameters, context):
     denoise_models = {"Resnet34_Swin": Resnet34_Swin_Denoise, "Efficientnet_Swin": Efficient_Swin_Denoise}
     classify_models = {"Resnet34_Swin": Resnet34_Swin, "Resnet34_Swinv2": Resnet34_Swinv2,
-              "Efficientnet_Swin": Efficientnet_Swin, "Efficientnet_Swinv2": Efficientnet_Swinv2}
+                       "Efficientnet_Swin": Efficientnet_Swin, "Efficientnet_Swinv2": Efficientnet_Swinv2}
 
     if parameters['datasets'] == 'Classic':
 
@@ -165,7 +193,6 @@ def train(training_data, parameters, context):
     scheduler = GradualWarmupScheduler(optimizer, multiplier=1, total_epoch=warmup_epochs,
                                        after_scheduler=scheduler_cosine)
 
-
     # num_steps = len(train_loader) * given_params["epochs"]
     # lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_steps, eta_min=given_params["min_lr"])
     # warmup_scheduler = warmup.UntunedLinearWarmup(optimizer)
@@ -183,7 +210,8 @@ def train(training_data, parameters, context):
 
             if parameters["folder"] == "denoise_task_2K":
                 loss_function = nn.MSELoss()
-                target = target.unsqueeze(1)
+                if parameters['datasets'] != 'AAPM':
+                    target = target.unsqueeze(1)
                 loss = loss_function(pred, image - target)
             else:
                 loss_function = nn.CrossEntropyLoss()
@@ -233,7 +261,7 @@ if __name__ == '__main__':
         "img_size": 512,
         "use_avg": True,
         "use_mix": True,
-        "datasets": "AAPM"
+        "datasets": "Classic",  # "AAPM"
     }
 
     # model_names = ["Resnet34_Swin"]
@@ -241,4 +269,3 @@ if __name__ == '__main__':
     for m in model_names:
         parameters["model_name"] = m
         train(None, parameters, None)
-
