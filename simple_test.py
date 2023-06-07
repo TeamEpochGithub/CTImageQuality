@@ -1,7 +1,8 @@
 import numpy as np
 import torch
+import torch.nn as nn
 import torchvision
-from PIL import Image
+from PIL import Image, ImageDraw
 import os
 import os.path as osp
 import random
@@ -20,6 +21,44 @@ from models.hr_swin import HR_Transformer
 import pytorch_warmup as warmup
 from scipy.stats import pearsonr, spearmanr, kendalltau
 import tifffile
+from torchvision.models import resnet18
+
+
+class Cutout(object):
+    """Randomly mask out one or more patches from an image.
+
+    Args:
+        n_holes (int): Number of patches to cut out of each image.
+        length (int): The length (in pixels) of each square patch.
+    """
+    def __init__(self, n_holes, length):
+        self.n_holes = n_holes
+        self.length = length
+
+    def __call__(self, img):
+        """
+        Args:
+            img (PIL.Image): Image to be cutout.
+        Returns:
+            PIL.Image: Image with n_holes of dimension length x length cut out of it.
+        """
+        w, h = img.size
+        mask = Image.new('L', (w, h), 255)
+        draw = ImageDraw.Draw(mask)
+
+        for _ in range(self.n_holes):
+            y = int(np.random.uniform(h))
+            x = int(np.random.uniform(w))
+            y1 = np.clip(y - self.length // 2, 0, h)
+            y2 = np.clip(y + self.length // 2, 0, h)
+            x1 = np.clip(x - self.length // 2, 0, w)
+            x2 = np.clip(x + self.length // 2, 0, w)
+            draw.rectangle([(x1, y1), (x2, y2)], fill=0)
+
+        result = Image.new('L', (w, h))
+        result.paste(img, mask=mask)
+
+        return result
 
 class CT_Dataset(torch.utils.data.Dataset):
     def __init__(self, imgs_list, label_list, image_size, split):
@@ -37,6 +76,8 @@ class CT_Dataset(torch.utils.data.Dataset):
             operations.append(torchvision.transforms.RandomVerticalFlip())
 
             operations.append(torchvision.transforms.RandomRotation(15))
+
+            operations.append(Cutout(1, length=128))
 
             operations += [torchvision.transforms.ToTensor()]
 
@@ -59,6 +100,22 @@ class CT_Dataset(torch.utils.data.Dataset):
         y = self.label_list[idx]
         return x, torch.tensor(y)
 
+
+class ResNet_18(nn.Module):
+    def __init__(self):
+        super().__init__()
+        model = resnet18(pretrained=True)
+        self.model = torch.nn.Sequential(*list(model.children())[1:-1])
+        self.conv1 = torch.nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        self.fc = torch.nn.Linear(512, 1)
+
+    def forward(self, x):
+        batch_size = x.shape[0]
+        x = self.conv1(x)
+        x = self.model(x)
+        x = x.reshape(batch_size, -1)
+        outs = 4 * F.sigmoid(self.fc(x))
+        return outs
 
 def set_seed(seed):
     """Set all random seeds and settings for reproducibility (deterministic behavior)."""
@@ -133,8 +190,14 @@ def train(model, configs):
     train_dataset = CT_Dataset(imgs_list[:900], label_list[:900], split="train", image_size = configs["image_size"])
     test_dataset = CT_Dataset(imgs_list[900:], label_list[900:], split="test", image_size = configs["image_size"])
     train_loader = DataLoader(train_dataset, batch_size=configs['batch_size'], shuffle=True)
-    # model = model(configs=configs).cuda()
-    model = model(img_size=configs["image_size"]).cuda()
+    # model = model().cuda()
+    model = model(configs=configs).cuda()
+    weight_path=r"C:\Users\leo\Documents\CTImageQuality\models\weights\Resnet34_Swin\pretrain_weight_classification.pkl"
+    if os.path.exists(weight_path):
+        pre_weights = torch.load(weight_path, map_location=torch.device("cuda"))
+        for name, param in model.named_parameters():
+            if name in pre_weights and "fc2" not in name:
+                param.data.copy_(pre_weights[name])
 
     optimizer = optim.AdamW(model.parameters(), lr=configs["lr"], betas=(0.9, 0.999), eps=1e-8,
                             weight_decay=configs["weight_decay"])
@@ -173,16 +236,16 @@ def train(model, configs):
 
 
 if __name__ == '__main__':
-    image_size = 256
+    image_size = 512
     resnet_swin_config = {
         "image_size": image_size,
         "batch_size": 4,
         "epochs": 250,
         "lr": 3e-4,
         "min_lr": 1e-6,
-        "weight_decay": 1e-4,
+        "weight_decay": 0.03,
         'img_size': image_size,
         'use_avg': True,
         'use_mix': True
     }
-    train(HR_Transformer, resnet_swin_config)
+    train(Resnet34_Swin, resnet_swin_config)
