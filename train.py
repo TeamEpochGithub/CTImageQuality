@@ -10,7 +10,7 @@ from tqdm import tqdm
 import pytorch_warmup as warmup
 from scipy.stats import pearsonr, spearmanr, kendalltau
 import wandb
-from datasets import CT_Dataset, create_datalists
+from datasets import CT_Dataset, create_datalists, create_datasets
 from models.efficient_swin import Efficientnet_Swin
 from models.efficient_swinv2 import Efficientnet_Swinv2
 from models.efficientnet import load_efficientnet_model
@@ -50,6 +50,7 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_run=Fa
             total_pred.append(pred_new[0])
             total_gt.append(label_new)
             if i == len(test_dataset) - 1:
+                # errors = [abs(x - float(y)) for x, y in zip(total_pred, total_gt)]
                 total_pred = np.array(total_pred)
                 total_gt = np.array(total_gt)
                 aggregate_results["plcc"] = abs(pearsonr(total_pred, total_gt)[0])
@@ -60,6 +61,9 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_run=Fa
                 std = np.std(total_pred - total_gt)
                 aggregate_results["std"] = std
                 t.set_postfix({key: round(value, 3) for key, value in aggregate_results.items()})
+    # import matplotlib.pyplot as plt
+    # plt.hist(errors, bins=20)
+    # plt.show()
 
     aggregate_results['epoch'] = epoch
     if aggregate_results["overall"] > best_score:
@@ -77,15 +81,18 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_run=Fa
 
 
 def train(model, configs, train_dataset, test_dataset, wandb_run=False):
+    errors = []
     train_loader = DataLoader(train_dataset, batch_size=configs['batch_size'], shuffle=True)
     if 'Swin' in configs['model']:
         model = model(configs=configs).cuda()
     else:
         model = model.cuda()
 
-    file_dict = {'discrete_classification': "pretrain_weight_classification.pkl", 'denoise': "pretrain_weight_denoise.pkl"}
-    if configs['pretrain'] is not None:
-        weight_path = osp.join(osp.dirname(osp.abspath(__file__)), "pretrain", "weights", configs['model'], file_dict[configs['pretrain']])
+    file_dict = {'discrete_classification': "pretrain_weight_classification.pkl",
+                 'denoise': "pretrain_weight_denoise.pkl"}
+    if configs['pretrain'] != 'None':
+        weight_path = osp.join(osp.dirname(osp.abspath(__file__)), "pretrain", "weights", configs['model'],
+                               file_dict[configs['pretrain']])
 
         if os.path.exists(weight_path):
             pre_weights = torch.load(weight_path, map_location=torch.device("cuda"))
@@ -122,7 +129,8 @@ def train(model, configs, train_dataset, test_dataset, wandb_run=False):
 
             if i == len(train_loader) - 1:
                 t.set_postfix(
-                    {"loss": round(float(losses / len(train_dataset)), 5), "lr": round(lr_scheduler.get_last_lr()[0], 8)})
+                    {"loss": round(float(losses / len(train_dataset)), 5),
+                     "lr": round(lr_scheduler.get_last_lr()[0], 8)})
 
         loss = float(losses / len(train_dataset))
         if loss < best_loss:
@@ -140,7 +148,7 @@ if __name__ == '__main__':
         'pretrain': None,
         'img_size': 512,
         'model': 'Resnet50',
-        'epochs': 50,
+        'epochs': 150,
         'batch_size': 16,
         'weight_decay': 3e-4,
         'lr': 6e-3,
@@ -170,11 +178,6 @@ if __name__ == '__main__':
 
     imgs_list, label_list = create_datalists()
 
-    left_bound, right_bound = 900, 1000
-
-    train_dataset = CT_Dataset(imgs_list[:left_bound] + imgs_list[right_bound:],
-                               label_list[:left_bound] + label_list[right_bound:], split="train", config=configs)
-    test_dataset = CT_Dataset(imgs_list[left_bound:right_bound], label_list[left_bound:right_bound], split="test",
-                              config=configs)
+    train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs)
 
     train(model, configs, train_dataset, test_dataset, wandb_run=False)

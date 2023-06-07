@@ -10,6 +10,40 @@ import os.path as osp
 import os
 
 
+def create_datasets(imgs_list, label_list, configs):
+    one_patient_out = True
+    if one_patient_out:
+        patient_indices = [0, 1, 2, 3, 5, 8, 9, 12, 20, 24, 29, 33, 36, 37, 40, 41, 42, 53, 58, 64, 67, 74, 79, 88, 90,
+                           93, 97, 108, 109, 111, 112, 113, 117, 120, 126, 127, 128, 131, 132, 133, 134, 137, 143, 148,
+                           150, 153, 155, 166, 168, 172, 184, 186, 187, 191, 194, 208, 210, 211, 220, 223, 227, 228,
+                           231, 234, 241, 249, 252, 256, 257, 259, 264, 267, 269, 272, 277, 278, 281, 284, 286, 287,
+                           294, 296, 299, 300, 304, 306, 308, 312, 314, 315, 318, 321, 326, 327, 328, 329, 341, 343,
+                           349, 363, 365, 367, 369, 370, 372, 376, 380, 391, 397, 404, 405, 407, 410, 412, 425, 427,
+                           429, 440, 446, 448, 449, 455, 457, 464, 465, 469, 481, 489, 491, 498, 509, 517, 518, 520,
+                           527, 530, 533, 538, 540, 546, 547, 553, 564, 565, 568, 569, 574, 582, 589, 591, 600, 604,
+                           607, 608, 609, 610, 612, 621, 622, 637, 638, 643, 651, 652, 653, 659, 660, 665, 668, 669,
+                           670, 671, 674, 677, 685, 691, 694, 695, 699, 701, 714, 725, 728, 729, 740, 741, 742, 743,
+                           746, 748, 752, 754, 759, 761, 764, 766, 767, 773, 774, 775, 776, 777, 783, 789, 790, 791,
+                           792, 795, 796, 798, 799, 805, 806, 818, 825, 831, 833, 837, 838, 847, 849, 852, 855, 859,
+                           863, 866, 868, 877, 879, 888, 892, 893, 894, 896, 904, 907, 910, 914, 923, 927, 942, 943,
+                           945, 952, 965, 967, 980, 986, 993, 996]
+        print(len(patient_indices))
+        non_patient_indices = list(set(list(range(1000))) - set(patient_indices))
+        train_dataset = CT_Dataset([imgs_list[x] for x in non_patient_indices],
+                                   [label_list[x] for x in non_patient_indices], split="train",
+                                   config=configs)
+        test_dataset = CT_Dataset([imgs_list[x] for x in patient_indices], [label_list[x] for x in patient_indices],
+                                  split="test", config=configs)
+    else:
+        left_bound, right_bound = 900, 1000
+
+        train_dataset = CT_Dataset(imgs_list[:left_bound] + imgs_list[right_bound:],
+                                   label_list[:left_bound] + label_list[right_bound:], split="train", config=configs)
+        test_dataset = CT_Dataset(imgs_list[left_bound:right_bound], label_list[left_bound:right_bound], split="test",
+                                  config=configs)
+    return train_dataset, test_dataset
+
+
 def create_datalists():
     data_dir = osp.join(osp.dirname(train_data.__file__), 'image')
     label_dir = osp.join(osp.dirname(train_data.__file__), 'train.json')
