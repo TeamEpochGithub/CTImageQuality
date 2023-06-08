@@ -4,7 +4,7 @@ import sys
 
 import torchvision
 
-from pretrain.pretrain_models.swin import StageModule
+from pretrain_models.swin import StageModule
 
 
 # Conv Block: Conv+BatchNorm+ReLU
@@ -134,13 +134,13 @@ class DConv_5(nn.Module):
 
 class Resnet34_Swin_Denoise(nn.Module):
     def __init__(self, img_size=512, hidden_dim=64, layers=(2, 2, 18,
-                                                            2), heads=(4, 8, 16, 32), channels=1, head_dim=32,
+                                                            2), heads=(3, 6, 12, 24), channels=1, head_dim=32,
                  window_size=8, downscaling_factors=(2, 2, 2, 2), relative_pos_embedding=True):
         super(Resnet34_Swin_Denoise, self).__init__()
         self.base_model = torchvision.models.resnet34(True)
         self.base_layers = list(self.base_model.children())
         self.layer0 = nn.Sequential(
-            Conv_3(channels, hidden_dim, 3, 2, 1),
+            Conv_3(channels, hidden_dim, 7, 2, 3),
             Conv_3(hidden_dim, hidden_dim, 3, 1, 1),
             Conv_3(hidden_dim, hidden_dim, 3, 1, 1),
         )
