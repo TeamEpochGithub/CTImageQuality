@@ -9,7 +9,7 @@ def adapt_resnet_to_grayscale(model):
     return model
 
 
-def load_resnet_model(model_name, pretrained_weights):
+def load_resnet_model(model_name, pretrained_weights, out_channel=1):
     model_dict = {
         '18': resnet18,
         '34': resnet34,
@@ -43,6 +43,6 @@ def load_resnet_model(model_name, pretrained_weights):
         model = model_dict[model_name](weights=pretrained_weights_dict[model_name])
 
     model = adapt_resnet_to_grayscale(model)
-    model.fc = nn.Linear(model.fc.in_features, 1)
+    model.fc = nn.Linear(model.fc.in_features, out_channel)
 
     return model

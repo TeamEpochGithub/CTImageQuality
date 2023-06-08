@@ -178,15 +178,15 @@ class Resnet34_Swin(nn.Module):
 
         if self.use_avg:
             outs = self.avg_pool(outs)
-            outs = outs.reshape(outs.shape[0], -1)
+            outs1 = outs.reshape(outs.shape[0], -1)
         else:
             outs = outs.reshape(outs.shape[0], -1)
-            outs = self.l_relu(self.fc1(outs))
+            outs1 = self.l_relu(self.fc1(outs))
         if self.out_channel == 1:
-            outs = 4 * F.sigmoid(self.fc2(outs))
+            outs = 4 * F.sigmoid(self.fc2(outs1))
         else:
-            outs = self.fc2(outs)
-        return outs
+            outs = self.fc2(outs1)
+        return outs, outs1
 
 # ins = torch.rand((8, 1, 256, 256))
 # model = Resnet34_Swin()

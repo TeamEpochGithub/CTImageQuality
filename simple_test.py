@@ -22,7 +22,10 @@ import pytorch_warmup as warmup
 from scipy.stats import pearsonr, spearmanr, kendalltau
 import tifffile
 from torchvision.models import resnet18
-
+from tpot import TPOTRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import ExtraTreesRegressor
+import joblib
 
 class Cutout(object):
     """Randomly mask out one or more patches from an image.
@@ -77,7 +80,7 @@ class CT_Dataset(torch.utils.data.Dataset):
 
             operations.append(torchvision.transforms.RandomRotation(15))
 
-            operations.append(Cutout(1, length=128))
+            # operations.append(Cutout(1, length=128))
 
             operations += [torchvision.transforms.ToTensor()]
 
@@ -192,7 +195,7 @@ def train(model, configs):
     train_loader = DataLoader(train_dataset, batch_size=configs['batch_size'], shuffle=True)
     # model = model().cuda()
     model = model(configs=configs).cuda()
-    weight_path=r"C:\Users\leo\Documents\CTImageQuality\models\weights\Resnet34_Swin\pretrain_weight_classification.pkl"
+    weight_path=r"C:\Users\leo\Documents\CTImageQuality\models\weights\Resnet34_Swin\pretrain_weight_denoise.pkl"
     if os.path.exists(weight_path):
         pre_weights = torch.load(weight_path, map_location=torch.device("cuda"))
         for name, param in model.named_parameters():
@@ -234,6 +237,44 @@ def train(model, configs):
 
     return {"best_score": best_score, "best_score_epoch": best_score_epoch, "best_loss": best_loss}
 
+def train_tpot(model, configs):
+    imgs_list, label_list = create_datalists()
+    dataset = CT_Dataset(imgs_list, label_list, split="train", image_size = configs["image_size"])
+    model = model(configs=configs).cuda()
+    weight_path=r"C:\Users\leo\Documents\CTImageQuality\models\weights\Resnet34_Swin\pretrain_weight_denoise.pkl"
+    if os.path.exists(weight_path):
+        pre_weights = torch.load(weight_path, map_location=torch.device("cuda"))
+        for name, param in model.named_parameters():
+            if name in pre_weights and "fc2" not in name:
+                param.data.copy_(pre_weights[name])
+    image_features = []
+    labels = []
+    model.eval()
+    with torch.no_grad():
+        for _, (image, label) in enumerate(dataset):
+            _, outs1 = model(image.unsqueeze(0).cuda())
+            image_features.append(outs1.squeeze().cpu().numpy())
+            labels.append(label)
+    image_features = np.array(image_features)
+    labels = np.array(labels)
+
+    X_train, X_test, y_train, y_test = train_test_split(image_features, labels, train_size=0.8, test_size=0.2)
+    tpot = TPOTRegressor(generations=100, population_size=50, verbosity=2, random_state=42)
+    tpot.fit(X_train, y_train)
+    best_model = tpot.fitted_pipeline_
+    print(best_model)
+    joblib.dump(best_model, 'model_filename.pkl')
+
+    predictions = best_model.predict(X_test)
+    print("pre:", predictions)
+    print("fac:", y_test)
+    aggregate_results = dict()
+    aggregate_results["plcc"] = abs(pearsonr(predictions, y_test)[0])
+    aggregate_results["srocc"] = abs(spearmanr(predictions, y_test)[0])
+    aggregate_results["krocc"] = abs(kendalltau(predictions, y_test)[0])
+    aggregate_results["overall"] = abs(pearsonr(predictions, y_test)[0]) + abs(
+        spearmanr(predictions, y_test)[0]) + abs(kendalltau(predictions, y_test)[0])
+    print(aggregate_results)
 
 if __name__ == '__main__':
     image_size = 512
@@ -248,4 +289,4 @@ if __name__ == '__main__':
         'use_avg': True,
         'use_mix': True
     }
-    train(Resnet34_Swin, resnet_swin_config)
+    train_tpot(Resnet34_Swin, resnet_swin_config)
