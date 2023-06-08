@@ -261,7 +261,7 @@ if __name__ == '__main__':
         "img_size": 512,
         "use_avg": True,
         "use_mix": True,
-        "datasets": "Classic",  # "AAPM"
+        "datasets": "AAPM"
     }
 
     # model_names = ["Resnet34_Swin"]

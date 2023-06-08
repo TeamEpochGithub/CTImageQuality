@@ -4,11 +4,13 @@ from torch.utils.data import DataLoader, Dataset
 import torch
 import numpy as np
 class AAPMDataset(Dataset):
-    def __init__(self, input_dir, label_dir, transform=None):
+    def __init__(self, input_dir, label_dir, transform=None, mode='train'):
         self.input_dir = input_dir
         self.label_dir = label_dir
         self.transform = transform
         self.samples = []
+
+        split = 0.9
         for i in range(len(os.listdir(self.input_dir))):
             image_dir_path = os.path.join(self.input_dir, os.listdir(self.input_dir)[i])
             label_dir_path = os.path.join(self.label_dir, os.listdir(self.label_dir)[i])
@@ -43,6 +45,10 @@ class AAPMDataset(Dataset):
 
         label_image = pydicom.dcmread(label_file_path).pixel_array
         label_image = torch.from_numpy(label_image.astype(np.float32)).unsqueeze(0)
+
+        # Normalize the images manually using Min-Max normalization
+        input_image = (input_image - torch.min(input_image)) / (torch.max(input_image) - torch.min(input_image))
+        label_image = (label_image - torch.min(label_image)) / (torch.max(label_image) - torch.min(label_image))
 
         if self.transform:
             input_image = self.transform(input_image)
