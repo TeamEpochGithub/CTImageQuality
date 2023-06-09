@@ -17,6 +17,7 @@ import torch.nn as nn
 from pretrain_models.model_efficientnet_denoise import Efficient_Swin_Denoise
 from pretrain_models.model_resnet_denoise import Resnet34_Swin_Denoise
 from pretrain_models.resnet34_unet import UNet34_Denoise
+from pretrain_models.efficientnet_unet import EfficientNet_Denoise
 
 import sys
 sys.path.append('..')
@@ -79,7 +80,6 @@ class CT_Dataset(Dataset):
 best_psnr = 0
 best_ssim = 0
 best_acc = 0
-
 
 def test(parameters, model, test_dataset):
     pretrain_path = osp.dirname(__file__)
@@ -215,7 +215,8 @@ def create_datasets(parameters):
 
 # training_data, given_params, context are necessary to make UbiOps work
 def train(training_data, parameters, context):
-    denoise_models = {"Resnet34_Swin": Resnet34_Swin_Denoise, "Efficientnet_Swin": Efficient_Swin_Denoise, "ResNet34": UNet34_Denoise}
+    denoise_models = {"Resnet34_Swin": Resnet34_Swin_Denoise, "Efficientnet_Swin": Efficient_Swin_Denoise,
+                      "ResNet34": UNet34_Denoise, "EfficientNet-b0":EfficientNet_Denoise}
     configs = {
         "pretrain": None
     }
@@ -312,7 +313,7 @@ if __name__ == '__main__':
     }
 
     # denoise for keys of denoise_models, while classification for keys of classify_models (recomand to use AAPM for denoise task)
-    model_names = ["ResNet34", "Resnet34_Swin", "Efficientnet_Swin"]
+    model_names = ["EfficientNet-b0", "ResNet34","Resnet34_Swin", "Efficientnet_Swin"]
     for m in model_names:
         parameters["model_name"] = m
         train(None, parameters, None)
