@@ -31,7 +31,8 @@ from models.efficient_swinv2 import Efficientnet_Swinv2
 from measure import compute_PSNR, compute_SSIM
 from warmup_scheduler.scheduler import GradualWarmupScheduler
 
-torch.cuda.set_device(0)
+torch.cuda.set_device(1)
+# torch.cuda.set_device(0)
 
 def set_seed(seed):
     """Set all random seeds and settings for reproducibility (deterministic behavior)."""
@@ -311,9 +312,9 @@ if __name__ == '__main__':
         "use_avg": True,
         "use_mix": True,
     }
-
+    print('This is efficient swin run')
     # denoise for keys of denoise_models, while classification for keys of classify_models (recomand to use AAPM for denoise task)
-    model_names = ["EfficientNet-b0", "ResNet34","Resnet34_Swin", "Efficientnet_Swin"]
+    model_names = ["Efficientnet_Swin", "Resnet34_Swin",  "EfficientNet-b0", "ResNet34"]
     for m in model_names:
         parameters["model_name"] = m
         train(None, parameters, None)
