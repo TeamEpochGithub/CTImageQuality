@@ -215,8 +215,12 @@ def create_datasets(parameters):
 
 # training_data, given_params, context are necessary to make UbiOps work
 def train(training_data, parameters, context):
-    denoise_models = {"Resnet34_Swin": Resnet34_Swin_Denoise, "Efficientnet_Swin": Efficient_Swin_Denoise,
-                      "ResNet34": UNet34_Denoise, "EfficientNet-b0":EfficientNet_Denoise}
+    denoise_models = {"Resnet34_Swin": Resnet34_Swin_Denoise(), "Efficientnet_Swin": Efficient_Swin_Denoise(),
+                      "ResNet34": UNet34_Denoise(), "EfficientNet-b0":EfficientNet_Denoise(mode="b0"),
+                      "EfficientNet-b1":EfficientNet_Denoise(mode="b1"),"EfficientNet-b2":EfficientNet_Denoise(mode="b2"),
+                      "EfficientNet-b3":EfficientNet_Denoise(mode="b3"),"EfficientNet-b4":EfficientNet_Denoise(mode="b4"),
+                      "EfficientNet-b5":EfficientNet_Denoise(mode="b5"),"EfficientNet-b6":EfficientNet_Denoise(mode="b6"),
+                      "EfficientNet-b7":EfficientNet_Denoise(mode="b7"),}
     configs = {
         "pretrain": None
     }
@@ -226,16 +230,18 @@ def train(training_data, parameters, context):
               'Efficientnet_B0': load_efficientnet_model('b0', configs['pretrain'], out_channel=4),
               'Efficientnet_B4': load_efficientnet_model('b4', configs['pretrain'], out_channel=4),
               'Efficientnet_B7': load_efficientnet_model('b7', configs['pretrain'], out_channel=4),
-              'Efficientnet_Swin': Efficientnet_Swin, 'Efficientnet_Swinv2': Efficientnet_Swinv2,
-              'Resnet34_Swin': Resnet34_Swin, 'Resnet34_Swinv2': Resnet34_Swinv2}
+              'Efficientnet_Swin': Efficientnet_Swin(configs=parameters, out_channel=4),
+              'Efficientnet_Swinv2': Efficientnet_Swinv2(configs=parameters, out_channel=4),
+              'Resnet34_Swin': Resnet34_Swin(configs=parameters, out_channel=4),
+              'Resnet34_Swinv2': Resnet34_Swinv2(configs=parameters, out_channel=4)}
 
     train_dataset, test_dataset = create_datasets(parameters)
 
     train_loader = DataLoader(train_dataset, batch_size=parameters["batch_size"], shuffle=True, num_workers=4)
     if parameters["folder"] == "denoise_task_2K" or parameters["folder"] == "AAPM":
-        model = denoise_models[parameters["model_name"]]().to("cuda")
+        model = denoise_models[parameters["model_name"]].to("cuda")
     else:
-        model = classify_models[parameters["model_name"]](configs=parameters, out_channel=4).to("cuda")
+        model = classify_models[parameters["model_name"]].to("cuda")
 
     epochs = parameters["epochs"]
     optimizer = optim.AdamW(model.parameters(), lr=parameters["lr"], betas=(0.9, 0.999), eps=1e-8,
@@ -313,7 +319,9 @@ if __name__ == '__main__':
     }
 
     # denoise for keys of denoise_models, while classification for keys of classify_models (recomand to use AAPM for denoise task)
-    model_names = ["EfficientNet-b0", "ResNet34","Resnet34_Swin", "Efficientnet_Swin"]
+    model_names = ["EfficientNet-b3", "EfficientNet-b1", "EfficientNet-b2", "EfficientNet-b3", "ResNet34",
+                   "EfficientNet-b4", "EfficientNet-b5", "EfficientNet-b6", "EfficientNet-b7",
+                   "Resnet34_Swin", "Efficientnet_Swin"]
     for m in model_names:
         parameters["model_name"] = m
         train(None, parameters, None)
