@@ -16,7 +16,7 @@ def adapt_efficientnet_to_grayscale(model):
     return model
 
 
-def load_efficientnet_model(model_name, pretrained_weights):
+def load_efficientnet_model(model_name, pretrained_weights, out_channel=1):
     model_dict = {
         'b0': efficientnet_b0,
         'b1': efficientnet_b1,
@@ -59,6 +59,6 @@ def load_efficientnet_model(model_name, pretrained_weights):
         model = model_dict[model_name](weights=pretrained_weights_dict[model_name])
 
     model = adapt_efficientnet_to_grayscale(model)
-    model.classifier[1] = nn.Linear(model.classifier[1].in_features, 1)
+    model.classifier[1] = nn.Linear(model.classifier[1].in_features, out_channel)
 
     return model
