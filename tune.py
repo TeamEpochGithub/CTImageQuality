@@ -1,12 +1,5 @@
-from datasets import CT_Dataset
-from evaluate import create_datalists
+from k_fold import k_fold_patients_train
 from models.efficient_swin import Efficientnet_Swin
-from models.efficient_swinv2 import Efficientnet_Swinv2
-from models.res34_swin import Resnet34_Swin
-from models.res34_swinv2 import Resnet34_Swinv2
-from models.efficientnet import load_efficientnet_model
-from models.resnet import load_resnet_model
-from train import train
 import wandb
 
 
@@ -38,29 +31,9 @@ def hypertune():
     )
     print("config:", wandb.config)
 
-    models = {'Resnet18': load_resnet_model('18', wandb.config.pretrain),
-              'Resnet50': load_resnet_model('50', wandb.config.pretrain),
-              'Resnet152': load_resnet_model('152', wandb.config.pretrain),
-              'Efficientnet_B0': load_efficientnet_model('b0', wandb.config.pretrain),
-              'Efficientnet_B4': load_efficientnet_model('b4', wandb.config.pretrain),
-              'Efficientnet_B7': load_efficientnet_model('b7', wandb.config.pretrain),
-              'Efficientnet_Swin': Efficientnet_Swin, 'Efficientnet_Swinv2': Efficientnet_Swinv2,
-              'Resnet34_Swin': Resnet34_Swin, 'Resnet34_Swinv2': Resnet34_Swinv2}
+    scores_dict = k_fold_patients_train(wandb.config, wandb_single_experiment=False)
 
-    model = models[wandb.config.model]
-
-    imgs_list, label_list = create_datalists()
-
-    left_bound, right_bound = 900, 1000
-
-    train_dataset = CT_Dataset(imgs_list[:left_bound] + imgs_list[right_bound:],
-                               label_list[:left_bound] + label_list[right_bound:], split="train", config=wandb.config)
-    test_dataset = CT_Dataset(imgs_list[left_bound:right_bound], label_list[left_bound:right_bound], split="test",
-                              config=wandb.config)
-
-    scores_dict = train(model, wandb.config, train_dataset, test_dataset, wandb_run=True)
-
-    wandb.log({"best_score": scores_dict['best_score'], "best_score_epoch": scores_dict['best_score_epoch']})
+    wandb.log({"avg_best_score": scores_dict['avg_best_score'], "avg_best_score_epoch": scores_dict['avg_best_score_epoch'], "avg_best_loss": scores_dict['avg_best_loss']})
 
     wandb.finish()
 

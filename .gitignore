@@ -5,6 +5,7 @@ output/
 wandb/
 wandb
 lightning_logs/
+analysis/plots/
 
 /pretrain/pretrain_data/
 /pretrain/weights/
