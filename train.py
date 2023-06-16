@@ -162,7 +162,7 @@ if __name__ == '__main__':
         'use_avg': True,
         'XShift': True,
         'YShift': True,
-        'max_shift': 0.2,
+        'max_shift': 0.5,
         'rotation_angle': 12.4,
         'zoomin_factor': 0.9,
         'zoomout_factor': 0.27,
