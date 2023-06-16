@@ -87,7 +87,7 @@ def train(configs, train_dataset, test_dataset, wandb_single_experiment=False):
         model = model(configs=configs)
     model = model.cuda()
 
-    if configs['pretrain'] != 'None':
+    if configs['pretrain'] != None:
         file_dict = {'discrete_classification': "pretrain_weight_classification.pkl",
                      'denoise': "pretrain_weight_denoise.pkl"}
         weight_path = osp.join(osp.dirname(osp.abspath(__file__)), "pretrain", "weights", configs['model'],
@@ -160,6 +160,9 @@ if __name__ == '__main__':
         'ZoomOut': False,
         'use_mix': False,
         'use_avg': True,
+        'XShift': True,
+        'YShift': True,
+        'max_shift': 0.5,
         'rotation_angle': 12.4,
         'zoomin_factor': 0.9,
         'zoomout_factor': 0.27,
