@@ -4,7 +4,7 @@ import sys
 
 import torchvision
 
-from pretrain.pretrain_models.swin import StageModule
+from pretrain_models.swin import StageModule
 
 
 # Conv Block: Conv+BatchNorm+ReLU

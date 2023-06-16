@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 
-from pretrain.pretrain_models.efficient_net import EfficientNet_v1
-from pretrain.pretrain_models.swin import StageModule
+from pretrain_models.efficient_net import EfficientNet_v1
+from pretrain_models.swin import StageModule
 
 
 class Conv_3(nn.Module):
