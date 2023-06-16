@@ -20,18 +20,19 @@ from pretrain_models.resnet34_unet import UNet34_Denoise
 from pretrain_models.efficientnet_unet import EfficientNet_Denoise
 
 import sys
-sys.path.append('..')
-from models.resnet import load_resnet_model
-from models.efficientnet import load_efficientnet_model
-from models.res34_swin import Resnet34_Swin
-from models.res34_swinv2 import Resnet34_Swinv2
-from models.efficient_swin import Efficientnet_Swin
-from models.efficient_swinv2 import Efficientnet_Swinv2
+# sys.path.append('..')
+# from models.resnet import load_resnet_model
+# from models.efficientnet import load_efficientnet_model
+# from models.res34_swin import Resnet34_Swin
+# from models.res34_swinv2 import Resnet34_Swinv2
+# from models.efficient_swin import Efficientnet_Swin
+# from models.efficient_swinv2 import Efficientnet_Swinv2
 
 from measure import compute_PSNR, compute_SSIM
 from warmup_scheduler.scheduler import GradualWarmupScheduler
 
-torch.cuda.set_device(0)
+torch.cuda.set_device(1)
+
 
 def set_seed(seed):
     """Set all random seeds and settings for reproducibility (deterministic behavior)."""
@@ -42,6 +43,8 @@ def set_seed(seed):
     np.random.seed(seed)
     random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
+
+
 set_seed(0)
 
 
@@ -59,7 +62,7 @@ class CT_Dataset(Dataset):
         return len(self.lists)
 
     def __getitem__(self, idx):
-        if self.mode == "denoise_task_2K" or self.mode=="AAPM":
+        if self.mode == "denoise_task_2K" or self.mode == "AAPM":
             input_img, target_img = self.lists[idx]
             input_img, target_img = np.float32(np.load(input_img)), np.float32(np.load(target_img))
             if self.norm:
@@ -80,6 +83,7 @@ class CT_Dataset(Dataset):
 best_psnr = 0
 best_ssim = 0
 best_acc = 0
+
 
 def test(parameters, model, test_dataset):
     pretrain_path = osp.dirname(__file__)
@@ -184,10 +188,10 @@ def create_datasets(parameters):
         for i in range(len(input_path)):
             lists.append((input_path[i], target_path[i]))
     elif folder == "AAPM":
-        train_FD_path = sorted(glob(os.path.join(data_path, "train_set",'FD_NPY','*FD*.npy')))
-        train_QD_path = sorted(glob(os.path.join(data_path, "train_set",'QD_NPY','*QD*.npy')))
-        test_FD_path = sorted(glob(os.path.join(data_path, "test_set",'FD_NPY','*FD*.npy')))
-        test_QD_path = sorted(glob(os.path.join(data_path, "test_set",'QD_NPY','*QD*.npy')))
+        train_FD_path = sorted(glob(os.path.join(data_path, "train_set", 'FD_NPY', '*FD*.npy')))
+        train_QD_path = sorted(glob(os.path.join(data_path, "train_set", 'QD_NPY', '*QD*.npy')))
+        test_FD_path = sorted(glob(os.path.join(data_path, "test_set", 'FD_NPY', '*FD*.npy')))
+        test_QD_path = sorted(glob(os.path.join(data_path, "test_set", 'QD_NPY', '*QD*.npy')))
     else:
         labels = osp.join(data_path, 'label.json')
         with open(labels, 'r') as f:
@@ -216,32 +220,35 @@ def create_datasets(parameters):
 # training_data, given_params, context are necessary to make UbiOps work
 def train(training_data, parameters, context):
     denoise_models = {"Resnet34_Swin": Resnet34_Swin_Denoise(), "Efficientnet_Swin": Efficient_Swin_Denoise(),
-                      "ResNet34": UNet34_Denoise(), "EfficientNet-b0":EfficientNet_Denoise(mode="b0"),
-                      "EfficientNet-b1":EfficientNet_Denoise(mode="b1"),"EfficientNet-b2":EfficientNet_Denoise(mode="b2"),
-                      "EfficientNet-b3":EfficientNet_Denoise(mode="b3"),"EfficientNet-b4":EfficientNet_Denoise(mode="b4"),
-                      "EfficientNet-b5":EfficientNet_Denoise(mode="b5"),"EfficientNet-b6":EfficientNet_Denoise(mode="b6"),
-                      "EfficientNet-b7":EfficientNet_Denoise(mode="b7"),}
+                      "ResNet34": UNet34_Denoise(), "Efficientnet_B0": EfficientNet_Denoise(mode="b0"),
+                      "Efficientnet_B1": EfficientNet_Denoise(mode="b1"),
+                      "Efficientnet_B2": EfficientNet_Denoise(mode="b2"),
+                      "Efficientnet_B3": EfficientNet_Denoise(mode="b3"),
+                      "Efficientnet_B4": EfficientNet_Denoise(mode="b4"),
+                      "Efficientnet_B5": EfficientNet_Denoise(mode="b5"),
+                      "Efficientnet_B6": EfficientNet_Denoise(mode="b6"),
+                      "Efficientnet_B7": EfficientNet_Denoise(mode="b7"), }
     configs = {
         "pretrain": None
     }
-    classify_models = {'Resnet18': load_resnet_model('18', configs['pretrain'], out_channel=4),
-              'Resnet50': load_resnet_model('50', configs['pretrain'], out_channel=4),
-              'Resnet152': load_resnet_model('152', configs['pretrain'], out_channel=4),
-              'Efficientnet_B0': load_efficientnet_model('b0', configs['pretrain'], out_channel=4),
-              'Efficientnet_B4': load_efficientnet_model('b4', configs['pretrain'], out_channel=4),
-              'Efficientnet_B7': load_efficientnet_model('b7', configs['pretrain'], out_channel=4),
-              'Efficientnet_Swin': Efficientnet_Swin(configs=parameters, out_channel=4),
-              'Efficientnet_Swinv2': Efficientnet_Swinv2(configs=parameters, out_channel=4),
-              'Resnet34_Swin': Resnet34_Swin(configs=parameters, out_channel=4),
-              'Resnet34_Swinv2': Resnet34_Swinv2(configs=parameters, out_channel=4)}
+    # classify_models = {'Resnet18': load_resnet_model('18', configs['pretrain'], out_channel=4),
+    #           'Resnet50': load_resnet_model('50', configs['pretrain'], out_channel=4),
+    #           'Resnet152': load_resnet_model('152', configs['pretrain'], out_channel=4),
+    #           'Efficientnet_B0': load_efficientnet_model('b0', configs['pretrain'], out_channel=4),
+    #           'Efficientnet_B4': load_efficientnet_model('b4', configs['pretrain'], out_channel=4),
+    #           'Efficientnet_B7': load_efficientnet_model('b7', configs['pretrain'], out_channel=4),
+    #           'Efficientnet_Swin': Efficientnet_Swin(configs=parameters, out_channel=4),
+    #           'Efficientnet_Swinv2': Efficientnet_Swinv2(configs=parameters, out_channel=4),
+    #           'Resnet34_Swin': Resnet34_Swin(configs=parameters, out_channel=4),
+    #           'Resnet34_Swinv2': Resnet34_Swinv2(configs=parameters, out_channel=4)}
 
     train_dataset, test_dataset = create_datasets(parameters)
 
     train_loader = DataLoader(train_dataset, batch_size=parameters["batch_size"], shuffle=True, num_workers=4)
     if parameters["folder"] == "denoise_task_2K" or parameters["folder"] == "AAPM":
         model = denoise_models[parameters["model_name"]].to("cuda")
-    else:
-        model = classify_models[parameters["model_name"]].to("cuda")
+    # else:
+    #     model = classify_models[parameters["model_name"]].to("cuda")
 
     epochs = parameters["epochs"]
     optimizer = optim.AdamW(model.parameters(), lr=parameters["lr"], betas=(0.9, 0.999), eps=1e-8,
@@ -305,24 +312,23 @@ if __name__ == '__main__':
     parameters = {
         "folder": "AAPM",  # weighted_dataset, denoise_task_2K, AAPM
         "split_ratio": 0.8,
-        "batch_size": 4,
+        "batch_size": 16,
         "warmup_epochs": 20,
-        "epochs": 500,
-        "nepoch": 500,
+        "epochs": 250,
+        "nepoch": 250,
         "lr": 3e-4,
         "min_lr": 1e-6,
         "weight_decay": 0.03,
-        "model_name": "ResNet34",  # Resnet34_Swin, Resnet34_Swinv2, Efficientnet_Swin, Efficientnet_Swinv2
+        "model_name": "Efficientnet_B6",  # ResNet34, Resnet34_Swin, Resnet34_Swinv2, Efficientnet_Swin, Efficientnet_Swinv2
         "img_size": 512,
         "use_avg": True,
         "use_mix": True,
     }
 
     # denoise for keys of denoise_models, while classification for keys of classify_models (recomand to use AAPM for denoise task)
-    model_names = ["EfficientNet-b3", "EfficientNet-b1", "EfficientNet-b2", "EfficientNet-b3", "ResNet34",
-                   "EfficientNet-b4", "EfficientNet-b5", "EfficientNet-b6", "EfficientNet-b7",
-                   "Resnet34_Swin", "Efficientnet_Swin"]
+    model_names = ["Efficientnet_B3"]  # ["Efficientnet_B1", "Efficientnet_B2", "Efficientnet_B3", "Efficientnet_B4", "Efficientnet_B5", "Efficientnet_B6",
+
+    # Resnet34_Swin, ResNet34, Efficientnet_Swin
     for m in model_names:
         parameters["model_name"] = m
         train(None, parameters, None)
-
