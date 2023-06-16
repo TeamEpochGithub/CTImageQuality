@@ -19,6 +19,8 @@ from pretrain_models.model_resnet_denoise import Resnet34_Swin_Denoise
 from pretrain_models.resnet34_unet import UNet34_Denoise
 from pretrain_models.efficientnet_unet import EfficientNet_Denoise
 
+from pretrain_dataloaders.classic_dataset import CT_Dataset
+from util.create_dataset import create_datasets
 import sys
 # sys.path.append('..')
 # from models.resnet import load_resnet_model
@@ -46,39 +48,6 @@ def set_seed(seed):
 
 
 set_seed(0)
-
-
-class CT_Dataset(Dataset):
-    def __init__(self, lists, mode, norm, transform=None):
-        self.lists = lists
-        self.norm = norm
-        self.mode = mode
-        self.transform = transform
-        self.target_ = []
-        for i in range(len(self.lists)):
-            self.target_.append(self.lists[i][1])
-
-    def __len__(self):
-        return len(self.lists)
-
-    def __getitem__(self, idx):
-        if self.mode == "denoise_task_2K" or self.mode == "AAPM":
-            input_img, target_img = self.lists[idx]
-            input_img, target_img = np.float32(np.load(input_img)), np.float32(np.load(target_img))
-            if self.norm:
-                input_img = (input_img - np.min(input_img)) / (np.max(input_img) - np.min(input_img))
-                target_img = (target_img - np.min(target_img)) / (np.max(target_img) - np.min(target_img))
-            augmentations = self.transform(image=input_img, mask=target_img)
-            image = augmentations["image"]
-            label = augmentations["mask"]
-        else:
-            input_img, label = self.lists[idx]
-            input_img = np.float32(np.load(input_img))
-            augmentations = self.transform(image=input_img)
-            image = augmentations["image"]
-            label = torch.tensor(label)
-        return image, label
-
 
 best_psnr = 0
 best_ssim = 0
@@ -164,57 +133,6 @@ def test(parameters, model, test_dataset):
             best_acc = accuracy
             path_file = os.path.join(save_path, "pretrain_weight_classification.pkl")
             torch.save(model.state_dict(), path_file)
-
-
-def create_datasets(parameters):
-    pretrain_path = osp.dirname(__file__)
-    folder = parameters["folder"]
-    train_transform = A.Compose([
-        A.HorizontalFlip(p=0.5),
-        A.VerticalFlip(p=0.5),
-        A.ShiftScaleRotate(shift_limit=0.0625, scale_limit=0.2, rotate_limit=45, p=0.2),
-        ToTensorV2()
-    ])
-
-    test_transform = A.Compose([
-        ToTensorV2()
-    ])
-
-    data_path = osp.join(pretrain_path, 'pretrain_data', folder)
-    lists = []
-    if folder == "denoise_task_2K":
-        input_path = sorted(glob(os.path.join(data_path, '*input*.npy')))
-        target_path = sorted(glob(os.path.join(data_path, '*target*.npy')))
-        for i in range(len(input_path)):
-            lists.append((input_path[i], target_path[i]))
-    elif folder == "AAPM":
-        train_FD_path = sorted(glob(os.path.join(data_path, "train_set", 'FD_NPY', '*FD*.npy')))
-        train_QD_path = sorted(glob(os.path.join(data_path, "train_set", 'QD_NPY', '*QD*.npy')))
-        test_FD_path = sorted(glob(os.path.join(data_path, "test_set", 'FD_NPY', '*FD*.npy')))
-        test_QD_path = sorted(glob(os.path.join(data_path, "test_set", 'QD_NPY', '*QD*.npy')))
-    else:
-        labels = osp.join(data_path, 'label.json')
-        with open(labels, 'r') as f:
-            label_dict = json.load(f)
-        for key in label_dict:
-            lists.append((osp.join(data_path, "image", key), label_dict[key]))
-
-    train_lists = []
-    test_lists = []
-    if folder == "AAPM":
-        for i in range(len(train_FD_path)):
-            train_lists.append((train_QD_path[i], train_FD_path[i]))
-        for i in range(len(test_FD_path)):
-            test_lists.append((test_QD_path[i], test_FD_path[i]))
-        train_dataset = CT_Dataset(train_lists, transform=train_transform, norm=False, mode=folder)
-        test_dataset = CT_Dataset(test_lists, transform=test_transform, norm=False, mode=folder)
-    else:
-        random.shuffle(lists)
-        train_lists = lists[:int(len(lists) * parameters["split_ratio"])]
-        test_lists = lists[int(len(lists) * parameters["split_ratio"]):]
-        train_dataset = CT_Dataset(train_lists, transform=train_transform, norm=True, mode=folder)
-        test_dataset = CT_Dataset(test_lists, transform=test_transform, norm=True, mode=folder)
-    return train_dataset, test_dataset
 
 
 # training_data, given_params, context are necessary to make UbiOps work
@@ -319,14 +237,16 @@ if __name__ == '__main__':
         "lr": 3e-4,
         "min_lr": 1e-6,
         "weight_decay": 0.03,
-        "model_name": "Efficientnet_B6",  # ResNet34, Resnet34_Swin, Resnet34_Swinv2, Efficientnet_Swin, Efficientnet_Swinv2
+        "model_name": "Efficientnet_B6",
+        # ResNet34, Resnet34_Swin, Resnet34_Swinv2, Efficientnet_Swin, Efficientnet_Swinv2
         "img_size": 512,
         "use_avg": True,
         "use_mix": True,
     }
 
     # denoise for keys of denoise_models, while classification for keys of classify_models (recomand to use AAPM for denoise task)
-    model_names = ["Efficientnet_B2"]  # ["Efficientnet_B1", "Efficientnet_B2", "Efficientnet_B3", "Efficientnet_B4", "Efficientnet_B5", "Efficientnet_B6",
+    model_names = [
+        "Efficientnet_B2"]  # ["Efficientnet_B1", "Efficientnet_B2", "Efficientnet_B3", "Efficientnet_B4", "Efficientnet_B5", "Efficientnet_B6",
 
     # Resnet34_Swin, ResNet34, Efficientnet_Swin
     for m in model_names:
