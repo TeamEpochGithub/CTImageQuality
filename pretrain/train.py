@@ -31,7 +31,7 @@ import sys
 from measure import compute_PSNR, compute_SSIM
 from warmup_scheduler.scheduler import GradualWarmupScheduler
 
-torch.cuda.set_device(1)
+torch.cuda.set_device(0)
 
 
 def set_seed(seed):
@@ -139,8 +139,8 @@ def test(parameters, model, test_dataset):
             best_ssim = st
             path_file = os.path.join(save_path, "pretrain_weight_denoise.pkl")
             torch.save(model.state_dict(), path_file)
-            for j in range(len(names)):
-                np.save(names[j], imgs[j])
+            # for j in range(len(names)):
+            #     np.save(names[j], imgs[j])
         print("best PSNR:", round(best_psnr, 3))
         print("best SSIM:", round(best_ssim, 3))
     else:

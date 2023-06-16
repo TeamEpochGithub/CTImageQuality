@@ -283,8 +283,9 @@ class Efficient_Swin_Denoise(nn.Module):
         e4_res, e4_swin = self.mix4(e4_res, e4_swin)
         e4 = torch.cat((e4_swin, e4_res), dim=1)
         e4 = self.conv41(e4)
+        print(e4.shape)
         e4 = self.conv42(e4) + e4
-
+        print(e4.shape)
         d4 = self.decode4(e4, e3)  # 256,16,16
         d3 = self.decode3(d4, e2)  # 256,32,32
         d2 = self.decode2(d3, e1)  # 128,64,64
