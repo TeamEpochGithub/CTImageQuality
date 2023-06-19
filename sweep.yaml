@@ -42,6 +42,12 @@ parameters:
     values: [True, False]
   use_avg:
     values: [True, False]
+  XShift:
+    values: [True, False]
+  YShift:
+    values: [True, False]
+  RandomShear:
+    values: [True, False]
   rotation_angle:
     distribution: uniform
     min: 5
@@ -54,3 +60,11 @@ parameters:
     distribution: uniform
     min: 0.05
     max: 0.3
+  max_shift:
+    distribution: uniform
+    min: 0.1
+    max: 0.5
+  max_shear:
+    distribution: uniform
+    min: 10
+    max: 30
