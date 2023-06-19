@@ -100,11 +100,15 @@ class CT_Dataset(torch.utils.data.Dataset):
                 x_max_shift = np.random.uniform(low=0.0, high=self.config['max_shift']) if self.config['XShift'] else 0
                 y_max_shift = np.random.uniform(low=0.0, high=self.config['max_shift']) if self.config['YShift'] else 0
                 shifts = (x_max_shift, y_max_shift)
-                operations.append(torchvision.transforms.RandomAffine(degrees=0, translate=shifts))
+                operations.append(torchvision.transforms.RandomApply([
+                    torchvision.transforms.RandomAffine(degrees=0, translate=shifts)
+                ], p=0.1))
 
             if self.config['RandomShear']:
                 shear_degree = np.random.uniform(low=0.0, high=self.config['max_shear'])
-                operations.append(torchvision.transforms.RandomAffine(degrees=0, shear=shear_degree))
+                operations.append(torchvision.transforms.RandomApply([
+                    torchvision.transforms.RandomAffine(degrees=0, translate=shear_degree)
+                ], p=0.1))
 
             operations += [torchvision.transforms.ToTensor()]
 
