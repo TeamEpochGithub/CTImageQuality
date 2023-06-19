@@ -162,6 +162,8 @@ if __name__ == '__main__':
         'use_avg': True,
         'XShift': True,
         'YShift': True,
+        'RandomShear': True,
+        'max_shear': 30,  # value in degrees
         'max_shift': 0.5,
         'rotation_angle': 12.4,
         'zoomin_factor': 0.9,

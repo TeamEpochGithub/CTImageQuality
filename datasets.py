@@ -102,6 +102,10 @@ class CT_Dataset(torch.utils.data.Dataset):
                 shifts = (x_max_shift, y_max_shift)
                 operations.append(torchvision.transforms.RandomAffine(degrees=0, translate=shifts))
 
+            if self.config['RandomShear']:
+                shear_degree = np.random.uniform(low=0.0, high=self.config['max_shear'])
+                operations.append(torchvision.transforms.RandomAffine(degrees=0, shear=shear_degree))
+
             operations += [torchvision.transforms.ToTensor()]
 
             self.transform = torchvision.transforms.Compose(operations)
