@@ -14,6 +14,7 @@ from datasets import CT_Dataset, create_datalists, create_datasets
 from models.efficient_swin import Efficientnet_Swin
 from models.efficient_swinv2 import Efficientnet_Swinv2
 from models.efficientnet import load_efficientnet_model
+from models.get_models import get_model
 from models.res34_swin import Resnet34_Swin
 from models.res34_swinv2 import Resnet34_Swinv2
 from models.resnet import load_resnet_model
@@ -33,7 +34,7 @@ def set_seed(seed):
 set_seed(0)
 
 
-def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_run=False):
+def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_single_experiment=False):
     model.eval()
     total_pred = []
     total_gt = []
@@ -74,23 +75,21 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_run=Fa
         if not os.path.exists('output'):
             os.makedirs('output')
         torch.save(model.state_dict(), osp.join('output', "model.pth"))
-        if wandb_run:
+        if wandb_single_experiment:
             wandb.save("model.pth")
 
     return best_score, best_score_epoch
 
 
-def train(model, configs, train_dataset, test_dataset, wandb_run=False):
-    errors = []
-    train_loader = DataLoader(train_dataset, batch_size=configs['batch_size'], shuffle=True)
+def train(configs, train_dataset, test_dataset, wandb_single_experiment=False):
+    model = get_model(configs)
     if 'Swin' in configs['model']:
-        model = model(configs=configs).cuda()
-    else:
-        model = model.cuda()
+        model = model(configs=configs)
+    model = model.cuda()
 
-    file_dict = {'discrete_classification': "pretrain_weight_classification.pkl",
-                 'denoise': "pretrain_weight_denoise.pkl"}
-    if configs['pretrain'] != 'None':
+    if configs['pretrain'] != None:
+        file_dict = {'discrete_classification': "pretrain_weight_classification.pkl",
+                     'denoise': "pretrain_weight_denoise.pkl"}
         weight_path = osp.join(osp.dirname(osp.abspath(__file__)), "pretrain", "weights", configs['model'],
                                file_dict[configs['pretrain']])
 
@@ -102,6 +101,7 @@ def train(model, configs, train_dataset, test_dataset, wandb_run=False):
 
     optimizer = optim.AdamW(model.parameters(), lr=configs['lr'], betas=(0.9, 0.999), eps=1e-8,
                             weight_decay=configs['weight_decay'])
+    train_loader = DataLoader(train_dataset, batch_size=configs['batch_size'], shuffle=True)
     num_steps = len(train_loader) * configs['epochs']
     lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_steps, eta_min=configs['min_lr'])
     warmup_scheduler = warmup.UntunedLinearWarmup(optimizer)
@@ -137,13 +137,13 @@ def train(model, configs, train_dataset, test_dataset, wandb_run=False):
             best_loss = loss
 
         if epoch % 1 == 0:
-            best_score, best_score_epoch = valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_run)
+            best_score, best_score_epoch = valid(model, test_dataset, best_score, best_score_epoch, epoch,
+                                                 wandb_single_experiment)
 
     return {"best_score": best_score, "best_score_epoch": best_score_epoch, "best_loss": best_loss}
 
 
 if __name__ == '__main__':
-
     configs = {
         'pretrain': None,
         'img_size': 512,
@@ -160,6 +160,11 @@ if __name__ == '__main__':
         'ZoomOut': False,
         'use_mix': False,
         'use_avg': True,
+        'XShift': True,
+        'YShift': True,
+        'RandomShear': True,
+        'max_shear': 30,  # value in degrees
+        'max_shift': 0.5,
         'rotation_angle': 12.4,
         'zoomin_factor': 0.9,
         'zoomout_factor': 0.27,
@@ -180,4 +185,4 @@ if __name__ == '__main__':
 
     train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs)
 
-    train(model, configs, train_dataset, test_dataset, wandb_run=False)
+    train(configs, train_dataset, test_dataset, wandb_single_experiment=False)

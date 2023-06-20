@@ -16,7 +16,7 @@ def adapt_efficientnet_to_grayscale(model):
     return model
 
 
-def load_efficientnet_model(model_name, pretrained_weights, out_channel=4):
+def load_efficientnet_model(model_name, pretrained_weights, out_channel=1):
     model_dict = {
         'b0': efficientnet_b0,
         'b1': efficientnet_b1,
