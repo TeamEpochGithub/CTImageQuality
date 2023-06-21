@@ -6,7 +6,6 @@ from glob import glob
 from albumentations.pytorch import ToTensorV2
 import os.path as osp
 from pretrain.pretrain_dataloaders.classic_dataset import CT_Dataset
-from pretrain.pretrain_dataloaders.aapm_dataset import AAPMDataset
 import pretrain
 from torch.utils.data import random_split
 

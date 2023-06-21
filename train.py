@@ -19,7 +19,6 @@ from models.res34_swin import Resnet34_Swin
 from models.res34_swinv2 import Resnet34_Swinv2
 from models.resnet import load_resnet_model
 
-torch.cuda.set_device(1)
 
 def set_seed(seed):
     """Set all random seeds and settings for reproducibility (deterministic behavior)."""
@@ -154,7 +153,7 @@ if __name__ == '__main__':
         'pretrain': 'denoise',
         'img_size': 512,
         'model': 'Efficientnet_B1',
-        'epochs': 300,
+        'epochs': 50,
         'batch_size': 8,
         'weight_decay': 1e-3,
         'lr': 1e-4,
@@ -166,6 +165,11 @@ if __name__ == '__main__':
         'ZoomOut': False,
         'use_mix': True,
         'use_avg': False,
+        'XShift': True,
+        'YShift': True,
+        'RandomShear': True,
+        'max_shear': 30,  # value in degrees
+        'max_shift': 0.5,
         'rotation_angle': 11.168,
         'zoomin_factor': 0.8033,
         'zoomout_factor': 0.1014,
