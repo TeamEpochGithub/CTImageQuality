@@ -10,7 +10,10 @@ import os.path as osp
 import os
 
 
-def create_datasets(imgs_list, label_list, configs):
+def create_datasets(imgs_list, label_list, configs, final_train=False):
+    if final_train:
+        return CT_Dataset(imgs_list, label_list, split="train", config=configs), None
+
     one_patient_out = True
     if one_patient_out:
         patient_indices = [0, 1, 2, 3, 5, 8, 9, 12, 20, 24, 29, 33, 36, 37, 40, 41, 42, 53, 58, 64, 67, 74, 79, 88, 90,

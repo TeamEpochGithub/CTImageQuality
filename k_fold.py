@@ -1,5 +1,7 @@
 import os.path as osp
 import numpy as np
+import torch.cuda
+
 import analysis
 from datasets import create_datalists, CT_Dataset
 from models.get_models import get_model
@@ -24,7 +26,7 @@ def k_fold_patients_train(configs, wandb_single_experiment=False):
         test_dataset = CT_Dataset([imgs_list[x] for x in patient_indices], [label_list[x] for x in patient_indices],
                                   split="test", config=configs)
 
-        scores_dict = train(configs, train_dataset, test_dataset, wandb_single_experiment)
+        scores_dict = train(configs, train_dataset, test_dataset, wandb_single_experiment, final_train=False)
         best_scores.append(scores_dict['best_score'])
         best_score_epochs.append(scores_dict['best_score_epoch'])
         best_losses.append(scores_dict['best_loss'])
@@ -35,24 +37,24 @@ def k_fold_patients_train(configs, wandb_single_experiment=False):
 
 if __name__ == '__main__':
     configs = {
-        'pretrain': 'None',
+        'pretrain': 'denoise',
         'img_size': 512,
-        'model': 'Resnet50',
-        'epochs': 10,
+        'model': 'Efficientnet_B1',
+        'epochs': 25,
         'batch_size': 16,
-        'weight_decay': 3e-4,
-        'lr': 6e-3,
-        'min_lr': 5e-6,
+        'weight_decay': 0.000494,
+        'lr': 0.009666,
+        'min_lr': 0.000006463,
         'RandomHorizontalFlip': True,
         'RandomVerticalFlip': True,
         'RandomRotation': True,
-        'ZoomIn': True,
-        'ZoomOut': False,
-        'use_mix': False,
-        'use_avg': True,
-        'rotation_angle': 12.4,
-        'zoomin_factor': 0.9,
-        'zoomout_factor': 0.27,
+        'ZoomIn': False,
+        'ZoomOut': True,
+        'use_mix': True,
+        'use_avg': False,
+        'rotation_angle': 11.168,
+        'zoomin_factor': 0.8033,
+        'zoomout_factor': 0.1014,
     }
-
+    # torch.cuda.set_device(1)
     k_fold_patients_train(configs, wandb_single_experiment=False)
