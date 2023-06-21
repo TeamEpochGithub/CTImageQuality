@@ -140,27 +140,28 @@ def train(configs, train_dataset, test_dataset, wandb_single_experiment=False, f
         if epoch % 1 == 0 and not final_train:
             best_score, best_score_epoch = valid(model, test_dataset, best_score, best_score_epoch, epoch,
                                                  wandb_single_experiment)
-        if final_train:
+        if final_train and epoch % 50 == 0:
             if not os.path.exists('output'):
                 os.makedirs('output')
-            torch.save(model.state_dict(), osp.join('output', "all_data_model.pth"))
+            torch.save(model.state_dict(), osp.join('output', f"all_model{epoch}.pth"))
+            print("Model saved!")
 
     return {"best_score": best_score, "best_score_epoch": best_score_epoch, "best_loss": best_loss}
 
 
 if __name__ == '__main__':
     configs = {
-        'pretrain': 'None',
+        'pretrain': 'denoise',
         'img_size': 512,
-        'model': 'Resnet50',
-        'epochs': 25,
-        'batch_size': 16,
-        'weight_decay': 0.000494,
-        'lr': 0.009666,
+        'model': 'Efficientnet_B1',
+        'epochs': 300,
+        'batch_size': 8,
+        'weight_decay': 1e-3,
+        'lr': 1e-4,
         'min_lr': 0.000006463,
         'RandomHorizontalFlip': False,
         'RandomVerticalFlip': False,
-        'RandomRotation': True,
+        'RandomRotation': False,
         'ZoomIn': False,
         'ZoomOut': False,
         'use_mix': True,
