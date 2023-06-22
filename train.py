@@ -10,14 +10,8 @@ from tqdm import tqdm
 import pytorch_warmup as warmup
 from scipy.stats import pearsonr, spearmanr, kendalltau
 import wandb
-from datasets import CT_Dataset, create_datalists, create_datasets
-from models.efficient_swin import Efficientnet_Swin
-from models.efficient_swinv2 import Efficientnet_Swinv2
-from models.efficientnet import load_efficientnet_model
+from datasets import create_datalists, create_datasets
 from models.get_models import get_model
-from models.res34_swin import Resnet34_Swin
-from models.res34_swinv2 import Resnet34_Swinv2
-from models.resnet import load_resnet_model
 
 
 def set_seed(seed):
@@ -32,7 +26,7 @@ def set_seed(seed):
 
 
 set_seed(0)
-
+torch.cuda.set_device(0)
 
 def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_single_experiment=False):
     model.eval()
@@ -139,10 +133,14 @@ def train(configs, train_dataset, test_dataset, wandb_single_experiment=False, f
         if epoch % 1 == 0 and not final_train:
             best_score, best_score_epoch = valid(model, test_dataset, best_score, best_score_epoch, epoch,
                                                  wandb_single_experiment)
-        if final_train and epoch % 50 == 0:
+
+        if (epoch + 1) % configs['epochs'] == 0:
             if not os.path.exists('output'):
                 os.makedirs('output')
-            torch.save(model.state_dict(), osp.join('output', f"all_model{epoch}.pth"))
+            if final_train:
+                torch.save(model.state_dict(), osp.join('output', f"{configs['model']}_epoch_{epoch}_alldata.pth"))
+            else:
+                torch.save(model.state_dict(), osp.join('output', f"{configs['model']}_epoch_{epoch}_1foldout.pth"))
             print("Model saved!")
 
     return {"best_score": best_score, "best_score_epoch": best_score_epoch, "best_loss": best_loss}
@@ -150,34 +148,34 @@ def train(configs, train_dataset, test_dataset, wandb_single_experiment=False, f
 
 if __name__ == '__main__':
     configs = {
-        'pretrain': 'denoise',
+        'pretrain': 'None',
         'img_size': 512,
-        'model': 'Efficientnet_B1',
-        'epochs': 50,
-        'batch_size': 8,
+        'model': 'Densenet121',
+        'epochs': 151,
+        'batch_size': 32,
         'weight_decay': 1e-3,
         'lr': 1e-4,
         'min_lr': 0.000006463,
         'RandomHorizontalFlip': False,
         'RandomVerticalFlip': False,
-        'RandomRotation': False,
-        'ZoomIn': False,
-        'ZoomOut': False,
-        'use_mix': True,
+        'RandomRotation': True,
+        'ZoomIn': True,
+        'ZoomOut': True,
+        'use_mix': False,
         'use_avg': False,
-        'XShift': True,
-        'YShift': True,
-        'RandomShear': True,
+        'XShift': False,
+        'YShift': False,
+        'RandomShear': False,
         'max_shear': 30,  # value in degrees
         'max_shift': 0.5,
-        'rotation_angle': 11.168,
-        'zoomin_factor': 0.8033,
-        'zoomout_factor': 0.1014,
+        'rotation_angle': 3,
+        'zoomin_factor': 0.95,
+        'zoomout_factor': 0.05,
     }
 
     imgs_list, label_list = create_datalists()
 
-    final_train = True
+    final_train = False
 
     train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train)
     train(configs, train_dataset, test_dataset, wandb_single_experiment=False, final_train=final_train)
