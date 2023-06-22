@@ -1,3 +1,4 @@
+from models.densenet import load_densenet_model
 from models.efficient_swin import Efficientnet_Swin
 from models.efficient_swinv2 import Efficientnet_Swinv2
 from models.efficientnet import load_efficientnet_model
@@ -23,8 +24,8 @@ def get_model(configs):
               'Efficientnet_B6': load_efficientnet_model('b6', configs['pretrain']),
               'Efficientnet_B7': load_efficientnet_model('b7', configs['pretrain']),
               'Efficientnet_Swin': Efficientnet_Swin, 'Efficientnet_Swinv2': Efficientnet_Swinv2,
-              'Resnet34_Swin': Resnet34_Swin, 'Resnet34_Swinv2': Resnet34_Swinv2, 'ED_CNN': EDCNN(), 'RED_CNN': RED_CNN()}
+              'Resnet34_Swin': Resnet34_Swin, 'Resnet34_Swinv2': Resnet34_Swinv2, 'ED_CNN': EDCNN(), 'RED_CNN': RED_CNN(),
+              'Densenet121': load_densenet_model('121', configs['pretrain'])}
 
     model = models[configs['model']]
-    print(configs['model'])
     return model

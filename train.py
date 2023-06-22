@@ -10,16 +10,10 @@ from tqdm import tqdm
 import pytorch_warmup as warmup
 from scipy.stats import pearsonr, spearmanr, kendalltau
 import wandb
-from datasets import CT_Dataset, create_datalists, create_datasets
-from models.efficient_swin import Efficientnet_Swin
-from models.efficient_swinv2 import Efficientnet_Swinv2
-from models.efficientnet import load_efficientnet_model
+from datasets import create_datalists, create_datasets
 from models.get_models import get_model
-from models.res34_swin import Resnet34_Swin
-from models.res34_swinv2 import Resnet34_Swinv2
-from models.resnet import load_resnet_model
 
-torch.cuda.set_device(0)
+torch.cuda.set_device(1)
 
 def set_seed(seed):
     """Set all random seeds and settings for reproducibility (deterministic behavior)."""
@@ -82,18 +76,17 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_single
     return best_score, best_score_epoch
 
 
-def train(configs, train_dataset, test_dataset, wandb_single_experiment=False):
+def train(configs, train_dataset, test_dataset, wandb_single_experiment=False, final_train=False):
     model = get_model(configs)
     if 'Swin' in configs['model']:
         model = model(configs=configs)
     model = model.cuda()
 
-    if configs['pretrain'] != None:
+    if configs['pretrain'] != 'None':
         file_dict = {'discrete_classification': "pretrain_weight_classification.pkl",
                      'denoise': "pretrain_weight_denoise.pkl"}
         weight_path = osp.join(osp.dirname(osp.abspath(__file__)), "pretrain", "weights", configs['model'],
                                file_dict[configs['pretrain']])
-        print(weight_path)
 
         if os.path.exists(weight_path):
             pre_weights = torch.load(weight_path, map_location=torch.device("cuda"))
@@ -138,23 +131,32 @@ def train(configs, train_dataset, test_dataset, wandb_single_experiment=False):
         if loss < best_loss:
             best_loss = loss
 
-        if epoch % 1 == 0:
+        if epoch % 1 == 0 and not final_train:
             best_score, best_score_epoch = valid(model, test_dataset, best_score, best_score_epoch, epoch,
                                                  wandb_single_experiment)
+
+        if (epoch + 1) % configs['epochs'] == 0:
+            if not os.path.exists('output'):
+                os.makedirs('output')
+            if final_train:
+                torch.save(model.state_dict(), osp.join('output', f"{configs['model']}_epoch_{epoch}_alldata.pth"))
+            else:
+                torch.save(model.state_dict(), osp.join('output', f"{configs['model']}_epoch_{epoch}_1foldout.pth"))
+            print("Model saved!")
 
     return {"best_score": best_score, "best_score_epoch": best_score_epoch, "best_loss": best_loss}
 
 
 if __name__ == '__main__':
     configs = {
-        'pretrain': 'denoise',
+        'pretrain': 'None',
         'img_size': 512,
-        'model': 'ED_CNN',
-        'epochs': 250,
-        'batch_size': 16,
-        'weight_decay': 3e-4,
-        'lr': 6e-3,
-        'min_lr': 5e-6,
+        'model': 'Resnet18',
+        'epochs': 100,
+        'batch_size': 32,
+        'weight_decay': 1e-3,
+        'lr': 1e-4,
+        'min_lr': 0.000006463,
         'RandomHorizontalFlip': True,
         'RandomVerticalFlip': True,
         'RandomRotation': True,
@@ -164,7 +166,7 @@ if __name__ == '__main__':
         'use_avg': True,
         'XShift': True,
         'YShift': True,
-        'RandomShear': False,
+        'RandomShear': True,
         'max_shear': 30,  # value in degrees
         'max_shift': 0.5,
         'rotation_angle': 12.4,
@@ -172,19 +174,11 @@ if __name__ == '__main__':
         'zoomout_factor': 0.27,
     }
 
-    # models = {'Resnet18': load_resnet_model('18', configs['pretrain']),
-    #           'Resnet50': load_resnet_model('50', configs['pretrain']),
-    #           'Resnet152': load_resnet_model('152', configs['pretrain']),
-    #           'Efficientnet_B0': load_efficientnet_model('b0', configs['pretrain']),
-    #           'Efficientnet_B4': load_efficientnet_model('b4', configs['pretrain']),
-    #           'Efficientnet_B7': load_efficientnet_model('b7', configs['pretrain']),
-    #           'Efficientnet_Swin': Efficientnet_Swin, 'Efficientnet_Swinv2': Efficientnet_Swinv2,
-    #           'Resnet34_Swin': Resnet34_Swin, 'Resnet34_Swinv2': Resnet34_Swinv2}
-    #
-    # model = models['Resnet50']
-
     imgs_list, label_list = create_datalists()
 
-    train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs)
+    final_train = False
 
-    train(configs, train_dataset, test_dataset, wandb_single_experiment=False)
+    train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train,
+                                                  patients_out=True, patient_ids_out=[1, 2, 3])
+    # train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train, patients_out=True, patient_ids_out=[3]])
+    train(configs, train_dataset, test_dataset, wandb_single_experiment=False, final_train=final_train)
