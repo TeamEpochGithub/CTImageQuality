@@ -13,8 +13,6 @@ import wandb
 from datasets import create_datalists, create_datasets
 from models.get_models import get_model
 
-torch.cuda.set_device(1)
-
 def set_seed(seed):
     """Set all random seeds and settings for reproducibility (deterministic behavior)."""
     torch.manual_seed(seed)
@@ -151,34 +149,34 @@ if __name__ == '__main__':
     configs = {
         'pretrain': 'None',
         'img_size': 512,
-        'model': 'Resnet18',
+        'model': 'ED_CNN',
         'epochs': 100,
-        'batch_size': 32,
+        'batch_size': 16,
         'weight_decay': 1e-3,
-        'lr': 1e-4,
+        'lr': 3e-4,
         'min_lr': 0.000006463,
         'RandomHorizontalFlip': True,
         'RandomVerticalFlip': True,
         'RandomRotation': True,
         'ZoomIn': True,
-        'ZoomOut': False,
+        'ZoomOut': True,
         'use_mix': False,
         'use_avg': True,
-        'XShift': True,
+        'XShift': False,
         'YShift': True,
-        'RandomShear': True,
+        'RandomShear': False,
         'max_shear': 30,  # value in degrees
-        'max_shift': 0.5,
-        'rotation_angle': 12.4,
-        'zoomin_factor': 0.9,
-        'zoomout_factor': 0.27,
+        'max_shift': 0.1,
+        'rotation_angle': 5,
+        'zoomin_factor': 0.95,
+        'zoomout_factor': 0.05,
     }
 
     imgs_list, label_list = create_datalists()
 
-    final_train = False
+    final_train = True
 
     train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train,
-                                                  patients_out=True, patient_ids_out=[1, 2, 3])
+                                                  patients_out=True, patient_ids_out=[0])
     # train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train, patients_out=True, patient_ids_out=[3]])
     train(configs, train_dataset, test_dataset, wandb_single_experiment=False, final_train=final_train)

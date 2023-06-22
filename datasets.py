@@ -97,9 +97,9 @@ class CT_Dataset(torch.utils.data.Dataset):
                 ], p=0.1))
 
             if self.config['RandomShear']:
-                shear_degree = np.random.uniform(low=0.0, high=self.config['max_shear'])
+                # shear_degree = np.random.uniform(low=0.0, high=self.config['max_shear'])
                 operations.append(torchvision.transforms.RandomApply([
-                    torchvision.transforms.RandomAffine(degrees=0, translate=shear_degree)
+                    torchvision.transforms.RandomAffine(degrees=self.config['max_shear'])
                 ], p=0.1))
 
             operations += [torchvision.transforms.ToTensor()]
