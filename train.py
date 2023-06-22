@@ -150,17 +150,17 @@ if __name__ == '__main__':
     configs = {
         'pretrain': 'None',
         'img_size': 512,
-        'model': 'Densenet121',
-        'epochs': 151,
+        'model': 'Resnet18',
+        'epochs': 100,
         'batch_size': 32,
         'weight_decay': 1e-3,
         'lr': 1e-4,
         'min_lr': 0.000006463,
-        'RandomHorizontalFlip': False,
-        'RandomVerticalFlip': False,
+        'RandomHorizontalFlip': True,
+        'RandomVerticalFlip': True,
         'RandomRotation': True,
-        'ZoomIn': True,
-        'ZoomOut': True,
+        'ZoomIn': False,
+        'ZoomOut': False,
         'use_mix': False,
         'use_avg': False,
         'XShift': False,
@@ -177,5 +177,6 @@ if __name__ == '__main__':
 
     final_train = False
 
-    train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train)
+    train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train, patients_out=True, patient_ids_out=[1, 2, 3])
+    # train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train, patients_out=True, patient_ids_out=[3]])
     train(configs, train_dataset, test_dataset, wandb_single_experiment=False, final_train=final_train)

@@ -12,15 +12,13 @@ import os
 import analysis
 
 
-def create_datasets(imgs_list, label_list, configs, final_train=False):
+def create_datasets(imgs_list, label_list, configs, final_train=False, patients_out=True, patient_ids_out=[3]):
     if final_train:
         return CT_Dataset(imgs_list, label_list, split="train", config=configs), None
 
-    one_patient_out = True
-    if one_patient_out:
-        patient_id = 3  # 2 very fast converge, 0 worst so far, 3 also bad
+    if patients_out:
         patient_ids = np.loadtxt(osp.join(osp.dirname(analysis.__file__), 'labels.txt'))
-        patient_indices = np.where(patient_ids == patient_id)[0]
+        patient_indices = [i for i, x in enumerate(patient_ids) if x in patient_ids_out]  # np.where(patient_ids == patient_ids_out)[0]
         non_patient_indices = list(set(list(range(1000))) - set(patient_indices))
         print(len(patient_indices), len(non_patient_indices))
         train_dataset = CT_Dataset([imgs_list[x] for x in non_patient_indices],
@@ -29,7 +27,7 @@ def create_datasets(imgs_list, label_list, configs, final_train=False):
         test_dataset = CT_Dataset([imgs_list[x] for x in patient_indices], [label_list[x] for x in patient_indices],
                                   split="test", config=configs)
     else:
-        left_bound, right_bound = 900, 1000
+        left_bound, right_bound = 100, 1000  # 900, 1000
 
         train_dataset = CT_Dataset(imgs_list[:left_bound] + imgs_list[right_bound:],
                                    label_list[:left_bound] + label_list[right_bound:], split="train", config=configs)
