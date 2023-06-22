@@ -13,6 +13,7 @@ import wandb
 from datasets import create_datalists, create_datasets
 from models.get_models import get_model
 
+torch.cuda.set_device(1)
 
 def set_seed(seed):
     """Set all random seeds and settings for reproducibility (deterministic behavior)."""
@@ -26,7 +27,6 @@ def set_seed(seed):
 
 
 set_seed(0)
-torch.cuda.set_device(0)
 
 
 def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_single_experiment=False):
@@ -40,7 +40,6 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_single
         for i, (img, label) in t:
             img = img.unsqueeze(0).float()
             pred = model(img.cuda())
-            # pred = torch.full((img.shape[0], 1), random.uniform(1.99, 2.01)).cuda()
             pred_new = pred.cpu().numpy().squeeze(0)
             label_new = label.cpu().numpy()
             # print(round(pred_new[0], 2), label_new)
@@ -161,18 +160,18 @@ if __name__ == '__main__':
         'RandomHorizontalFlip': True,
         'RandomVerticalFlip': True,
         'RandomRotation': True,
-        'ZoomIn': False,
+        'ZoomIn': True,
         'ZoomOut': False,
         'use_mix': False,
-        'use_avg': False,
-        'XShift': False,
-        'YShift': False,
-        'RandomShear': False,
+        'use_avg': True,
+        'XShift': True,
+        'YShift': True,
+        'RandomShear': True,
         'max_shear': 30,  # value in degrees
         'max_shift': 0.5,
-        'rotation_angle': 3,
-        'zoomin_factor': 0.95,
-        'zoomout_factor': 0.05,
+        'rotation_angle': 12.4,
+        'zoomin_factor': 0.9,
+        'zoomout_factor': 0.27,
     }
 
     imgs_list, label_list = create_datalists()
