@@ -1,4 +1,10 @@
 import numpy as np
+from sklearn.mixture import GaussianMixture
+from sklearn.metrics import mean_squared_error
+
+
+# Your existing dataloader code here...
+import numpy as np
 import torch
 import torchvision
 import tifffile
@@ -11,7 +17,7 @@ import os
 
 
 def create_datasets(imgs_list, label_list, configs):
-    one_patient_out = False
+    one_patient_out = True
     if one_patient_out:
         patient_indices = [0, 1, 2, 3, 5, 8, 9, 12, 20, 24, 29, 33, 36, 37, 40, 41, 42, 53, 58, 64, 67, 74, 79, 88, 90,
                            93, 97, 108, 109, 111, 112, 113, 117, 120, 126, 127, 128, 131, 132, 133, 134, 137, 143, 148,
@@ -132,3 +138,116 @@ class CT_Dataset(torch.utils.data.Dataset):
         y = self.label_list[idx]
 
         return x, torch.tensor(y)
+
+# Function to train GMM
+from torchvision import models
+
+# Define a pretrained ResNet50 model
+class ResNet50Features(models.ResNet):
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
+
+        x = self.avgpool(x)
+        x = torch.flatten(x, 1)  # Extracted features
+
+        return x
+
+def train_feature_extractor(dataloader):
+    # Instantiate the model
+    model = ResNet50Features(models.resnet.Bottleneck, [3, 4, 6, 3])
+    model.eval()  # Set the model to evaluation mode
+
+    all_images = []
+
+    for batch in dataloader:
+        images, labels = batch
+        with torch.no_grad():
+            # Extract features
+            features = model(images).numpy()
+        all_images.append(features)
+
+    all_images = np.concatenate(all_images)
+
+    # Train GMM on the extracted features
+    gmm = GaussianMixture(n_components=5, covariance_type='diag')
+    gmm.fit(all_images)
+
+    return gmm
+
+def evaluate_feature_extractor(gmm, dataloader):
+    all_labels = []
+    all_preds = []
+
+    for batch in dataloader:
+        images, labels = batch
+        with torch.no_grad():
+            # Extract features
+            features = model(images).numpy()
+
+        # Predict with GMM
+        preds = gmm.predict(features)
+
+        all_labels.append(labels.numpy())
+        all_preds.append(preds)
+
+    all_labels = np.concatenate(all_labels)
+    all_preds = np.concatenate(all_preds)
+
+    mse = mean_squared_error(all_labels, all_preds)
+    print(f'Mean Squared Error: {mse}')
+
+# Replace the training and evaluation function calls
+# Train GMM
+gmm = train_feature_extractor(train_dataloader)
+
+# Evaluate GMM
+evaluate_feature_extractor(gmm, test_dataloader)
+
+
+if __name__ == '__main__':
+    configs = {
+        'pretrain': None,
+        'img_size': 512,
+        'model': 'Resnet50',
+        'epochs': 150,
+        'batch_size': 16,
+        'weight_decay': 3e-4,
+        'lr': 6e-3,
+        'min_lr': 5e-6,
+        'RandomHorizontalFlip': True,
+        'RandomVerticalFlip': True,
+        'RandomRotation': True,
+        'ZoomIn': True,
+        'ZoomOut': False,
+        'use_mix': False,
+        'use_avg': False,
+        'XShift': False,
+        'YShift': False,
+        'RandomShear': False,
+        'max_shear': 30,  # value in degrees
+        'max_shift': 0.5,
+        'rotation_angle': 12.4,
+        'zoomin_factor': 0.9,
+        'zoomout_factor': 0.27,
+    }
+
+    # Create datasets
+    train_dataset, test_dataset = create_datasets(*create_datalists(), configs=configs)
+
+    # Create dataloaders
+    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=16, shuffle=True, num_workers=2)
+    test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=16, shuffle=False, num_workers=2)
+
+    # Train GMM
+    gmm = train_gmm(train_dataloader)
+
+    # Evaluate GMM
+    evaluate_gmm(gmm, test_dataloader)

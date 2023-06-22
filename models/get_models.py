@@ -4,6 +4,8 @@ from models.efficientnet import load_efficientnet_model
 from models.res34_swin import Resnet34_Swin
 from models.res34_swinv2 import Resnet34_Swinv2
 from models.resnet import load_resnet_model
+from models.edcnn import EDCNN
+from models.redcnn import RED_CNN
 
 
 def get_model(configs):
@@ -21,7 +23,8 @@ def get_model(configs):
               'Efficientnet_B6': load_efficientnet_model('b6', configs['pretrain']),
               'Efficientnet_B7': load_efficientnet_model('b7', configs['pretrain']),
               'Efficientnet_Swin': Efficientnet_Swin, 'Efficientnet_Swinv2': Efficientnet_Swinv2,
-              'Resnet34_Swin': Resnet34_Swin, 'Resnet34_Swinv2': Resnet34_Swinv2}
+              'Resnet34_Swin': Resnet34_Swin, 'Resnet34_Swinv2': Resnet34_Swinv2, 'ED_CNN': EDCNN(), 'RED_CNN': RED_CNN()}
 
     model = models[configs['model']]
+    print(configs['model'])
     return model
