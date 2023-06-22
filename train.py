@@ -28,6 +28,7 @@ def set_seed(seed):
 set_seed(0)
 torch.cuda.set_device(0)
 
+
 def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_single_experiment=False):
     model.eval()
     total_pred = []
@@ -39,6 +40,7 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_single
         for i, (img, label) in t:
             img = img.unsqueeze(0).float()
             pred = model(img.cuda())
+            # pred = torch.full((img.shape[0], 1), random.uniform(1.99, 2.01)).cuda()
             pred_new = pred.cpu().numpy().squeeze(0)
             label_new = label.cpu().numpy()
             # print(round(pred_new[0], 2), label_new)
@@ -177,6 +179,7 @@ if __name__ == '__main__':
 
     final_train = False
 
-    train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train, patients_out=True, patient_ids_out=[1, 2, 3])
+    train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train,
+                                                  patients_out=True, patient_ids_out=[1, 2, 3])
     # train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train, patients_out=True, patient_ids_out=[3]])
     train(configs, train_dataset, test_dataset, wandb_single_experiment=False, final_train=final_train)
