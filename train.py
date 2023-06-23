@@ -172,7 +172,6 @@ if __name__ == '__main__':
         'zoomin_factor': 0.9,
         'zoomout_factor': 0.27,
         'e_nodes': 32,  # edcnn
-        'r_nodes': 64  # redcnn,
     }
 
     imgs_list, label_list = create_datalists()
