@@ -18,9 +18,9 @@ class RED_CNN(nn.Module):
         self.tconv5 = nn.ConvTranspose2d(out_ch, 1, kernel_size=5, stride=1, padding=0)
 
         self.relu = nn.ReLU()
-
+        print(nodes)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc1 = nn.Linear(out_ch, nodes)
+        self.fc1 = nn.Linear(1, nodes)
         self.fc2 = nn.Linear(nodes, 1)  # Final output node
 
     def forward(self, x):
