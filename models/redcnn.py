@@ -1,9 +1,9 @@
 import os
 import numpy as np
 import torch.nn as nn
-
+import torch
 class RED_CNN(nn.Module):
-    def __init__(self, out_ch=64):
+    def __init__(self, out_ch=64, nodes=64):
         super(RED_CNN, self).__init__()
         self.conv1 = nn.Conv2d(1, out_ch, kernel_size=5, stride=1, padding=0)
         self.conv2 = nn.Conv2d(out_ch, out_ch, kernel_size=5, stride=1, padding=0)
@@ -18,6 +18,10 @@ class RED_CNN(nn.Module):
         self.tconv5 = nn.ConvTranspose2d(out_ch, 1, kernel_size=5, stride=1, padding=0)
 
         self.relu = nn.ReLU()
+        print(nodes)
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.fc1 = nn.Linear(1, nodes)
+        self.fc2 = nn.Linear(nodes, 1)  # Final output node
 
     def forward(self, x):
         # encoder
@@ -39,4 +43,11 @@ class RED_CNN(nn.Module):
         out = self.tconv5(self.relu(out))
         out += residual_1
         out = self.relu(out)
+
+        out = self.avgpool(out)
+        out = torch.flatten(out, 1)  # Flatten the output
+        out = self.relu(self.fc1(out))
+        out = self.fc2(out)
+        out = torch.sigmoid(out) * 4
+
         return out

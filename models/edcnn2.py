@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
 class SobelConv2d(nn.Module):
 
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=1,
@@ -84,7 +83,7 @@ class SobelConv2d(nn.Module):
 
 class EDCNN(nn.Module):
 
-    def __init__(self, in_ch=1, out_ch=32, sobel_ch=32, nodes=32):
+    def __init__(self, in_ch=1, out_ch=32, sobel_ch=32):
         super(EDCNN, self).__init__()
 
         self.conv_sobel = SobelConv2d(in_ch, sobel_ch, kernel_size=3, stride=1, padding=1, bias=True)
@@ -114,10 +113,6 @@ class EDCNN(nn.Module):
         self.conv_f8 = nn.Conv2d(out_ch, in_ch, kernel_size=3, stride=1, padding=1)
 
         self.relu = nn.LeakyReLU()
-
-        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc1 = nn.Linear(in_ch, nodes)  # You can adjust the number of nodes here
-        self.fc2 = nn.Linear(nodes, 1)  # Final output node
 
     def forward(self, x):
         out_0 = self.conv_sobel(x)
@@ -153,14 +148,64 @@ class EDCNN(nn.Module):
 
         out_8 = self.relu(self.conv_p8(out_7))
         out_8 = self.conv_f8(out_8)
-
         out = self.relu(x + out_8)
-        print(out.shape)
-        out = self.avgpool(out)
-        print(out.shape)
-        out = torch.flatten(out, 1)  # Flatten the output
-        out = self.relu(self.fc1(out))
-        out = self.fc2(out)
-        out = torch.sigmoid(out) * 4
-
         return out
+
+
+class Adapter(nn.Module):
+    def __init__(self, ch):
+        super().__init__()
+        self.lin1 = nn.Linear(ch, 32)
+        self.lin2 = nn.Linear(32, ch)
+        self.relu = nn.LeakyReLU()
+
+    def forward(self, x):
+        outs = self.relu(self.lin1(x))
+        outs = x + self.lin2(outs)
+        return outs
+
+
+class EDCNN21(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.edcnn = EDCNN()
+        # self.edcnn.load_state_dict(torch.load(weight_path, map_location="cpu"), strict=True)
+        # for param in self.edcnn.parameters():
+        #     param.requires_grad = False
+        self.adapter = Adapter(512)
+        self.lin1 = nn.Linear(512, 32)
+        self.lin2 = nn.Linear(32, 1)
+        self.relu = nn.LeakyReLU()
+
+    def forward(self, x):
+        noise_out = self.edcnn(x).squeeze()
+        noise_row = torch.mean(noise_out, dim=1)
+        noise_row = self.adapter(noise_row)
+        noise_col = torch.mean(noise_out, dim=-1)
+        noise_col = self.adapter(noise_col)
+        noise_f = noise_col + noise_row
+        outs = self.relu(self.lin1(noise_f))
+        outs = self.lin2(outs)
+        return F.relu(outs)
+
+class EDCNN2(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.edcnn = EDCNN()
+        # self.edcnn.load_state_dict(torch.load(weight_path, map_location="cpu"), strict=True)
+        # for param in self.edcnn.parameters():
+        #     param.requires_grad = False
+        self.adapter = Adapter(1)
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+
+    def forward(self, x):
+        out = self.edcnn(x)
+        out = self.avgpool(out)
+        out = torch.flatten(out, 1)
+        out = self.adapter(out)
+        out = torch.sigmoid(out) * 4
+        return out
+
+# ins = torch.randn(8, 1, 512, 512).cuda()
+# model = EDCNN2().cuda()
+# print(model(ins))

@@ -178,3 +178,7 @@ cython_debug/
 /trys.py
 /models/weights/
 /test_batch.tif
+/pretrain/denoise_imgs/
+/pretrain/list.txt
+/self_test.py
+/pretrain/denoise_imgs_EDCNN/
