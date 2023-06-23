@@ -13,7 +13,6 @@ import wandb
 from datasets import create_datalists, create_datasets
 from models.get_models import get_model
 
-
 def set_seed(seed):
     """Set all random seeds and settings for reproducibility (deterministic behavior)."""
     torch.manual_seed(seed)
@@ -26,7 +25,6 @@ def set_seed(seed):
 
 
 set_seed(0)
-torch.cuda.set_device(0)
 
 
 def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_single_experiment=False):
@@ -40,7 +38,6 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_single
         for i, (img, label) in t:
             img = img.unsqueeze(0).float()
             pred = model(img.cuda())
-            # pred = torch.full((img.shape[0], 1), random.uniform(1.99, 2.01)).cuda()
             pred_new = pred.cpu().numpy().squeeze(0)
             label_new = label.cpu().numpy()
             # print(round(pred_new[0], 2), label_new)
@@ -152,34 +149,34 @@ if __name__ == '__main__':
     configs = {
         'pretrain': 'None',
         'img_size': 512,
-        'model': 'Resnet18',
+        'model': 'ED_CNN',
         'epochs': 100,
-        'batch_size': 32,
+        'batch_size': 16,
         'weight_decay': 1e-3,
-        'lr': 1e-4,
+        'lr': 3e-4,
         'min_lr': 0.000006463,
         'RandomHorizontalFlip': True,
         'RandomVerticalFlip': True,
         'RandomRotation': True,
-        'ZoomIn': False,
-        'ZoomOut': False,
+        'ZoomIn': True,
+        'ZoomOut': True,
         'use_mix': False,
-        'use_avg': False,
+        'use_avg': True,
         'XShift': False,
-        'YShift': False,
+        'YShift': True,
         'RandomShear': False,
         'max_shear': 30,  # value in degrees
-        'max_shift': 0.5,
-        'rotation_angle': 3,
+        'max_shift': 0.1,
+        'rotation_angle': 5,
         'zoomin_factor': 0.95,
         'zoomout_factor': 0.05,
     }
 
     imgs_list, label_list = create_datalists()
 
-    final_train = False
+    final_train = True
 
     train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train,
-                                                  patients_out=True, patient_ids_out=[1, 2, 3])
+                                                  patients_out=True, patient_ids_out=[0])
     # train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train, patients_out=True, patient_ids_out=[3]])
     train(configs, train_dataset, test_dataset, wandb_single_experiment=False, final_train=final_train)

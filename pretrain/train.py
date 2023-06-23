@@ -18,9 +18,11 @@ from pretrain_models.model_efficientnet_denoise import Efficient_Swin_Denoise
 from pretrain_models.model_resnet_denoise import Resnet34_Swin_Denoise
 from pretrain_models.resnet34_unet import UNet34_Denoise
 from pretrain_models.efficientnet_unet import EfficientNet_Denoise
-
+from pretrain_models.redcnn import RED_CNN
+from pretrain_models.edcnn import EDCNN
 from pretrain_dataloaders.classic_dataset import CT_Dataset
 from util.create_dataset import create_datasets
+
 import sys
 # sys.path.append('..')
 # from models.resnet import load_resnet_model
@@ -33,7 +35,8 @@ import sys
 from measure import compute_PSNR, compute_SSIM
 from warmup_scheduler.scheduler import GradualWarmupScheduler
 
-torch.cuda.set_device(0)
+# torch.cuda.set_device(1) EDCNN
+torch.cuda.set_device(0) # RedCNN
 
 
 def set_seed(seed):
@@ -145,7 +148,9 @@ def train(training_data, parameters, context):
                       "Efficientnet_B4": EfficientNet_Denoise(mode="b4"),
                       "Efficientnet_B5": EfficientNet_Denoise(mode="b5"),
                       "Efficientnet_B6": EfficientNet_Denoise(mode="b6"),
-                      "Efficientnet_B7": EfficientNet_Denoise(mode="b7"), }
+                      "Efficientnet_B7": EfficientNet_Denoise(mode="b7"),
+                      "RED_CNN": RED_CNN(),
+                      "ED_CNN": EDCNN()}
     configs = {
         "pretrain": None
     }
@@ -230,23 +235,23 @@ if __name__ == '__main__':
     parameters = {
         "folder": "AAPM",  # weighted_dataset, denoise_task_2K, AAPM
         "split_ratio": 0.8,
-        "batch_size": 16,
+        "batch_size": 8,
         "warmup_epochs": 20,
         "epochs": 250,
         "nepoch": 250,
-        "lr": 3e-4,
+        "lr": 1e-4,
         "min_lr": 1e-6,
         "weight_decay": 0.03,
-        "model_name": "Efficientnet_B6",
+        "model_name": "RED_CNN",
         # ResNet34, Resnet34_Swin, Resnet34_Swinv2, Efficientnet_Swin, Efficientnet_Swinv2
         "img_size": 512,
         "use_avg": True,
         "use_mix": True,
     }
-
+    print(" This is the REDCNN pretraining run")
     # denoise for keys of denoise_models, while classification for keys of classify_models (recomand to use AAPM for denoise task)
     model_names = [
-        "Efficientnet_B2"]  # ["Efficientnet_B1", "Efficientnet_B2", "Efficientnet_B3", "Efficientnet_B4", "Efficientnet_B5", "Efficientnet_B6",
+        "RED_CNN"]  # ["Efficientnet_B1", "Efficientnet_B2", "Efficientnet_B3", "Efficientnet_B4", "Efficientnet_B5", "Efficientnet_B6",
 
     # Resnet34_Swin, ResNet34, Efficientnet_Swin
     for m in model_names:
