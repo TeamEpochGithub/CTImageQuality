@@ -146,30 +146,35 @@ def train(configs, train_dataset, test_dataset, wandb_single_experiment=False, f
 
 
 if __name__ == '__main__':
+
+    print('EDCNN 32 nodes run')
+
     configs = {
         'pretrain': 'denoise',
         'img_size': 512,
-        'model': 'EDCNN2',  # ED_CNN
+        'model': 'ED_CNN',
         'epochs': 250,
-        'batch_size': 4,
-        'weight_decay': 1e-3,
+        'batch_size': 16,
+        'weight_decay': 1e-4,
         'lr': 3e-4,
-        'min_lr': 1e-6,
+        'min_lr': 0.000006463,
         'RandomHorizontalFlip': True,
         'RandomVerticalFlip': True,
         'RandomRotation': True,
         'ZoomIn': True,
-        'ZoomOut': True,
+        'ZoomOut': False,
         'use_mix': False,
         'use_avg': True,
-        'XShift': False,
+        'XShift': True,
         'YShift': True,
         'RandomShear': False,
         'max_shear': 30,  # value in degrees
-        'max_shift': 0.1,
-        'rotation_angle': 5,
-        'zoomin_factor': 0.95,
-        'zoomout_factor': 0.05,
+        'max_shift': 0.5,
+        'rotation_angle': 12.4,
+        'zoomin_factor': 0.9,
+        'zoomout_factor': 0.27,
+        'e_nodes': 32,  # edcnn
+        'r_nodes': 64  # redcnn,
     }
 
     imgs_list, label_list = create_datalists()
