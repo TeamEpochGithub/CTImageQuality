@@ -13,6 +13,8 @@ import wandb
 from datasets import create_datalists, create_datasets
 from models.get_models import get_model
 
+torch.cuda.set_device(1) # 32
+
 def set_seed(seed):
     """Set all random seeds and settings for reproducibility (deterministic behavior)."""
     torch.manual_seed(seed)
@@ -47,6 +49,8 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_single
                 # errors = [abs(x - float(y)) for x, y in zip(total_pred, total_gt)]
                 total_pred = np.array(total_pred)
                 total_gt = np.array(total_gt)
+                # print('total_pred', total_pred),
+                # print('total_gt', total_gt)
                 aggregate_results["plcc"] = abs(pearsonr(total_pred, total_gt)[0])
                 aggregate_results["srocc"] = abs(spearmanr(total_pred, total_gt)[0])
                 aggregate_results["krocc"] = abs(kendalltau(total_pred, total_gt)[0])
@@ -146,30 +150,35 @@ def train(configs, train_dataset, test_dataset, wandb_single_experiment=False, f
 
 
 if __name__ == '__main__':
+
+    print('EDCNN 32 nodes run')
+
     configs = {
-        'pretrain': 'None',
+        'pretrain': 'denoise',
         'img_size': 512,
-        'model': 'DNCNN',
-        'epochs': 100,
+        'model': 'ED_CNN',
+        'epochs': 250,
         'batch_size': 16,
-        'weight_decay': 1e-3,
+        'weight_decay': 1e-4,
         'lr': 3e-4,
         'min_lr': 0.000006463,
         'RandomHorizontalFlip': True,
         'RandomVerticalFlip': True,
         'RandomRotation': True,
         'ZoomIn': True,
-        'ZoomOut': True,
+        'ZoomOut': False,
         'use_mix': False,
         'use_avg': True,
-        'XShift': False,
+        'XShift': True,
         'YShift': True,
         'RandomShear': False,
         'max_shear': 30,  # value in degrees
-        'max_shift': 0.1,
-        'rotation_angle': 5,
-        'zoomin_factor': 0.95,
-        'zoomout_factor': 0.05,
+        'max_shift': 0.5,
+        'rotation_angle': 12.4,
+        'zoomin_factor': 0.9,
+        'zoomout_factor': 0.27,
+        'e_nodes': 32,  # edcnn
+        'r_nodes': 64  # redcnn,
     }
 
     imgs_list, label_list = create_datalists()
@@ -177,6 +186,6 @@ if __name__ == '__main__':
     final_train = False
 
     train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train,
-                                                  patients_out=True, patient_ids_out=[0])
+                                                  patients_out=False, patient_ids_out=[0])
     # train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train, patients_out=True, patient_ids_out=[3]])
     train(configs, train_dataset, test_dataset, wandb_single_experiment=False, final_train=final_train)

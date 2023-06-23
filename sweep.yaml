@@ -66,3 +66,7 @@ parameters:
     distribution: uniform
     min: 5
     max: 30
+  e_nodes:
+    values: [10, 32, 64]
+  r_nodes:
+    values: [ 32, 64 ]
