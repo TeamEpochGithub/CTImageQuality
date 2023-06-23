@@ -239,8 +239,8 @@ if __name__ == '__main__':
         "split_ratio": 0.8,
         "batch_size": 8,
         "warmup_epochs": 20,
-        "epochs": 250,
-        "nepoch": 250,
+        "epochs": 200,
+        "nepoch": 200,
         "lr": 1e-4,
         "min_lr": 1e-6,
         "weight_decay": 0.03,
@@ -253,7 +253,7 @@ if __name__ == '__main__':
     print(" This is the REDCNN pretraining run")
     # denoise for keys of denoise_models, while classification for keys of classify_models (recomand to use AAPM for denoise task)
     model_names = [
-        "RED_CNN"]  # ["Efficientnet_B1", "Efficientnet_B2", "Efficientnet_B3", "Efficientnet_B4", "Efficientnet_B5", "Efficientnet_B6",
+        "ED_CNN", "DNCNN"]  # ["Efficientnet_B1", "Efficientnet_B2", "Efficientnet_B3", "Efficientnet_B4", "Efficientnet_B5", "Efficientnet_B6",
 
     # Resnet34_Swin, ResNet34, Efficientnet_Swin
     for m in model_names:
