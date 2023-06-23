@@ -13,8 +13,6 @@ import wandb
 from datasets import create_datalists, create_datasets
 from models.get_models import get_model
 
-torch.cuda.set_device(1) # 32
-
 def set_seed(seed):
     """Set all random seeds and settings for reproducibility (deterministic behavior)."""
     torch.manual_seed(seed)
@@ -40,17 +38,15 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_single
         for i, (img, label) in t:
             img = img.unsqueeze(0).float()
             pred = model(img.cuda())
-            pred_new = pred.cpu().numpy().squeeze(0)
+            pred_new = pred.cpu().numpy().squeeze()
             label_new = label.cpu().numpy()
             # print(round(pred_new[0], 2), label_new)
-            total_pred.append(pred_new[0])
+            total_pred.append(pred_new)
             total_gt.append(label_new)
             if i == len(test_dataset) - 1:
                 # errors = [abs(x - float(y)) for x, y in zip(total_pred, total_gt)]
                 total_pred = np.array(total_pred)
                 total_gt = np.array(total_gt)
-                # print('total_pred', total_pred),
-                # print('total_gt', total_gt)
                 aggregate_results["plcc"] = abs(pearsonr(total_pred, total_gt)[0])
                 aggregate_results["srocc"] = abs(spearmanr(total_pred, total_gt)[0])
                 aggregate_results["krocc"] = abs(kendalltau(total_pred, total_gt)[0])
