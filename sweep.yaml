@@ -9,7 +9,7 @@ parameters:
   img_size:
     values: [256, 512]
   model:
-    values: ['ED_CNN'] # ['Efficientnet_Swin', 'Efficientnet_Swinv2', 'Resnet34_Swin', 'Resnet34_Swinv2', 'Efficientnet_B0', 'Efficientnet_B4', 'Efficientnet_B7', 'Resnet18', 'Resnet50', 'Resnet152', 'Efficientnet_B1', 'Efficientnet_B2', 'Efficientnet_B3', 'Efficientnet_B5', 'Efficientnet_B6', 'Resnet34', 'Resnet101']
+    values: ['ED_CNN', 'DNCNN'] # ['Efficientnet_Swin', 'Efficientnet_Swinv2', 'Resnet34_Swin', 'Resnet34_Swinv2', 'Efficientnet_B0', 'Efficientnet_B4', 'Efficientnet_B7', 'Resnet18', 'Resnet50', 'Resnet152', 'Efficientnet_B1', 'Efficientnet_B2', 'Efficientnet_B3', 'Efficientnet_B5', 'Efficientnet_B6', 'Resnet34', 'Resnet101']
   epochs:
     values: [150]
   batch_size:
