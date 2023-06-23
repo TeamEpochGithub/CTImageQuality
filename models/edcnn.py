@@ -84,7 +84,7 @@ class SobelConv2d(nn.Module):
 
 class EDCNN(nn.Module):
 
-    def __init__(self, in_ch=1, out_ch=32, sobel_ch=32):
+    def __init__(self, nodes, in_ch=1, out_ch=32, sobel_ch=32):
         super(EDCNN, self).__init__()
 
         self.conv_sobel = SobelConv2d(in_ch, sobel_ch, kernel_size=3, stride=1, padding=1, bias=True)
@@ -116,8 +116,8 @@ class EDCNN(nn.Module):
         self.relu = nn.LeakyReLU()
 
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc1 = nn.Linear(in_ch, 10)  # You can adjust the number of nodes here
-        self.fc2 = nn.Linear(10, 1)  # Final output node
+        self.fc1 = nn.Linear(in_ch, nodes)  # You can adjust the number of nodes here
+        self.fc2 = nn.Linear(nodes, 1)  # Final output node
 
     def forward(self, x):
         out_0 = self.conv_sobel(x)
