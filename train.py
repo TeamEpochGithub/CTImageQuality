@@ -150,9 +150,9 @@ if __name__ == '__main__':
     configs = {
         'pretrain': 'denoise',
         'img_size': 512,
-        'model': 'EDCNN2',
+        'model': 'UNET',
         'epochs': 250,
-        'batch_size': 4,
+        'batch_size': 16,
         'weight_decay': 1e-4,
         'lr': 3e-4,
         'min_lr': 0.000006463,
