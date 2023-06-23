@@ -149,7 +149,7 @@ if __name__ == '__main__':
     configs = {
         'pretrain': 'None',
         'img_size': 512,
-        'model': 'ED_CNN',
+        'model': 'DNCNN',
         'epochs': 100,
         'batch_size': 16,
         'weight_decay': 1e-3,
@@ -174,7 +174,7 @@ if __name__ == '__main__':
 
     imgs_list, label_list = create_datalists()
 
-    final_train = True
+    final_train = False
 
     train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train,
                                                   patients_out=True, patient_ids_out=[0])
