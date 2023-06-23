@@ -147,14 +147,12 @@ def train(configs, train_dataset, test_dataset, wandb_single_experiment=False, f
 
 if __name__ == '__main__':
 
-    print('EDCNN 32 nodes run')
-
     configs = {
         'pretrain': 'denoise',
         'img_size': 512,
-        'model': 'ED_CNN',
+        'model': 'EDCNN2',
         'epochs': 250,
-        'batch_size': 16,
+        'batch_size': 4,
         'weight_decay': 1e-4,
         'lr': 3e-4,
         'min_lr': 0.000006463,

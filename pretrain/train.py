@@ -20,6 +20,7 @@ from pretrain_models.resnet34_unet import UNet34_Denoise
 from pretrain_models.efficientnet_unet import EfficientNet_Denoise
 from pretrain_models.redcnn import RED_CNN
 from pretrain_models.edcnn import EDCNN
+from pretrain_models.dncnn import DnCNN
 from pretrain_dataloaders.classic_dataset import CT_Dataset
 from util.create_dataset import create_datasets
 
@@ -150,7 +151,8 @@ def train(training_data, parameters, context):
                       "Efficientnet_B6": EfficientNet_Denoise(mode="b6"),
                       "Efficientnet_B7": EfficientNet_Denoise(mode="b7"),
                       "RED_CNN": RED_CNN(),
-                      "ED_CNN": EDCNN()}
+                      "ED_CNN": EDCNN(), "DNCNN": DnCNN()
+                      }
     configs = {
         "pretrain": None
     }

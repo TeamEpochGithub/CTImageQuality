@@ -165,7 +165,7 @@ class Adapter(nn.Module):
         return outs
 
 
-class EDCNN2(nn.Module):
+class EDCNN21(nn.Module):
     def __init__(self):
         super().__init__()
         self.edcnn = EDCNN()
@@ -187,6 +187,24 @@ class EDCNN2(nn.Module):
         outs = self.relu(self.lin1(noise_f))
         outs = self.lin2(outs)
         return F.relu(outs)
+
+class EDCNN2(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.edcnn = EDCNN()
+        # self.edcnn.load_state_dict(torch.load(weight_path, map_location="cpu"), strict=True)
+        # for param in self.edcnn.parameters():
+        #     param.requires_grad = False
+        self.adapter = Adapter(1)
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+
+    def forward(self, x):
+        out = self.edcnn(x)
+        out = self.avgpool(out)
+        out = torch.flatten(out, 1)
+        out = self.adapter(out)
+        out = torch.sigmoid(out) * 4
+        return out
 
 # ins = torch.randn(8, 1, 512, 512).cuda()
 # model = EDCNN2().cuda()
