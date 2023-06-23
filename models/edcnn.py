@@ -84,7 +84,7 @@ class SobelConv2d(nn.Module):
 
 class EDCNN(nn.Module):
 
-    def __init__(self, nodes, in_ch=1, out_ch=32, sobel_ch=32):
+    def __init__(self, in_ch=1, out_ch=32, sobel_ch=32, nodes=32):
         super(EDCNN, self).__init__()
 
         self.conv_sobel = SobelConv2d(in_ch, sobel_ch, kernel_size=3, stride=1, padding=1, bias=True)
