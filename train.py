@@ -151,12 +151,12 @@ def train(configs, train_dataset, test_dataset, wandb_single_experiment=False, f
 
 if __name__ == '__main__':
 
-    print('REDCNN 64 nodes run full data')
+    print('EDCNN 32 nodes run')
 
     configs = {
         'pretrain': 'denoise',
         'img_size': 512,
-        'model': 'RED_CNN',
+        'model': 'ED_CNN',
         'epochs': 250,
         'batch_size': 16,
         'weight_decay': 1e-4,
@@ -178,7 +178,7 @@ if __name__ == '__main__':
         'zoomin_factor': 0.9,
         'zoomout_factor': 0.27,
         'e_nodes': 32,  # edcnn
-        'r_nodes': 10  # edcnn,
+        'r_nodes': 64  # redcnn,
     }
 
     imgs_list, label_list = create_datalists()
