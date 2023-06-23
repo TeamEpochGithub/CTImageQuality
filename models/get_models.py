@@ -1,4 +1,5 @@
 from models.densenet import load_densenet_model
+from models.dncnn import DnCNN
 from models.efficient_swin import Efficientnet_Swin
 from models.efficient_swinv2 import Efficientnet_Swinv2
 from models.efficientnet import load_efficientnet_model
@@ -26,7 +27,9 @@ def get_model(configs):
               'Efficientnet_Swin': Efficientnet_Swin, 'Efficientnet_Swinv2': Efficientnet_Swinv2,
               'Resnet34_Swin': Resnet34_Swin, 'Resnet34_Swinv2': Resnet34_Swinv2, 'ED_CNN': EDCNN(nodes=configs['e_nodes']),
               'RED_CNN': RED_CNN(nodes=configs['r_nodes']),
-              'Densenet121': load_densenet_model('121', configs['pretrain'])}
+              'Densenet121': load_densenet_model('121', configs['pretrain']),
+              'Densenet121': load_densenet_model('121', configs['pretrain']),
+              'DNCNN': DnCNN()}
 
     model = models[configs['model']]
     return model
