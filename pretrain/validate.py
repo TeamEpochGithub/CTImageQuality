@@ -17,6 +17,7 @@ import torch.nn as nn
 from pretrain_models.model_efficientnet_denoise import Efficient_Swin_Denoise
 from pretrain_models.model_resnet_denoise import Resnet34_Swin_Denoise
 from pretrain_models.resnet34_unet import UNet34_Denoise
+from pretrain_models.edcnn import EDCNN
 from pretrain_models.efficientnet_unet import EfficientNet_Denoise
 import tifffile
 import warnings
@@ -62,20 +63,29 @@ def validate_AAPM(FD_file, QD_file):
     clear_img = clear_img.cpu().detach().numpy().squeeze()
     visualize(clear_img, target_img)
 
-def validate_IQA(path):
-    with tifffile.TiffFile(path) as tif:
-        image = tif.pages[0].asarray()
-        img = np.array(image)
-    target_img = np.float32(img)
-    model_path = r"C:\Users\leo\Documents\CTImageQuality\pretrain\weights\Efficientnet_B1\pretrain_weight_denoise.pkl"
-    model = EfficientNet_Denoise(mode="b1")
-    model.load_state_dict(torch.load(model_path, map_location="cpu"), strict=True)
-    model = model.cuda()
-    input_img = torch.tensor(target_img).unsqueeze(0).unsqueeze(1).cuda()
-    noise_map = model(input_img)
-    clear_img = input_img-noise_map
-    clear_img = clear_img.cpu().detach().numpy().squeeze()
-    visualize(clear_img, target_img)
+def validate_IQA():
+    path = r"C:\Users\leo\Documents\CTImageQuality\LDCTIQAG2023_train\image"
+    save_path = r"C:\Users\leo\Documents\CTImageQuality\pretrain\denoise_imgs_EDCNN"
+    for file in os.listdir(path):
+        if "tif" in file:
+            path_file = osp.join(path, file)
+            with tifffile.TiffFile(path_file) as tif:
+                image = tif.pages[0].asarray()
+                img = np.array(image)
+        target_img = np.float32(img)
+        model_path = r"C:\Users\leo\Documents\CTImageQuality\pretrain\weights\ED_CNN\pretrain_weight_denoise.pkl"
+        model = EDCNN()
+        model.load_state_dict(torch.load(model_path, map_location="cpu"), strict=True)
+        model = model.cuda()
+        input_img = torch.tensor(target_img).unsqueeze(0).unsqueeze(1).cuda()
+        clear_img = model(input_img)
+        clear_img = clear_img.cpu().detach().numpy().squeeze()
+        plt.imshow(clear_img, cmap='gray')
+        plt.axis('off')
+        plt.savefig(osp.join(save_path, file[:-3]+"png"))
+
+
+    # visualize(clear_img, target_img)
 
 
 # FD_file = "L067_FD_1_1.0030.npy"
@@ -83,6 +93,6 @@ def validate_IQA(path):
 #
 # validate_AAPM(FD_file, QD_file)
 
-path = r"C:\Users\leo\Documents\CTImageQuality\LDCTIQAG2023_train\image\0006.tif"
-validate_IQA(path)
+# path = r"C:\Users\leo\Documents\CTImageQuality\LDCTIQAG2023_train\image\0006.tif"
+validate_IQA()
 

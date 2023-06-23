@@ -38,10 +38,10 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_single
         for i, (img, label) in t:
             img = img.unsqueeze(0).float()
             pred = model(img.cuda())
-            pred_new = pred.cpu().numpy().squeeze(0)
+            pred_new = pred.cpu().numpy().squeeze()
             label_new = label.cpu().numpy()
             # print(round(pred_new[0], 2), label_new)
-            total_pred.append(pred_new[0])
+            total_pred.append(pred_new)
             total_gt.append(label_new)
             if i == len(test_dataset) - 1:
                 # errors = [abs(x - float(y)) for x, y in zip(total_pred, total_gt)]
@@ -147,14 +147,14 @@ def train(configs, train_dataset, test_dataset, wandb_single_experiment=False, f
 
 if __name__ == '__main__':
     configs = {
-        'pretrain': 'None',
+        'pretrain': 'denoise',
         'img_size': 512,
-        'model': 'ED_CNN',
-        'epochs': 100,
-        'batch_size': 16,
+        'model': 'EDCNN2',  # ED_CNN
+        'epochs': 250,
+        'batch_size': 4,
         'weight_decay': 1e-3,
         'lr': 3e-4,
-        'min_lr': 0.000006463,
+        'min_lr': 1e-6,
         'RandomHorizontalFlip': True,
         'RandomVerticalFlip': True,
         'RandomRotation': True,
@@ -174,9 +174,9 @@ if __name__ == '__main__':
 
     imgs_list, label_list = create_datalists()
 
-    final_train = True
+    final_train = False
 
     train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train,
-                                                  patients_out=True, patient_ids_out=[0])
+                                                  patients_out=False, patient_ids_out=[0])
     # train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train, patients_out=True, patient_ids_out=[3]])
     train(configs, train_dataset, test_dataset, wandb_single_experiment=False, final_train=final_train)
