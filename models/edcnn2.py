@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class SobelConv2d(nn.Module):
 
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=1,
@@ -187,6 +188,7 @@ class EDCNN21(nn.Module):
         outs = self.relu(self.lin1(noise_f))
         outs = self.lin2(outs)
         return F.relu(outs)
+
 
 class EDCNN2(nn.Module):
     def __init__(self):

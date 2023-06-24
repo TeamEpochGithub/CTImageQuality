@@ -7,7 +7,7 @@ os.environ['WANDB_API_KEY'] = '89d2856e8d33911356269aab43c894552d26ba74'
 def train(training_data, parameters, context):
     wandb.login()
 
-    sweep_id = 'wgrp3pfi'
+    sweep_id = 'txs1e2qn'
     wandb.agent(sweep_id, entity='epoch-iii', project='CTImageQuality')
 
 

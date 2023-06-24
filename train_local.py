@@ -39,10 +39,10 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_single
         for i, (img, label) in t:
             img = img.unsqueeze(0).float()
             pred = model(img.cuda())
-            pred_new = pred.cpu().numpy().squeeze(0)
+            pred_new = pred.cpu().numpy().squeeze()
             label_new = label.cpu().numpy()
             # print(round(pred_new[0], 2), label_new)
-            total_pred.append(pred_new[0])
+            total_pred.append(pred_new)
             total_gt.append(label_new)
             if i == len(test_dataset) - 1:
                 # errors = [abs(x - float(y)) for x, y in zip(total_pred, total_gt)]
@@ -84,7 +84,7 @@ def train(configs, train_dataset, test_dataset, wandb_single_experiment=False, f
     if configs['pretrain'] != 'None':
         file_dict = {'discrete_classification': "pretrain_weight_classification.pkl",
                      'denoise': "pretrain_weight_denoise.pkl"}
-        weight_path = osp.join(osp.dirname(osp.abspath(__file__)), "pretrain", "weights", configs['model'],
+        weight_path = osp.join(osp.dirname(osp.abspath(__file__)), "pretrained_weights", configs['model'],
                                file_dict[configs['pretrain']])
 
         if os.path.exists(weight_path):
@@ -148,9 +148,9 @@ def train(configs, train_dataset, test_dataset, wandb_single_experiment=False, f
 
 if __name__ == '__main__':
     configs = {
-        'pretrain': 'None',
+        'pretrain': 'denoise',
         'img_size': 512,
-        'model': 'ED_CNN',
+        'model': 'UNET',
         'epochs': 100,
         'batch_size': 16,
         'weight_decay': 1e-3,
