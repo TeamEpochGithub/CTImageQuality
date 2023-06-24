@@ -16,6 +16,8 @@ from pretrain_models.efficientnet_unet import EfficientNet_Denoise
 from pretrain_models.redcnn import RED_CNN
 from pretrain_models.edcnn import EDCNN
 from pretrain_models.dncnn import DnCNN
+from pretrain.pretrain_models.unet import UNet
+from pretrain_dataloaders.classic_dataset import CT_Dataset
 from util.create_dataset import create_datasets
 
 from measure import compute_PSNR, compute_SSIM
@@ -135,7 +137,8 @@ def train(training_data, parameters, context):
                       "Efficientnet_B6": EfficientNet_Denoise(mode="b6"),
                       "Efficientnet_B7": EfficientNet_Denoise(mode="b7"),
                       "RED_CNN": RED_CNN(),
-                      "ED_CNN": EDCNN(), "DNCNN": DnCNN()
+                      "ED_CNN": EDCNN(), "DNCNN": DnCNN(),
+                      'UNET': UNet()
                       }
     configs = {
         "pretrain": None
@@ -228,7 +231,7 @@ if __name__ == '__main__':
         "lr": 1e-4,
         "min_lr": 1e-6,
         "weight_decay": 0.03,
-        "model_name": "RED_CNN",
+        "model_name": "UNET",
         # ResNet34, Resnet34_Swin, Resnet34_Swinv2, Efficientnet_Swin, Efficientnet_Swinv2
         "img_size": 512,
         "use_avg": True,
@@ -237,7 +240,7 @@ if __name__ == '__main__':
 
     # denoise for keys of denoise_models, while classification for keys of classify_models (recomand to use AAPM for denoise task)
     model_names = [
-        "DNCNN"]  # , "DNCNN"]  # ["Efficientnet_B1", "Efficientnet_B2", "Efficientnet_B3", "Efficientnet_B4", "Efficientnet_B5", "Efficientnet_B6",
+       "UNET" ]  # ["ED_CNN", "DNCNN", "Efficientnet_B1", "Efficientnet_B2", "Efficientnet_B3", "Efficientnet_B4", "Efficientnet_B5", "Efficientnet_B6",
 
     # Resnet34_Swin, ResNet34, Efficientnet_Swin
     for m in model_names:
