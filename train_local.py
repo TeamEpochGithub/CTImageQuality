@@ -150,34 +150,40 @@ if __name__ == '__main__':
     configs = {
         'pretrain': 'denoise',
         'img_size': 512,
-        'model': 'UNET',
-        'epochs': 100,
+        'model': 'EDCNN2',
+        'epochs': 175,
         'batch_size': 16,
-        'weight_decay': 1e-3,
-        'lr': 3e-4,
-        'min_lr': 0.000006463,
+        'weight_decay': 0.0006332,
+        'lr': 0.007516,
+        'min_lr': 0.000009301,
         'RandomHorizontalFlip': True,
-        'RandomVerticalFlip': True,
-        'RandomRotation': True,
+        'RandomVerticalFlip': False,
+        'RandomRotation': False,
         'ZoomIn': True,
-        'ZoomOut': True,
-        'use_mix': False,
-        'use_avg': True,
+        'ZoomOut': False,
+        'use_mix': True,
+        'use_avg': False,
         'XShift': False,
-        'YShift': True,
+        'YShift': False,
         'RandomShear': False,
-        'max_shear': 30,  # value in degrees
-        'max_shift': 0.1,
-        'rotation_angle': 5,
-        'zoomin_factor': 0.95,
-        'zoomout_factor': 0.05,
+        'max_shear': 8.851,  # value in degrees
+        'max_shift': 0.1018,
+        'rotation_angle': 20.706,
+        'zoomin_factor': 0.8306,
+        'zoomout_factor': 0.06743,
     }
+
+    torch.cuda.set_device(0)
+
+    print(f'This is {configs["model"]} run')
+    print(f'GPU {torch.cuda.current_device()}')
+    print(configs)
 
     imgs_list, label_list = create_datalists()
 
-    final_train = False
-
+    final_train = True
+    print(f'final train is {final_train}' )
     train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train,
-                                                  patients_out=True, patient_ids_out=[0])
+                                                  patients_out=False, patient_ids_out=[0])
     # train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train, patients_out=True, patient_ids_out=[3]])
     train(configs, train_dataset, test_dataset, wandb_single_experiment=False, final_train=final_train)

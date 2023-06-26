@@ -11,8 +11,12 @@ import pytorch_warmup as warmup
 from scipy.stats import pearsonr, spearmanr, kendalltau
 import wandb
 from datasets import create_datalists, create_datasets
+from models.dncnn import DnCNN
+from models.edcnn import EDCNN
 from models.get_models import get_model
 import output
+import output as model_dir
+
 
 def set_seed(seed):
     """Set all random seeds and settings for reproducibility (deterministic behavior)."""
@@ -23,9 +27,6 @@ def set_seed(seed):
     np.random.seed(seed)
     random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
-
-
-set_seed(0)
 
 
 def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_single_experiment=False, loss_threshold=0.5):
@@ -39,13 +40,19 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_single
     with torch.no_grad():
         for i, (img, label) in t:
             img = img.unsqueeze(0).float()
+
             pred = model(img.cuda())
             # pred = torch.full((img.shape[0], 1), random.uniform(1.99, 2.01)).cuda()
             pred_new = pred.cpu().numpy().squeeze(0)
+
             label_new = label.cpu().numpy()
+            print("true:", label_new)
+            print("diff:", pred_new[0] - label_new)
             loss = F.mse_loss(pred.squeeze(), label.cuda())
             if loss > (loss_threshold ** 2):
+                print(loss > (loss_threshold ** 2))
                 bad_pred_indices.append(i)
+            print("#")
 
             # print(round(pred_new[0], 2), label_new)
             total_pred.append(pred_new[0])
@@ -112,6 +119,8 @@ if __name__ == '__main__':
     print(len(test_dataset))
 
     model = get_model({'model': 'Resnet18', 'pretrain': 'None'})
-    model.load_state_dict(torch.load(osp.join(osp.dirname(output.__file__), 'Resnet18_epoch_150_1foldout.pth'), map_location="cpu"), strict=True)
+    model.load_state_dict(
+        torch.load(osp.join(osp.dirname(output.__file__), 'Resnet18_epoch_150_1foldout.pth'), map_location="cpu"),
+        strict=True)
     model = model.cuda()
     worst_pred_indices = valid(model, test_dataset, 0, 0, 0, False)
