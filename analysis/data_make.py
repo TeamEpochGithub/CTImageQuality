@@ -6,14 +6,14 @@ import collections
 import random
 from PIL import Image
 import shutil
-
+import copy
 from tqdm import tqdm
 
 import LDCTIQAG2023_train as data_path
 import os.path as osp
 
 
-def mosaic(new_dataset_size):
+def mosaic(new_dataset_size, shuffle_prob=0.5, mix_prob=0.5):
     img_path = osp.join(osp.dirname(data_path.__file__), 'image')
     label_path = osp.join(osp.dirname(data_path.__file__), 'train.json')
     save_path = os.path.join(osp.dirname(data_path.__file__), f"mosaic_dataset_{new_dataset_size // 1000}K")
@@ -105,6 +105,27 @@ def mosaic(new_dataset_size):
                 img_tmp[row_value:, :col_value] = img2[row_value:, :col_value]
                 img_tmp[:row_value, col_value:] = img3[:row_value, col_value:]
                 img_tmp[row_value:, col_value:] = img4[row_value:, col_value:]
+
+            if random.uniform(0,1)<=shuffle_prob:
+                img_copy = copy.deepcopy(img_tmp)
+                img_blocks = [img_copy[:256, :256], img_copy[256:, :256], img_copy[:256, 256:], img_copy[256:, 256:]]
+                random.shuffle(img_blocks)
+                img_tmp[:256, :256] = img_blocks[0]
+                img_tmp[256:, :256] = img_blocks[1]
+                img_tmp[:256, 256:] = img_blocks[2]
+                img_tmp[256:, 256:] = img_blocks[3]
+
+            if random.uniform(0, 1)<=mix_prob:
+                left_files = files[4:]
+                random.shuffle(left_files)
+                start_x = random.randint(100, 400)
+                start_y = random.randint(100, 400)
+                width = random.randint(50, 450)
+                height = random.randint(50, 450)
+                end_x = min(512, start_x+width)
+                end_y = min(512, start_y+height)
+                img_tmp[start_x:end_x, start_y:end_y] = img_dict[left_files[0]][start_x:end_x, start_y:end_y]
+
             img = Image.fromarray(img_tmp)
             img.save(os.path.join(save_path_imgs, f"{save_img_index}.tif"))
             data[f"{save_img_index}.tif"] = key
