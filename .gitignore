@@ -182,3 +182,4 @@ cython_debug/
 /pretrain/list.txt
 /self_test.py
 /pretrain/denoise_imgs_EDCNN/
+/pretrain/create_dataset/
