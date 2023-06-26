@@ -155,9 +155,7 @@ class EDCNN(nn.Module):
         out_8 = self.conv_f8(out_8)
 
         out = self.relu(x + out_8)
-        print(out.shape)
         out = self.avgpool(out)
-        print(out.shape)
         out = torch.flatten(out, 1)  # Flatten the output
         out = self.relu(self.fc1(out))
         out = self.fc2(out)
