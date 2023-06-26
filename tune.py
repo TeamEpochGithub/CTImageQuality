@@ -1,3 +1,5 @@
+import torch.cuda
+
 from k_fold import k_fold_patients_train
 from models.efficient_swin import Efficientnet_Swin
 import wandb
@@ -120,6 +122,7 @@ if __name__ == '__main__':
         }
     }
 
+    torch.cuda.set_device(1)
     hypertune()
 
     # sweep_config = wandb.sweep("sweep.yaml", project="CTImageQuality-regression")
