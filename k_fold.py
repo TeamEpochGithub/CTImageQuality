@@ -5,7 +5,7 @@ import torch.cuda
 import analysis
 from datasets import create_datalists, CT_Dataset
 from models.get_models import get_model
-from train import train
+from train_local import train
 
 
 def k_fold_patients_train(configs, wandb_single_experiment=False):

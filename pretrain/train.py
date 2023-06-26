@@ -1,15 +1,10 @@
 import os
 import random
 import time
-import json
 import torch
 import torch.optim as optim
 import numpy as np
-import albumentations as A
-from glob import glob
-
-from albumentations.pytorch import ToTensorV2
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 import os.path as osp
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score
@@ -25,20 +20,10 @@ from pretrain.pretrain_models.unet import UNet
 from pretrain_dataloaders.classic_dataset import CT_Dataset
 from util.create_dataset import create_datasets
 
-import sys
-# sys.path.append('..')
-# from models.resnet import load_resnet_model
-# from models.efficientnet import load_efficientnet_model
-# from models.res34_swin import Resnet34_Swin
-# from models.res34_swinv2 import Resnet34_Swinv2
-# from models.efficient_swin import Efficientnet_Swin
-# from models.efficient_swinv2 import Efficientnet_Swinv2
-
 from measure import compute_PSNR, compute_SSIM
 from warmup_scheduler.scheduler import GradualWarmupScheduler
 
-# torch.cuda.set_device(1) EDCNN
-torch.cuda.set_device(1) # UNET
+torch.cuda.set_device(1)
 
 
 def set_seed(seed):
@@ -59,7 +44,7 @@ best_ssim = 0
 best_acc = 0
 
 
-def test(parameters, model, test_dataset):
+def validate(parameters, model, test_dataset):
     pretrain_path = osp.dirname(__file__)
 
     global best_psnr
@@ -225,7 +210,7 @@ def train(training_data, parameters, context):
         print("epoch:", epoch, "loss:", float(losses / len(train_dataset)), f"time: {formatted_time}")
 
         if epoch % 15 == 0:
-            test(parameters, model, test_dataset)
+            validate(parameters, model, test_dataset)
 
     return {
         "artifact": "None",
@@ -252,12 +237,13 @@ if __name__ == '__main__':
         "use_avg": True,
         "use_mix": True,
     }
-    print(" This is the UNET pretraining run")
+
     # denoise for keys of denoise_models, while classification for keys of classify_models (recomand to use AAPM for denoise task)
     model_names = [
        "UNET" ]  # ["ED_CNN", "DNCNN", "Efficientnet_B1", "Efficientnet_B2", "Efficientnet_B3", "Efficientnet_B4", "Efficientnet_B5", "Efficientnet_B6",
 
     # Resnet34_Swin, ResNet34, Efficientnet_Swin
     for m in model_names:
+        print(f" This is the {m} pretraining run")
         parameters["model_name"] = m
         train(None, parameters, None)

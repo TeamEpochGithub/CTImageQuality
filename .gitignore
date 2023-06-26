@@ -6,6 +6,7 @@ wandb/
 wandb
 lightning_logs/
 analysis/plots/
+linuxenv
 
 /pretrain/pretrain_data/
 /pretrain/weights/
