@@ -75,7 +75,7 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_single
     return best_score, best_score_epoch
 
 
-def train(configs, train_dataset, test_dataset, wandb_single_experiment=False, final_train=False):
+def train_local(configs, train_dataset, test_dataset, wandb_single_experiment=False, final_train=False):
     model = get_model(configs)
     if 'Swin' in configs['model']:
         model = model(configs=configs)
@@ -140,7 +140,7 @@ def train(configs, train_dataset, test_dataset, wandb_single_experiment=False, f
             if final_train:
                 torch.save(model.state_dict(), osp.join('output', f"{configs['model']}_epoch_{epoch}_alldata.pth"))
             else:
-                torch.save(model.state_dict(), osp.join('output', f"{configs['model']}_epoch_{epoch}_1foldout.pth"))
+                torch.save(model.state_dict(), osp.join('output', f"{configs['model']}_epoch_{epoch}_9010.pth"))
             print("Model saved!")
 
     return {"best_score": best_score, "best_score_epoch": best_score_epoch, "best_loss": best_loss}
@@ -150,34 +150,35 @@ if __name__ == '__main__':
     configs = {
         'pretrain': 'denoise',
         'img_size': 512,
-        'model': 'UNET',
-        'epochs': 100,
+        'model': 'DNCNN',
+        'epochs': 180,
         'batch_size': 16,
-        'weight_decay': 1e-3,
-        'lr': 3e-4,
+        'weight_decay': 0.0003548,
+        'lr': 0.003215,
         'min_lr': 0.000006463,
         'RandomHorizontalFlip': True,
-        'RandomVerticalFlip': True,
+        'RandomVerticalFlip': False,
         'RandomRotation': True,
-        'ZoomIn': True,
-        'ZoomOut': True,
-        'use_mix': False,
+        'ZoomIn': False,
+        'ZoomOut': False,
+        'use_mix': True,
         'use_avg': True,
         'XShift': False,
         'YShift': True,
-        'RandomShear': False,
-        'max_shear': 30,  # value in degrees
-        'max_shift': 0.1,
-        'rotation_angle': 5,
+        'RandomShear': True,
+        'max_shear': 20,  # value in degrees
+        'max_shift': 0.2,
+        'rotation_angle': 20,
         'zoomin_factor': 0.95,
         'zoomout_factor': 0.05,
     }
 
-    imgs_list, label_list = create_datalists()
+    imgs_list, label_list = create_datalists(type="original")  # type mosaic
 
-    final_train = False
+    torch.cuda.set_device(1)
+    final_train = True
 
     train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train,
-                                                  patients_out=True, patient_ids_out=[0])
+                                                  patients_out=False, patient_ids_out=[0])
     # train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train, patients_out=True, patient_ids_out=[3]])
-    train(configs, train_dataset, test_dataset, wandb_single_experiment=False, final_train=final_train)
+    train_local(configs, train_dataset, test_dataset, wandb_single_experiment=False, final_train=final_train)
