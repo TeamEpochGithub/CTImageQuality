@@ -12,7 +12,7 @@ import os
 import analysis
 
 
-def create_datasets(imgs_list, label_list, configs, final_train=False, patients_out=True, patient_ids_out=[3]):
+def create_datasets(imgs_list, label_list, configs, final_train=False, patients_out=False, patient_ids_out=[3]):
     if final_train:
         return CT_Dataset(imgs_list, label_list, split="train", config=configs), None
 
@@ -27,7 +27,7 @@ def create_datasets(imgs_list, label_list, configs, final_train=False, patients_
         test_dataset = CT_Dataset([imgs_list[x] for x in patient_indices], [label_list[x] for x in patient_indices],
                                   split="test", config=configs)
     else:
-        left_bound, right_bound = 900, 1000  # 900, 1000
+        left_bound, right_bound = int(0.9 * len(imgs_list)), len(imgs_list)
 
         train_dataset = CT_Dataset(imgs_list[:left_bound] + imgs_list[right_bound:],
                                    label_list[:left_bound] + label_list[right_bound:], split="train", config=configs)
@@ -36,9 +36,14 @@ def create_datasets(imgs_list, label_list, configs, final_train=False, patients_
     return train_dataset, test_dataset
 
 
-def create_datalists():
-    data_dir = osp.join(osp.dirname(train_data.__file__), 'image')
-    label_dir = osp.join(osp.dirname(train_data.__file__), 'train.json')
+def create_datalists(type="original"):
+    if type == "mosaic":
+        data_dir = osp.join(osp.dirname(train_data.__file__), "mosaic_dataset_10K", 'image')
+        label_dir = osp.join(osp.dirname(train_data.__file__), "mosaic_dataset_10K", 'data.json')
+    else:
+        data_dir = osp.join(osp.dirname(train_data.__file__), 'image')
+        label_dir = osp.join(osp.dirname(train_data.__file__), 'train.json')
+
     with open(label_dir, 'r') as f:
         label_dict = json.load(f)
 
@@ -54,6 +59,7 @@ def create_datalists():
                     imgs_list.append(img)
 
     return imgs_list, label_list
+
 
 
 class CT_Dataset(torch.utils.data.Dataset):
