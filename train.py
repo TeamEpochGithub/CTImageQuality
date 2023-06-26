@@ -89,8 +89,10 @@ def train(configs, train_dataset, test_dataset, wandb_single_experiment=False, f
         if os.path.exists(weight_path):
             pre_weights = torch.load(weight_path, map_location=torch.device("cuda"))
             for name, param in model.named_parameters():
+                name = name[6:]
                 if name in pre_weights:
                     param.data.copy_(pre_weights[name])
+                    # param.requires_grad = False
 
     optimizer = optim.AdamW(model.parameters(), lr=configs['lr'], betas=(0.9, 0.999), eps=1e-8,
                             weight_decay=configs['weight_decay'])
@@ -149,22 +151,22 @@ if __name__ == '__main__':
 
     configs = {
         'pretrain': 'denoise',
-        'img_size': 512,
-        'model': 'EDCNN2',
-        'epochs': 250,
-        'batch_size': 4,
-        'weight_decay': 1e-4,
-        'lr': 3e-4,
-        'min_lr': 0.000006463,
+        'img_size': 256,
+        'model': 'ED_CNN',
+        'epochs': 200,
+        'batch_size': 8,
+        'weight_decay': 1e-3,
+        'lr': 6e-3,
+        'min_lr': 1e-6,
         'RandomHorizontalFlip': True,
         'RandomVerticalFlip': True,
         'RandomRotation': True,
-        'ZoomIn': True,
+        'ZoomIn': False,
         'ZoomOut': False,
         'use_mix': False,
         'use_avg': True,
-        'XShift': True,
-        'YShift': True,
+        'XShift': False,
+        'YShift': False,
         'RandomShear': False,
         'max_shear': 30,  # value in degrees
         'max_shift': 0.5,
