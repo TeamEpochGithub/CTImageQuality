@@ -29,7 +29,7 @@ def get_model(configs):
               'Resnet34_Swin': Resnet34_Swin, 'Resnet34_Swinv2': Resnet34_Swinv2,
               'ED_CNN': EDCNN(), 'EDCNN2': EDCNN2(),
               'Densenet121': load_densenet_model('121', configs['pretrain']),
-              'DNCNN': DnCNN(), 'UNET': UNet(), 'Ensemble': Ensemble()}
+              'DNCNN': DnCNN(), 'UNET': UNet(),} # 'Ensemble': Ensemble()}
 
     model = models[configs['model']]
     return model

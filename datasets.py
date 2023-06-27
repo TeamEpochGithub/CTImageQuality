@@ -69,10 +69,13 @@ class CT_Dataset(torch.utils.data.Dataset):
         self.split = split
         self.image_size = config['img_size']
         self.config = config
+        self.crop_size = 100
 
         if self.split == 'train':
 
-            operations = [torchvision.transforms.ToPILImage()]
+            operations = [torchvision.transforms.ToPILImage(),
+                          torchvision.transforms.CenterCrop(self.crop_size)]
+
 
             if self.config['RandomHorizontalFlip']:
                 operations.append(torchvision.transforms.RandomHorizontalFlip())
@@ -115,6 +118,7 @@ class CT_Dataset(torch.utils.data.Dataset):
         else:
             self.transform = torchvision.transforms.Compose([
                 torchvision.transforms.ToPILImage(),
+                torchvision.transforms.CenterCrop(self.crop_size),
                 torchvision.transforms.ToTensor(),
                 # torchvision.transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
             ])

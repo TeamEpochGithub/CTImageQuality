@@ -9,7 +9,9 @@ import output as model_dir
 
 
 class Ensemble(nn.Module):
-    def __init__(self, edcnn=False, dncnn=True, edcnn2=False):
+    def __init__(self, edcnn=True, dncnn=False, edcnn2=False):
+
+
         super().__init__()
         self.models = {}
         weight_dir_path = osp.dirname(model_dir.__file__)
@@ -33,7 +35,7 @@ class Ensemble(nn.Module):
             for i, model in enumerate(model_list):
                 # print(model(x))
                 pred = model(x)
-                print(model_names[i], pred.item())
+                # print(model_names[i], pred.item())
                 sum_pred += pred
             # print(f'sum {sum_pred}')
             # ensemble_pred = sum(model(x) for model in model_list)

@@ -150,27 +150,27 @@ if __name__ == '__main__':
     configs = {
         'pretrain': 'denoise',
         'img_size': 512,
-        'model': 'EDCNN2',
-        'epochs': 175,
+        'model': 'ED_CNN',
+        'epochs': 200,
         'batch_size': 16,
-        'weight_decay': 0.0006332,
-        'lr': 0.007516,
-        'min_lr': 0.000009301,
+        'weight_decay': 3e-4,
+        'lr': 6e-3,
+        'min_lr': 5e-6,
         'RandomHorizontalFlip': True,
-        'RandomVerticalFlip': False,
-        'RandomRotation': False,
+        'RandomVerticalFlip': True,
+        'RandomRotation': True,
         'ZoomIn': True,
         'ZoomOut': False,
-        'use_mix': True,
-        'use_avg': False,
-        'XShift': False,
-        'YShift': False,
+        'use_mix': False,
+        'use_avg': True,
+        'XShift': True,
+        'YShift': True,
         'RandomShear': False,
-        'max_shear': 8.851,  # value in degrees
-        'max_shift': 0.1018,
-        'rotation_angle': 20.706,
-        'zoomin_factor': 0.8306,
-        'zoomout_factor': 0.06743,
+        'max_shear': 30,  # value in degrees
+        'max_shift': 0.3,
+        'rotation_angle': 12.4,
+        'zoomin_factor': 0.9,
+        'zoomout_factor': 0.27,
     }
 
     torch.cuda.set_device(0)
@@ -181,7 +181,7 @@ if __name__ == '__main__':
 
     imgs_list, label_list = create_datalists()
 
-    final_train = True
+    final_train = False
     print(f'final train is {final_train}' )
     train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train,
                                                   patients_out=False, patient_ids_out=[0])

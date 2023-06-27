@@ -46,13 +46,13 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_single
             pred_new = pred.cpu().numpy().squeeze(0)
 
             label_new = label.cpu().numpy()
-            print("true:", label_new)
-            print("diff:", pred_new[0] - label_new)
+            # print("true:", label_new)
+            # print("diff:", pred_new[0] - label_new)
             loss = F.mse_loss(pred.squeeze(), label.cuda())
             if loss > (loss_threshold ** 2):
-                print(loss > (loss_threshold ** 2))
+                # print(loss > (loss_threshold ** 2))
                 bad_pred_indices.append(i)
-            print("#")
+            # print("#")
 
             # print(round(pred_new[0], 2), label_new)
             total_pred.append(pred_new[0])
