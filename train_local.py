@@ -167,16 +167,16 @@ if __name__ == '__main__':
         'YShift': True,
         'RandomShear': True,
         'max_shear': 20,  # value in degrees
-        'max_shift': 0.2,
+        'max_shift': 0.1,
         'rotation_angle': 20,
         'zoomin_factor': 0.95,
         'zoomout_factor': 0.05,
     }
 
-    imgs_list, label_list = create_datalists(type="original")  # type mosaic
+    imgs_list, label_list = create_datalists(type="mosaic")  # type mosaic
 
     torch.cuda.set_device(1)
-    final_train = True
+    final_train = False
 
     train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train,
                                                   patients_out=False, patient_ids_out=[0])

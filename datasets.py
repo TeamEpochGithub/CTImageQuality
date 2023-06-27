@@ -40,8 +40,8 @@ def create_datasets(imgs_list, label_list, configs, final_train=False, patients_
 
 def create_datalists(type="original"):
     if type == "mosaic":
-        data_dir = osp.join(osp.dirname(train_data.__file__), "mosaic_dataset_10K", 'image')
-        label_dir = osp.join(osp.dirname(train_data.__file__), "mosaic_dataset_10K", 'data.json')
+        data_dir = osp.join(osp.dirname(train_data.__file__), "mosaic_dataset_25K", 'image')
+        label_dir = osp.join(osp.dirname(train_data.__file__), "mosaic_dataset_25K", 'data.json')
     else:
         data_dir = osp.join(osp.dirname(train_data.__file__), 'image')
         label_dir = osp.join(osp.dirname(train_data.__file__), 'train.json')
