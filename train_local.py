@@ -5,12 +5,15 @@ import torch
 import torch.optim as optim
 import numpy as np
 import torch.nn.functional as F
+from torch import nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import pytorch_warmup as warmup
 from scipy.stats import pearsonr, spearmanr, kendalltau
 import wandb
 from datasets import create_datalists, create_datasets
+from loss import LambdaRankLoss, ConcordantPairsLoss, PearsonCorrelationLoss, SpearmanCorrelationLoss, \
+    RBOLoss
 from models.get_models import get_model
 
 
@@ -115,7 +118,16 @@ def train_local(configs, train_dataset, test_dataset, wandb_single_experiment=Fa
             image = image.cuda()
             target = target.cuda()
             pred = model(image)
-            loss = F.mse_loss(pred.squeeze(), target)
+            # loss = F.mse_loss(pred.squeeze(), target)
+            # loss = LambdaRankLoss()(pred.squeeze(), target)
+            pearson_loss = PearsonCorrelationLoss()(pred.squeeze(), target)
+            # spearman_loss = SpearmanCorrelationLoss()(pred.squeeze(), target)
+            # kendalltau_loss = RBOLoss()(pred.squeeze(), target)
+            # print("pears", pearson_loss)
+            # print("spear", spearman_loss)
+            # print("kendall", kendalltau_loss)
+            loss = pearson_loss
+
             losses += loss.item()
             optimizer.zero_grad()
             loss.backward()
@@ -150,10 +162,10 @@ def train_local(configs, train_dataset, test_dataset, wandb_single_experiment=Fa
 
 if __name__ == '__main__':
     configs = {
-        'pretrain': 'denoise',
+        'pretrain': 'denoise',  # None, denoise
         'img_size': 512,
         'model': 'ED_CNN',
-        'epochs': 50,
+        'epochs': 80,
         'batch_size': 16,
         'weight_decay': 1e-3,
         'lr': 3e-4,
@@ -181,13 +193,13 @@ if __name__ == '__main__':
     mode = "patients_out"  # "split9010", "final", "patients_out"
     dataset = "vornoi"  # "vornoi", "original"
 
-    torch.cuda.set_device(0)
+    torch.cuda.set_device(1)
 
-    print(f'This is {configs["model"]} run')
-    print(f'GPU {torch.cuda.current_device()}')
+    print(f'Model:   {configs["model"]}')
+    print(f'GPU:   {torch.cuda.current_device()}')
     print(configs)
-    print(f'Mode {mode}')
-    print(f'Dataset {dataset}')
+    print(f'Mode:   {mode}')
+    print(f'Dataset:   {dataset}')
 
     train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, mode=mode, dataset=dataset,
                                                   patients_out=[3])
