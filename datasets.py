@@ -1,6 +1,9 @@
 import random
 
+import cv2
 import numpy as np
+import pandas as pd
+import scipy
 import torch
 import torchvision
 import tifffile
@@ -14,30 +17,52 @@ import os
 import analysis
 
 
-def create_datasets(imgs_list, label_list, configs, final_train=False, patients_out=False, patient_ids_out=[3]):
-    if final_train:
-        return CT_Dataset(imgs_list, label_list, split="train", config=configs), None
+def create_datasets(imgs_list, label_list, configs, mode="final", dataset="original", patients_out=[3]):
+    if mode == "final":
+        if dataset == "original":
+            train_dataset, valid_dataset = CT_Dataset(imgs_list, label_list, split="train", config=configs), None
+        if dataset == "vornoi":
+            train_dataset, valid_dataset = VornoiDataset(imgs_list, label_list, parts=12), None
 
-    if patients_out:
+    if mode == "patients_out":
         patient_ids = np.loadtxt(osp.join(osp.dirname(analysis.__file__), 'labels.txt'))
         patient_indices = [i for i, x in enumerate(patient_ids) if
-                           x in patient_ids_out]  # np.where(patient_ids == patient_ids_out)[0]
+                           x in patients_out]  # np.where(patient_ids == patient_ids_out)[0]
         non_patient_indices = list(set(list(range(1000))) - set(patient_indices))
         print(len(patient_indices), len(non_patient_indices))
-        train_dataset = CT_Dataset([imgs_list[x] for x in non_patient_indices],
-                                   [label_list[x] for x in non_patient_indices], split="train",
-                                   config=configs)
-        test_dataset = CT_Dataset([imgs_list[x] for x in patient_indices], [label_list[x] for x in patient_indices],
-                                  split="test", config=configs)
-    else:
-        # left_bound, right_bound = int(0.9 * len(imgs_list)), len(imgs_list)
-        left_bound, right_bound = 900, 1000  # 0, 1000
 
-        train_dataset = CT_Dataset(imgs_list[:left_bound] + imgs_list[right_bound:],
-                                   label_list[:left_bound] + label_list[right_bound:], split="train", config=configs)
-        test_dataset = CT_Dataset(imgs_list[left_bound:right_bound], label_list[left_bound:right_bound], split="test",
-                                  config=configs)
-    return train_dataset, test_dataset
+        if dataset == "original":
+            train_dataset = CT_Dataset([imgs_list[x] for x in non_patient_indices],
+                                       [label_list[x] for x in non_patient_indices], split="train",
+                                       config=configs)
+            valid_dataset = CT_Dataset([imgs_list[x] for x in patient_indices], [label_list[x] for x in patient_indices],
+                                       split="test", config=configs)
+
+        if dataset == "vornoi":
+            train_dataset = VornoiDataset([imgs_list[x] for x in non_patient_indices],
+                                          [label_list[x] for x in non_patient_indices])
+            valid_dataset = CT_Dataset([imgs_list[x] for x in patient_indices],
+                                       [label_list[x] for x in patient_indices],
+                                       split="test", config=configs)
+
+    if mode == "split9010":
+        left_bound, right_bound = int(0.9 * len(imgs_list)), len(imgs_list)
+
+        if dataset == "original":
+            train_dataset = CT_Dataset(imgs_list[:left_bound] + imgs_list[right_bound:],
+                                       label_list[:left_bound] + label_list[right_bound:], split="train",
+                                       config=configs)
+            valid_dataset = CT_Dataset(imgs_list[left_bound:right_bound], label_list[left_bound:right_bound],
+                                       split="test",
+                                       config=configs)
+        if dataset == "vornoi":
+            train_dataset = VornoiDataset(imgs_list[:left_bound] + imgs_list[right_bound:],
+                                       label_list[:left_bound] + label_list[right_bound:], parts=12)
+            valid_dataset = CT_Dataset(imgs_list[left_bound:right_bound], label_list[left_bound:right_bound],
+                                       split="test",
+                                       config=configs)
+
+    return train_dataset, valid_dataset
 
 
 def create_datalists(type="original"):
@@ -166,3 +191,74 @@ class ShufflePatches(object):
         new_tensor = torch.cat(patches, dim=2)
 
         return new_tensor
+
+
+class VornoiDataset(torch.utils.data.Dataset):
+    def __init__(self, images, labels, parts=6):
+        assert len(images) == len(labels), 'Mismatch between number of images and labels.'
+
+        images = np.stack([np.array(img) for img in images])
+        labels = pd.Series(labels)
+
+        self.images = images
+        self.labels = labels
+        self.parts = parts
+        self.mask_generator = VornoiMaskGenerator((512, 512))
+
+        self.grouped_images = {}
+        for img, label in zip(images, labels):
+            if label not in self.grouped_images:
+                self.grouped_images[label] = []
+            self.grouped_images[label].append(img)
+
+    def __getitem__(self, index):
+        label = self.labels[index]
+
+        # Generate masks
+        masks = self.mask_generator(self.parts)
+        chosen_images = random.sample(self.grouped_images[label], masks.shape[0])
+
+        image_parts = zip(chosen_images, masks)
+        img_res, _ = next(image_parts)
+
+        for img, mask in image_parts:
+            img = np.array(img)
+            img_res[mask] = img[mask]
+
+            # Convert composite image to tensor
+        transform = torchvision.transforms.ToTensor()
+        img_composite = transform(img_res)
+
+        label = torch.tensor(label).float()
+        return img_composite, label
+
+    def __len__(self):
+        return len(self.images)
+
+
+class VornoiMaskGenerator:
+    def __init__(self, shape):
+        self.shape = shape
+        extra_dist = 3000
+        self._extra_points = [[extra_dist, extra_dist],
+                              [-extra_dist, extra_dist],
+                              [extra_dist, -extra_dist],
+                              [-extra_dist, -extra_dist]]
+
+    def _make_mask(self, vor):
+        polies = list()
+        for reg in vor.regions:
+            if -1 in reg or len(reg) < 3:
+                continue
+            poly = np.array(vor.vertices)[reg].astype(np.int32)
+            polies.append(cv2.fillPoly(np.zeros(self.shape), pts=[poly], color=1))
+        # print(np.stack(polies).shape)
+        return np.stack(polies)
+
+    def __call__(self, sectors):
+        xp = np.random.randint(0, self.shape[0], sectors)
+        yp = np.random.randint(0, self.shape[1], sectors)
+        all_points = np.append(np.stack([xp, yp]).T, self._extra_points, axis=0)
+        vor = scipy.spatial.Voronoi(all_points)
+        mask = self._make_mask(vor)
+        return mask.astype(np.bool_)

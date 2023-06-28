@@ -36,7 +36,8 @@ class EDCNN3(nn.Module):
         )
 
         self.relu = nn.LeakyReLU()
-        self.dropout = nn.Dropout(p=0.3)
+        self.dropout = nn.Dropout(p=0.2)
+        self.patch_dropout = PatchDropout(drop_prob=0.2, patch_size=8)
 
         self.avgpool = nn.AdaptiveAvgPool2d((16, 16))
         self.fc1 = nn.Linear(16*16, 1)
@@ -52,7 +53,7 @@ class EDCNN3(nn.Module):
 
         for seq in self.sequences:
             out = seq(out)
-            out = self.dropout(out)
+            out = self.patch_dropout(out)
             out = torch.cat((out, x, sobel_out), dim=1)
 
         out = self.final_sequence(out)
@@ -64,3 +65,23 @@ class EDCNN3(nn.Module):
         out = torch.sigmoid(out) * 4
 
         return out
+
+
+class PatchDropout(torch.nn.Module):
+    def __init__(self, drop_prob, patch_size):
+        super().__init__()
+        self.drop_prob = drop_prob
+        self.patch_size = patch_size
+
+    def forward(self, x):
+
+        if self.training:
+            batch_size, channels, height, width = x.size()
+            drop_size = (batch_size, channels, self.patch_size, self.patch_size)
+
+            mask = torch.ones(drop_size).bernoulli_(1 - self.drop_prob).to(x.device)
+            mask = F.interpolate(mask, size=(height, width))
+
+            x = x * mask
+
+        return x
