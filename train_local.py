@@ -177,10 +177,14 @@ if __name__ == '__main__':
     }
 
     imgs_list, label_list = create_datalists(type="original")  # type mosaic
-
-    torch.cuda.set_device(1)
-
     final_train = False
+
+    torch.cuda.set_device(0)
+
+    print(f'This is {configs["model"]} run')
+    print(f'GPU {torch.cuda.current_device()}')
+    print(configs)
+    print(f'final train is {final_train}')
 
     train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train,
                                                   patients_out=False, patient_ids_out=[3])

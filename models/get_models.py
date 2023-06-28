@@ -10,7 +10,7 @@ from models.res34_swinv2 import Resnet34_Swinv2
 from models.resnet import load_resnet_model
 from models.edcnn import EDCNN
 from models.unet import UNet
-
+from models.ensemble import Ensemble
 
 def get_model(configs):
     models = {'Resnet18': load_resnet_model('18', configs['pretrain']),
@@ -30,7 +30,7 @@ def get_model(configs):
               'Resnet34_Swin': Resnet34_Swin, 'Resnet34_Swinv2': Resnet34_Swinv2,
               'ED_CNN': EDCNN(), 'EDCNN2': EDCNN2(),
               'Densenet121': load_densenet_model('121', configs['pretrain']),
-              'DNCNN': DnCNN(), 'UNET': UNet(),
+              'DNCNN': DnCNN(), 'UNET': UNet(), 'Ensemble': Ensemble(),
               'EDCNN3': EDCNN3()}
 
     model = models[configs['model']]
