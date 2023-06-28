@@ -13,7 +13,7 @@ class EDCNN3(nn.Module):
         self.conv_sobel = SobelConv2d(in_ch, sobel_ch, kernel_size=3, stride=1, padding=1, bias=True)
 
         self.first_sequence = nn.Sequential(
-            nn.BatchNorm2d(in_ch + sobel_ch),
+            # nn.BatchNorm2d(in_ch + sobel_ch),
             nn.Conv2d(in_ch + sobel_ch, out_ch, kernel_size=1, stride=1, padding=0),
             nn.Conv2d(out_ch, out_ch, kernel_size=3, stride=1, padding=1),
             nn.LeakyReLU()
@@ -21,7 +21,7 @@ class EDCNN3(nn.Module):
 
         self.sequences = nn.ModuleList([
             nn.Sequential(
-                nn.BatchNorm2d(in_ch + sobel_ch + out_ch),
+                # nn.BatchNorm2d(in_ch + sobel_ch + out_ch),
                 nn.Conv2d(in_ch + sobel_ch + out_ch, out_ch, kernel_size=1, stride=1, padding=0),
                 nn.Conv2d(out_ch, out_ch, kernel_size=3, stride=1, padding=1),
                 nn.LeakyReLU()
@@ -29,7 +29,7 @@ class EDCNN3(nn.Module):
         ])
 
         self.final_sequence = nn.Sequential(
-            nn.BatchNorm2d(in_ch + sobel_ch + out_ch),
+            # nn.BatchNorm2d(in_ch + sobel_ch + out_ch),
             nn.Conv2d(in_ch + sobel_ch + out_ch, out_ch, kernel_size=1, stride=1, padding=0),
             nn.Conv2d(out_ch, in_ch, kernel_size=3, stride=1, padding=1),
             nn.LeakyReLU()

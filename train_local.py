@@ -55,6 +55,8 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_single
                     spearmanr(total_pred, total_gt)[0]) + abs(kendalltau(total_pred, total_gt)[0])
                 std = np.std(total_pred - total_gt)
                 aggregate_results["std"] = std
+                mean = np.mean(np.abs(total_pred - total_gt))
+                aggregate_results["mean"] = mean
                 t.set_postfix({key: round(value, 3) for key, value in aggregate_results.items()})
     # import matplotlib.pyplot as plt
     # plt.hist(errors, bins=20)
@@ -176,7 +178,7 @@ if __name__ == '__main__':
 
     imgs_list, label_list = create_datalists(type="original")  # type mosaic
 
-    torch.cuda.set_device(0)
+    torch.cuda.set_device(1)
 
     final_train = False
 
