@@ -177,16 +177,19 @@ if __name__ == '__main__':
     }
 
     imgs_list, label_list = create_datalists(type="original")  # type mosaic
-    final_train = False
 
-    torch.cuda.set_device(0)
+    print(type(imgs_list[0]))
+    mode = "split9010"  # "final", "patients_out"
+    dataset = "vornoi"  # "vornoi", "original"
+
+    torch.cuda.set_device(1)
 
     print(f'This is {configs["model"]} run')
     print(f'GPU {torch.cuda.current_device()}')
     print(configs)
-    print(f'final train is {final_train}')
+    print(f'Mode {mode}')
+    print(f'Dataset {dataset}')
 
-    train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train,
-                                                  patients_out=False, patient_ids_out=[3])
-    # train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train, patients_out=True, patient_ids_out=[3]])
-    train_local(configs, train_dataset, test_dataset, wandb_single_experiment=False, final_train=final_train)
+    train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, mode=mode, dataset=dataset,
+                                                  patients_out=[3])
+    train_local(configs, train_dataset, test_dataset, wandb_single_experiment=False, final_train=mode == "final")
