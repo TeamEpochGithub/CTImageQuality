@@ -30,13 +30,21 @@ def create_datasets(imgs_list, label_list, configs, mode="final", dataset="origi
                            x in patients_out]  # np.where(patient_ids == patient_ids_out)[0]
         non_patient_indices = list(set(list(range(1000))) - set(patient_indices))
         print(len(patient_indices), len(non_patient_indices))
-        train_dataset = CT_Dataset([imgs_list[x] for x in non_patient_indices],
-                                   [label_list[x] for x in non_patient_indices], split="train",
-                                   config=configs)
-        valid_dataset = CT_Dataset([imgs_list[x] for x in patient_indices], [label_list[x] for x in patient_indices],
-                                   split="test", config=configs)
-        return train_dataset, valid_dataset
-    
+
+        if dataset == "original":
+            train_dataset = CT_Dataset([imgs_list[x] for x in non_patient_indices],
+                                       [label_list[x] for x in non_patient_indices], split="train",
+                                       config=configs)
+            valid_dataset = CT_Dataset([imgs_list[x] for x in patient_indices], [label_list[x] for x in patient_indices],
+                                       split="test", config=configs)
+
+        if dataset == "vornoi":
+            train_dataset = VornoiDataset([imgs_list[x] for x in non_patient_indices],
+                                          [label_list[x] for x in non_patient_indices])
+            valid_dataset = CT_Dataset([imgs_list[x] for x in patient_indices],
+                                       [label_list[x] for x in patient_indices],
+                                       split="test", config=configs)
+
     if mode == "split9010":
         left_bound, right_bound = int(0.9 * len(imgs_list)), len(imgs_list)
 

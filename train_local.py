@@ -54,9 +54,9 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_single
                 aggregate_results["overall"] = abs(pearsonr(total_pred, total_gt)[0]) + abs(
                     spearmanr(total_pred, total_gt)[0]) + abs(kendalltau(total_pred, total_gt)[0])
                 std = np.std(total_pred - total_gt)
-                aggregate_results["std"] = std
+                aggregate_results["std_error"] = std
                 mean = np.mean(np.abs(total_pred - total_gt))
-                aggregate_results["mean"] = mean
+                aggregate_results["mean_error"] = mean
                 t.set_postfix({key: round(value, 3) for key, value in aggregate_results.items()})
     # import matplotlib.pyplot as plt
     # plt.hist(errors, bins=20)
@@ -152,7 +152,7 @@ if __name__ == '__main__':
     configs = {
         'pretrain': 'denoise',
         'img_size': 512,
-        'model': 'EDCNN3',
+        'model': 'ED_CNN',
         'epochs': 50,
         'batch_size': 16,
         'weight_decay': 1e-3,
@@ -178,11 +178,10 @@ if __name__ == '__main__':
 
     imgs_list, label_list = create_datalists(type="original")  # type mosaic
 
-    print(type(imgs_list[0]))
-    mode = "split9010"  # "final", "patients_out"
+    mode = "patients_out"  # "split9010", "final", "patients_out"
     dataset = "vornoi"  # "vornoi", "original"
 
-    torch.cuda.set_device(1)
+    torch.cuda.set_device(0)
 
     print(f'This is {configs["model"]} run')
     print(f'GPU {torch.cuda.current_device()}')
