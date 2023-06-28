@@ -87,6 +87,21 @@ def split_shuffle_image(image, num_parts=4):
 
     return shuffled_image
 
+def reverse_crop_image(image, crop_size):
+    # Convert PIL Image to numpy array
+    image_np = np.array(image)
+
+    # Calculate the coordinates for the reverse crop
+    start_x = (image_np.shape[1] - crop_size) // 2
+    start_y = (image_np.shape[0] - crop_size) // 2
+
+    # Perform reverse crop
+    cropped_image = image_np[start_y:start_y+crop_size, start_x:start_x+crop_size]
+
+    # Convert numpy array back to PIL Image
+    cropped_image = Image.fromarray(cropped_image)
+
+    return cropped_image
 
 
 class CT_Dataset(torch.utils.data.Dataset):
@@ -96,13 +111,17 @@ class CT_Dataset(torch.utils.data.Dataset):
         self.split = split
         self.image_size = config['img_size']
         self.config = config
-        self.crop_size = 160
+        self.crop_size = 460
 
         if self.split == 'train':
 
-            operations = [torchvision.transforms.ToPILImage(),
-                          torchvision.transforms.CenterCrop(self.crop_size)]
+            operations = [torchvision.transforms.ToPILImage()]
 
+            if self.config['Crop']:
+                operations.append(torchvision.transforms.CenterCrop(self.crop_size))
+
+            if self.config['ReverseCrop']:
+                operations.append(torchvision.transforms.Lambda(lambda img: reverse_crop_image(img, self.crop_size)))
 
             if self.config['RandomHorizontalFlip']:
                 operations.append(torchvision.transforms.RandomHorizontalFlip())
@@ -137,7 +156,7 @@ class CT_Dataset(torch.utils.data.Dataset):
                 operations.append(torchvision.transforms.RandomApply([
                     torchvision.transforms.RandomAffine(degrees=self.config['max_shear'])
                 ], p=0.1))
-            split_shuffle_transform = torchvision.transforms.Lambda(lambda img: split_shuffle_image(img, num_parts=2))
+            split_shuffle_transform = torchvision.transforms.Lambda(lambda img: split_shuffle_image(img, num_parts=4))
             operations.append(split_shuffle_transform)
             operations += [torchvision.transforms.ToTensor()]
 

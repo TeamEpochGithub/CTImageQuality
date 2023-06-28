@@ -163,6 +163,8 @@ if __name__ == '__main__':
         'RandomHorizontalFlip': False,
         'RandomVerticalFlip': False,
         'RandomRotation': False,
+        'Crop': False,
+        'ReverseCrop': True,
         'ZoomIn': False,
         'ZoomOut': False,
         'use_mix': False,
