@@ -26,6 +26,8 @@ parameters:
     distribution: uniform
     min: 1e-8
     max: 1e-5
+  ShufflePatches:
+    values: [ True, False ]
   RandomHorizontalFlip:
     values: [True, False]
   RandomVerticalFlip:

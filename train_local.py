@@ -39,11 +39,7 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_single
         for i, (img, label) in t:
             img = img.unsqueeze(0).float()
             pred = model(img.cuda())
-            # print(pred)
             pred_new = pred.cpu().numpy().squeeze()
-            pred_new = np.round(pred_new, 1)
-            # print(pred_new)
-            # print(pred_new.shape)
             label_new = label.cpu().numpy()
             # print(round(pred_new[0], 2), label_new)
             total_pred.append(pred_new)
@@ -59,6 +55,8 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_single
                     spearmanr(total_pred, total_gt)[0]) + abs(kendalltau(total_pred, total_gt)[0])
                 std = np.std(total_pred - total_gt)
                 aggregate_results["std"] = std
+                mean = np.mean(np.abs(total_pred - total_gt))
+                aggregate_results["mean"] = mean
                 t.set_postfix({key: round(value, 3) for key, value in aggregate_results.items()})
     # import matplotlib.pyplot as plt
     # plt.hist(errors, bins=20)
@@ -79,7 +77,7 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_single
     return best_score, best_score_epoch
 
 
-def train(configs, train_dataset, test_dataset, wandb_single_experiment=False, final_train=False):
+def train_local(configs, train_dataset, test_dataset, wandb_single_experiment=False, final_train=False):
     model = get_model(configs)
     if 'Swin' in configs['model']:
         model = model(configs=configs)
@@ -144,52 +142,50 @@ def train(configs, train_dataset, test_dataset, wandb_single_experiment=False, f
             if final_train:
                 torch.save(model.state_dict(), osp.join('output', f"{configs['model']}_epoch_{epoch}_alldata.pth"))
             else:
-                torch.save(model.state_dict(), osp.join('output', f"{configs['model']}_epoch_{epoch}_1foldout.pth"))
+                torch.save(model.state_dict(), osp.join('output', f"{configs['model']}_epoch_{epoch}_9010.pth"))
             print("Model saved!")
 
-    return {"best_score": best_score, "best_score_epoch": best_score_epoch, "best_loss": best_loss}
+    return model.state_dict()  # {"best_score": best_score, "best_score_epoch": best_score_epoch, "best_loss": best_loss}
 
 
 if __name__ == '__main__':
     configs = {
         'pretrain': 'denoise',
         'img_size': 512,
-        'model': 'ED_CNN',
-        'epochs': 150,
+        'model': 'EDCNN2',
+        'epochs': 175,
         'batch_size': 16,
-        'weight_decay': 0.0003055,
-        'lr': 0.005969,
-        'min_lr': 0.000005276,
-        'RandomHorizontalFlip': False,
+        'weight_decay': 0.0006332,
+        'lr': 0.007516,
+        'min_lr': 0.000009301,
+        'RandomHorizontalFlip': True,
         'RandomVerticalFlip': False,
         'RandomRotation': False,
-        'Crop': False,
-        'ReverseCrop': True,
-        'ZoomIn': False,
+        'ZoomIn': True,
         'ZoomOut': False,
-        'use_mix': False,
+        'use_mix': True,
         'use_avg': False,
         'XShift': False,
         'YShift': False,
         'RandomShear': False,
-        'max_shear': 18.757,  # value in degrees
-        'max_shift': 0.2236,
-        'rotation_angle': 30.019,
-        'zoomin_factor': 0.8107,
-        'zoomout_factor': 0.1981,
+        'max_shear': 8.851,  # value in degrees
+        'max_shift': 0.1018,
+        'rotation_angle': 20.706,
+        'zoomin_factor': 0.8306,
+        'zoomout_factor': 0.06743,
     }
+
+    imgs_list, label_list = create_datalists(type="original")  # type mosaic
+    final_train = False
 
     torch.cuda.set_device(0)
 
     print(f'This is {configs["model"]} run')
     print(f'GPU {torch.cuda.current_device()}')
     print(configs)
+    print(f'final train is {final_train}')
 
-    imgs_list, label_list = create_datalists()
-
-    final_train = False
-    print(f'final train is {final_train}' )
     train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train,
-                                                  patients_out=False, patient_ids_out=[0])
+                                                  patients_out=False, patient_ids_out=[3])
     # train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train, patients_out=True, patient_ids_out=[3]])
-    train(configs, train_dataset, test_dataset, wandb_single_experiment=False, final_train=final_train)
+    train_local(configs, train_dataset, test_dataset, wandb_single_experiment=False, final_train=final_train)
