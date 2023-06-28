@@ -37,11 +37,11 @@ def load_resnet_model(model_name, pretrained_weights, out_channel=1):
     if model_name not in model_dict:
         raise ValueError("Invalid model name. Expected one of: %s" % ", ".join(model_dict.keys()))
 
-    if not pretrained_weights:
-        model = model_dict[model_name](weights=default_weights_dict[model_name])
-    else:
-        model = model_dict[model_name](weights=pretrained_weights_dict[model_name])
-
+    # if not pretrained_weights:
+    #     model = model_dict[model_name](weights=default_weights_dict[model_name])
+    # else:
+    #     model = model_dict[model_name](weights=pretrained_weights_dict[model_name])
+    model = model_dict[model_name]()
     model = adapt_resnet_to_grayscale(model)
     model.fc = nn.Linear(model.fc.in_features, out_channel)
 

@@ -143,19 +143,20 @@ def train_local(configs, train_dataset, test_dataset, wandb_single_experiment=Fa
                 torch.save(model.state_dict(), osp.join('output', f"{configs['model']}_epoch_{epoch}_9010.pth"))
             print("Model saved!")
 
-    return {"best_score": best_score, "best_score_epoch": best_score_epoch, "best_loss": best_loss}
+    return model.state_dict()  # {"best_score": best_score, "best_score_epoch": best_score_epoch, "best_loss": best_loss}
 
 
 if __name__ == '__main__':
     configs = {
         'pretrain': 'denoise',
         'img_size': 512,
-        'model': 'DNCNN',
-        'epochs': 180,
+        'model': 'EDCNN3',
+        'epochs': 50,
         'batch_size': 16,
-        'weight_decay': 0.0003548,
-        'lr': 0.003215,
-        'min_lr': 0.000006463,
+        'weight_decay': 1e-3,
+        'lr': 3e-4,
+        'min_lr': 1e-6,
+        'ShufflePatches': False,
         'RandomHorizontalFlip': True,
         'RandomVerticalFlip': False,
         'RandomRotation': True,
@@ -163,22 +164,23 @@ if __name__ == '__main__':
         'ZoomOut': False,
         'use_mix': True,
         'use_avg': True,
-        'XShift': False,
+        'XShift': True,
         'YShift': True,
-        'RandomShear': True,
+        'RandomShear': False,
         'max_shear': 20,  # value in degrees
-        'max_shift': 0.1,
-        'rotation_angle': 20,
+        'max_shift': 0.05,
+        'rotation_angle': 3,
         'zoomin_factor': 0.95,
         'zoomout_factor': 0.05,
     }
 
-    imgs_list, label_list = create_datalists(type="mosaic")  # type mosaic
+    imgs_list, label_list = create_datalists(type="original")  # type mosaic
 
-    torch.cuda.set_device(1)
+    torch.cuda.set_device(0)
+
     final_train = False
 
     train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train,
-                                                  patients_out=False, patient_ids_out=[0])
+                                                  patients_out=False, patient_ids_out=[3])
     # train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train, patients_out=True, patient_ids_out=[3]])
     train_local(configs, train_dataset, test_dataset, wandb_single_experiment=False, final_train=final_train)

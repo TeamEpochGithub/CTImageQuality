@@ -1,3 +1,5 @@
+import random
+
 import numpy as np
 import torch
 import torchvision
@@ -29,7 +31,7 @@ def create_datasets(imgs_list, label_list, configs, final_train=False, patients_
                                   split="test", config=configs)
     else:
         # left_bound, right_bound = int(0.9 * len(imgs_list)), len(imgs_list)
-        left_bound, right_bound = 0, 1000
+        left_bound, right_bound = 900, 1000  # 0, 1000
 
         train_dataset = CT_Dataset(imgs_list[:left_bound] + imgs_list[right_bound:],
                                    label_list[:left_bound] + label_list[right_bound:], split="train", config=configs)
@@ -111,6 +113,9 @@ class CT_Dataset(torch.utils.data.Dataset):
 
             operations += [torchvision.transforms.ToTensor()]
 
+            if self.config['ShufflePatches']:
+                operations.append(ShufflePatches(self.image_size // 4))
+
             self.transform = torchvision.transforms.Compose(operations)
 
         else:
@@ -131,3 +136,33 @@ class CT_Dataset(torch.utils.data.Dataset):
         y = self.label_list[idx]
 
         return x, torch.tensor(y)
+
+
+class ShufflePatches(object):
+    def __init__(self, patch_size):
+        self.patch_size = patch_size
+
+    def __call__(self, tensor):
+        # Assuming tensor is of shape (C, H, W)
+        _, height, width = tensor.size()
+        patch_width = width // 4  # Divide the width into 4 equal patches
+        patch_height = height // 4  # Divide the height into 4 equal patches
+
+        # Create a list of patches
+        patches = []
+        for i in range(4):
+            for j in range(4):
+                left = j * patch_width
+                upper = i * patch_height
+                right = left + patch_width
+                lower = upper + patch_height
+                patch = tensor[:, upper:lower, left:right]
+                patches.append(patch)
+
+        # Shuffle the patches
+        random.shuffle(patches)
+
+        # Create a new tensor by concatenating the shuffled patches
+        new_tensor = torch.cat(patches, dim=2)
+
+        return new_tensor
