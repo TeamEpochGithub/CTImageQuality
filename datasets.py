@@ -65,31 +65,6 @@ def create_datalists(type="original"):
 
     return imgs_list, label_list
 
-def split_shuffle_image(image, num_parts=4):
-    # Convert PIL Image to numpy array
-    image_np = np.array(image)
-
-    # Check that the image can be evenly divided into num_parts x num_parts
-    # print(image_np.shape[0])
-    # print(image_np.shape[1])
-    assert image_np.shape[0] % num_parts == 0, "Image size must be evenly divisible by num_parts"
-    assert image_np.shape[1] % num_parts == 0, "Image size must be evenly divisible by num_parts"
-
-    # Split the image into patches
-    patch_height = image_np.shape[0] // num_parts
-    patch_width = image_np.shape[1] // num_parts
-    patches = [image_np[i:i+patch_height, j:j+patch_width] for i in range(0, image_np.shape[0], patch_height) for j in range(0, image_np.shape[1], patch_width)]
-
-    # Shuffle the patches
-    patches = shuffle(patches)
-
-    # Stitch the patches back together
-    shuffled_image = np.block([[patches[num_parts * i + j] for j in range(num_parts)] for i in range(num_parts)])
-
-    # Convert numpy array back to PIL Image
-    shuffled_image = Image.fromarray(shuffled_image)
-
-    return shuffled_image
 
 def reverse_crop_image(image, crop_size):
     # Convert PIL Image to numpy array
@@ -100,12 +75,13 @@ def reverse_crop_image(image, crop_size):
     start_y = (image_np.shape[0] - crop_size) // 2
 
     # Perform reverse crop
-    cropped_image = image_np[start_y:start_y+crop_size, start_x:start_x+crop_size]
+    cropped_image = image_np[start_y:start_y + crop_size, start_x:start_x + crop_size]
 
     # Convert numpy array back to PIL Image
     cropped_image = Image.fromarray(cropped_image)
 
     return cropped_image
+
 
 class CT_Dataset(torch.utils.data.Dataset):
     def __init__(self, imgs_list, label_list, split='validation', config={'img_size': 512}):
@@ -114,7 +90,7 @@ class CT_Dataset(torch.utils.data.Dataset):
         self.split = split
         self.image_size = config['img_size']
         self.config = config
-        self.crop_size = 460
+        self.crop_size = 160
 
         if self.split == 'train':
 
@@ -159,8 +135,7 @@ class CT_Dataset(torch.utils.data.Dataset):
                 operations.append(torchvision.transforms.RandomApply([
                     torchvision.transforms.RandomAffine(degrees=self.config['max_shear'])
                 ], p=0.1))
-            split_shuffle_transform = torchvision.transforms.Lambda(lambda img: split_shuffle_image(img, num_parts=4))
-            operations.append(split_shuffle_transform)
+
             operations += [torchvision.transforms.ToTensor()]
 
             if self.config['ShufflePatches']:
