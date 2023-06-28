@@ -56,7 +56,7 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_single
                 std = np.std(total_pred - total_gt)
                 aggregate_results["std_error"] = std
                 mean = np.mean(np.abs(total_pred - total_gt))
-                aggregate_results["mean_error"] = mean
+                aggregate_results["mean"] = mean
                 t.set_postfix({key: round(value, 3) for key, value in aggregate_results.items()})
     # import matplotlib.pyplot as plt
     # plt.hist(errors, bins=20)
@@ -161,13 +161,15 @@ if __name__ == '__main__':
         'ShufflePatches': False,
         'RandomHorizontalFlip': True,
         'RandomVerticalFlip': False,
-        'RandomRotation': True,
+        'RandomRotation': False,
+        'Crop': True,
+        'ReverseCrop': False,
         'ZoomIn': False,
         'ZoomOut': False,
         'use_mix': True,
-        'use_avg': True,
-        'XShift': True,
-        'YShift': True,
+        'use_avg': False,
+        'XShift': False,
+        'YShift': False,
         'RandomShear': False,
         'max_shear': 20,  # value in degrees
         'max_shift': 0.05,
