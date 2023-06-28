@@ -24,6 +24,7 @@ def train(training_data, parameters, context):
         'weight_decay': 1e-3,
         'lr': 3e-4,
         'min_lr': 1e-6,
+        'ShufflePatches': False,
         'RandomHorizontalFlip': True,
         'RandomVerticalFlip': True,
         'RandomRotation': True,
@@ -47,7 +48,6 @@ def train(training_data, parameters, context):
 
     train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train,
                                                   patients_out=False, patient_ids_out=[0])
-    # train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train, patients_out=True, patient_ids_out=[3]])
     model = train_local(configs, train_dataset, test_dataset, wandb_single_experiment=False, final_train=final_train)
 
     return {"artifact": model, "metadata": {}, "metrics": {}, "additional_output_files": []}
