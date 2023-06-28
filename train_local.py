@@ -187,7 +187,7 @@ if __name__ == '__main__':
 
     imgs_list, label_list = create_datalists()
 
-    final_train = True
+    final_train = False
     print(f'final train is {final_train}' )
     train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, final_train=final_train,
                                                   patients_out=False, patient_ids_out=[0])
