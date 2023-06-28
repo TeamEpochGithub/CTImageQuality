@@ -1,3 +1,5 @@
+import random
+
 import numpy as np
 import torch
 import torchvision
@@ -18,7 +20,8 @@ def create_datasets(imgs_list, label_list, configs, final_train=False, patients_
 
     if patients_out:
         patient_ids = np.loadtxt(osp.join(osp.dirname(analysis.__file__), 'labels.txt'))
-        patient_indices = [i for i, x in enumerate(patient_ids) if x in patient_ids_out]  # np.where(patient_ids == patient_ids_out)[0]
+        patient_indices = [i for i, x in enumerate(patient_ids) if
+                           x in patient_ids_out]  # np.where(patient_ids == patient_ids_out)[0]
         non_patient_indices = list(set(list(range(1000))) - set(patient_indices))
         print(len(patient_indices), len(non_patient_indices))
         train_dataset = CT_Dataset([imgs_list[x] for x in non_patient_indices],
@@ -27,7 +30,8 @@ def create_datasets(imgs_list, label_list, configs, final_train=False, patients_
         test_dataset = CT_Dataset([imgs_list[x] for x in patient_indices], [label_list[x] for x in patient_indices],
                                   split="test", config=configs)
     else:
-        left_bound, right_bound = int(0.9 * len(imgs_list)), len(imgs_list)
+        # left_bound, right_bound = int(0.9 * len(imgs_list)), len(imgs_list)
+        left_bound, right_bound = 900, 1000  # 0, 1000
 
         train_dataset = CT_Dataset(imgs_list[:left_bound] + imgs_list[right_bound:],
                                    label_list[:left_bound] + label_list[right_bound:], split="train", config=configs)
@@ -38,8 +42,8 @@ def create_datasets(imgs_list, label_list, configs, final_train=False, patients_
 
 def create_datalists(type="original"):
     if type == "mosaic":
-        data_dir = osp.join(osp.dirname(train_data.__file__), "mosaic_dataset_10K", 'image')
-        label_dir = osp.join(osp.dirname(train_data.__file__), "mosaic_dataset_10K", 'data.json')
+        data_dir = osp.join(osp.dirname(train_data.__file__), "mosaic_dataset_25K", 'image')
+        label_dir = osp.join(osp.dirname(train_data.__file__), "mosaic_dataset_25K", 'data.json')
     else:
         data_dir = osp.join(osp.dirname(train_data.__file__), 'image')
         label_dir = osp.join(osp.dirname(train_data.__file__), 'train.json')
@@ -59,7 +63,6 @@ def create_datalists(type="original"):
                     imgs_list.append(img)
 
     return imgs_list, label_list
-
 
 
 class CT_Dataset(torch.utils.data.Dataset):
@@ -110,6 +113,9 @@ class CT_Dataset(torch.utils.data.Dataset):
 
             operations += [torchvision.transforms.ToTensor()]
 
+            if self.config['ShufflePatches']:
+                operations.append(ShufflePatches(self.image_size // 4))
+
             self.transform = torchvision.transforms.Compose(operations)
 
         else:
@@ -130,3 +136,33 @@ class CT_Dataset(torch.utils.data.Dataset):
         y = self.label_list[idx]
 
         return x, torch.tensor(y)
+
+
+class ShufflePatches(object):
+    def __init__(self, patch_size):
+        self.patch_size = patch_size
+
+    def __call__(self, tensor):
+        # Assuming tensor is of shape (C, H, W)
+        _, height, width = tensor.size()
+        patch_width = width // 4  # Divide the width into 4 equal patches
+        patch_height = height // 4  # Divide the height into 4 equal patches
+
+        # Create a list of patches
+        patches = []
+        for i in range(4):
+            for j in range(4):
+                left = j * patch_width
+                upper = i * patch_height
+                right = left + patch_width
+                lower = upper + patch_height
+                patch = tensor[:, upper:lower, left:right]
+                patches.append(patch)
+
+        # Shuffle the patches
+        random.shuffle(patches)
+
+        # Create a new tensor by concatenating the shuffled patches
+        new_tensor = torch.cat(patches, dim=2)
+
+        return new_tensor

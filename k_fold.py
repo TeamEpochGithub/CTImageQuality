@@ -45,6 +45,7 @@ if __name__ == '__main__':
         'weight_decay': 0.000494,
         'lr': 0.009666,
         'min_lr': 0.000006463,
+        'ShufflePatches': False,
         'RandomHorizontalFlip': True,
         'RandomVerticalFlip': True,
         'RandomRotation': True,
