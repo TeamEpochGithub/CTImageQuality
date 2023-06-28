@@ -5,6 +5,7 @@ import tifffile
 from PIL import Image
 import LDCTIQAG2023_train as train_data
 import json
+from sklearn.utils import shuffle
 
 import os.path as osp
 import os
@@ -60,6 +61,32 @@ def create_datalists(type="original"):
 
     return imgs_list, label_list
 
+def split_shuffle_image(image, num_parts=4):
+    # Convert PIL Image to numpy array
+    image_np = np.array(image)
+
+    # Check that the image can be evenly divided into num_parts x num_parts
+    # print(image_np.shape[0])
+    # print(image_np.shape[1])
+    assert image_np.shape[0] % num_parts == 0, "Image size must be evenly divisible by num_parts"
+    assert image_np.shape[1] % num_parts == 0, "Image size must be evenly divisible by num_parts"
+
+    # Split the image into patches
+    patch_height = image_np.shape[0] // num_parts
+    patch_width = image_np.shape[1] // num_parts
+    patches = [image_np[i:i+patch_height, j:j+patch_width] for i in range(0, image_np.shape[0], patch_height) for j in range(0, image_np.shape[1], patch_width)]
+
+    # Shuffle the patches
+    patches = shuffle(patches)
+
+    # Stitch the patches back together
+    shuffled_image = np.block([[patches[num_parts * i + j] for j in range(num_parts)] for i in range(num_parts)])
+
+    # Convert numpy array back to PIL Image
+    shuffled_image = Image.fromarray(shuffled_image)
+
+    return shuffled_image
+
 
 
 class CT_Dataset(torch.utils.data.Dataset):
@@ -69,7 +96,7 @@ class CT_Dataset(torch.utils.data.Dataset):
         self.split = split
         self.image_size = config['img_size']
         self.config = config
-        self.crop_size = 100
+        self.crop_size = 160
 
         if self.split == 'train':
 
@@ -110,7 +137,8 @@ class CT_Dataset(torch.utils.data.Dataset):
                 operations.append(torchvision.transforms.RandomApply([
                     torchvision.transforms.RandomAffine(degrees=self.config['max_shear'])
                 ], p=0.1))
-
+            split_shuffle_transform = torchvision.transforms.Lambda(lambda img: split_shuffle_image(img, num_parts=2))
+            operations.append(split_shuffle_transform)
             operations += [torchvision.transforms.ToTensor()]
 
             self.transform = torchvision.transforms.Compose(operations)
@@ -130,7 +158,10 @@ class CT_Dataset(torch.utils.data.Dataset):
         x = self.imgs_list[idx]
         x = x.resize((self.image_size, self.image_size), Image.ANTIALIAS)
         x = np.array(x)
+        # print("before  ", x.shape)
         x = self.transform(x)
+        # print(self.transform)
+        # print(x.shape)
         y = self.label_list[idx]
 
         return x, torch.tensor(y)
