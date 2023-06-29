@@ -22,7 +22,7 @@ def create_datasets(imgs_list, label_list, configs, mode="final", dataset="origi
         if dataset == "original":
             train_dataset, valid_dataset = CT_Dataset(imgs_list, label_list, split="train", config=configs), None
         if dataset == "vornoi":
-            train_dataset, valid_dataset = VornoiDataset(imgs_list, label_list, parts=12), None
+            train_dataset, valid_dataset = VornoiDataset(imgs_list, label_list), None
 
     if mode == "patients_out":
         patient_ids = np.loadtxt(osp.join(osp.dirname(analysis.__file__), 'labels.txt'))
@@ -57,7 +57,7 @@ def create_datasets(imgs_list, label_list, configs, mode="final", dataset="origi
                                        config=configs)
         if dataset == "vornoi":
             train_dataset = VornoiDataset(imgs_list[:left_bound] + imgs_list[right_bound:],
-                                       label_list[:left_bound] + label_list[right_bound:], parts=12)
+                                       label_list[:left_bound] + label_list[right_bound:])
             valid_dataset = CT_Dataset(imgs_list[left_bound:right_bound], label_list[left_bound:right_bound],
                                        split="test",
                                        config=configs)

@@ -177,15 +177,15 @@ if __name__ == '__main__':
         'lr': 6e-3,
         'min_lr': 5e-6,
         'ShufflePatches': False,
-        'RandomHorizontalFlip': True,
-        'RandomVerticalFlip': True,
-        'RandomRotation': True,
-        'ZoomIn': True,
+        'RandomHorizontalFlip': False,
+        'RandomVerticalFlip': False,
+        'RandomRotation': False,
+        'ZoomIn': False,
         'ZoomOut': False,
         'use_mix': True,
         'use_avg': True,
-        'XShift': True,
-        'YShift': True,
+        'XShift': False,
+        'YShift': False,
         'RandomShear': False,
         'max_shear': 20,  # value in degrees
         'max_shift': 0.3,
@@ -199,7 +199,7 @@ if __name__ == '__main__':
     mode = "split9010"  # "split9010", "final", "patients_out"
     dataset = "original"  # "vornoi", "original"
 
-    torch.cuda.set_device(0)
+    torch.cuda.set_device(1)
 
     print(f'Model:   {configs["model"]}')
     print(f'GPU:   {torch.cuda.current_device()}')
