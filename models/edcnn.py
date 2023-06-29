@@ -151,7 +151,7 @@ class EDCNN(nn.Module):
         out_7 = self.relu(self.conv_f7(out_7))
         out_7 = torch.cat((out_0, out_7), dim=-3)
 
-        out_8 = self.relu(self.conv_p8(out_3))
+        out_8 = self.relu(self.conv_p8(out_7))
         out_8 = self.conv_f8(out_8)
 
         out = self.relu(x + out_8)
