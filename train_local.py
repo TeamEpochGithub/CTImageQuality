@@ -118,15 +118,21 @@ def train_local(configs, train_dataset, test_dataset, wandb_single_experiment=Fa
             image = image.cuda()
             target = target.cuda()
             pred = model(image)
-            # loss = F.mse_loss(pred.squeeze(), target)
+            mse_loss = F.mse_loss(pred.squeeze(), target)
             # loss = LambdaRankLoss()(pred.squeeze(), target)
             pearson_loss = PearsonCorrelationLoss()(pred.squeeze(), target)
-            # spearman_loss = SpearmanCorrelationLoss()(pred.squeeze(), target)
-            # kendalltau_loss = RBOLoss()(pred.squeeze(), target)
+
+            spearman_loss = SpearmanCorrelationLoss()(pred.squeeze(), target)
+            kendalltau_loss = RBOLoss()(pred.squeeze(), target)
+            # print("mse", mse_loss)
             # print("pears", pearson_loss)
             # print("spear", spearman_loss)
             # print("kendall", kendalltau_loss)
-            loss = pearson_loss
+            # if epoch < 0.5 * configs["epochs"]:
+            #     loss = mse_loss
+            # else:
+            #     loss = pearson_loss + spearman_loss + kendalltau_loss
+            loss = mse_loss
 
             losses += loss.item()
             optimizer.zero_grad()
@@ -165,7 +171,7 @@ if __name__ == '__main__':
         'pretrain': 'denoise',  # None, denoise
         'img_size': 512,
         'model': 'ED_CNN',
-        'epochs': 80,
+        'epochs': 150,
         'batch_size': 16,
         'weight_decay': 1e-3,
         'lr': 3e-4,
@@ -182,7 +188,7 @@ if __name__ == '__main__':
         'YShift': True,
         'RandomShear': False,
         'max_shear': 20,  # value in degrees
-        'max_shift': 0.05,
+        'max_shift': 0.03,
         'rotation_angle': 3,
         'zoomin_factor': 0.95,
         'zoomout_factor': 0.05,
@@ -190,10 +196,10 @@ if __name__ == '__main__':
 
     imgs_list, label_list = create_datalists(type="original")  # type mosaic
 
-    mode = "patients_out"  # "split9010", "final", "patients_out"
-    dataset = "vornoi"  # "vornoi", "original"
+    mode = "split9010"  # "split9010", "final", "patients_out"
+    dataset = "original"  # "vornoi", "original"
 
-    torch.cuda.set_device(1)
+    torch.cuda.set_device(0)
 
     print(f'Model:   {configs["model"]}')
     print(f'GPU:   {torch.cuda.current_device()}')

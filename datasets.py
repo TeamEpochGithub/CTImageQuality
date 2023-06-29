@@ -163,7 +163,7 @@ class CT_Dataset(torch.utils.data.Dataset):
         x = self.transform(x)
         y = self.label_list[idx]
 
-        return x, torch.tensor(y)
+        return x, torch.tensor(y).float()
 
 
 class ShufflePatches(object):

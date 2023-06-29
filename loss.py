@@ -103,26 +103,19 @@ class SpearmanCorrelationLoss(nn.Module):
         super(SpearmanCorrelationLoss, self).__init__()
 
     def forward(self, y_true, y_pred):
-        y_true = y_true.cpu().detach().numpy()
-        y_pred = y_pred.cpu().detach().numpy()
-
-        if len(y_true.shape) == 1:
-            y_true = y_true[:, None]
-            y_pred = y_pred[:, None]
+        y_true = y_true.view(-1)
+        y_pred = y_pred.view(-1)
 
         spearsum = 0
         cnt = 0
-        for col in range(y_pred.shape[1]):
-            v = spearmanr(y_pred[:, col], y_true[:, col]).correlation
+        for col in range(y_pred.size(0)):
+            v = spearmanr(y_pred[col].cpu().detach().numpy(), y_true[col].cpu().detach().numpy()).correlation
             if np.isnan(v):
                 continue
             spearsum += v
             cnt += 1
         res = spearsum / cnt if cnt > 0 else 0
-        return 1 - res
-
-
-import torch
+        return 1 - torch.tensor(res)
 
 
 class RBOLoss(nn.Module):
@@ -140,6 +133,7 @@ class RBOLoss(nn.Module):
         p = self.p
         n = gt_ranking.size(0)
         weights = (1 - p) * torch.pow(p, torch.arange(n, dtype=torch.float))
+        weights = weights.to(predictions.device)
         rbo = torch.sum(weights * (gt_ranking == pred_ranking).float())
 
         # Compute loss
