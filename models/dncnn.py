@@ -24,15 +24,15 @@ class DnCNN(nn.Module):
         self.relu = nn.LeakyReLU()
 
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        # self.fc1 = nn.Linear(channels, 10)
-        # self.fc2 = nn.Linear(10, 1)
+        self.fc1 = nn.Linear(channels, 32)
+        self.fc2 = nn.Linear(32, 1)
 
     def forward(self, x):
         out = self.dncnn(x)
         out = self.avgpool(out)
         out = torch.flatten(out, 1)  # Flatten the output
-        # out = self.relu(self.fc1(out))
-        # out = self.fc2(out)
+        out = self.relu(self.fc1(out))
+        out = self.fc2(out)
         out = torch.sigmoid(out) * 4
 
         return out

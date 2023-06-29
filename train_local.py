@@ -185,6 +185,8 @@ if __name__ == '__main__':
         'RandomRotation': True,
         'ZoomIn': False,
         'ZoomOut': False,
+        'Crop': False,
+        'ReverseCrop': False,
         'use_mix': True,
         'use_avg': True,
         'XShift': False,

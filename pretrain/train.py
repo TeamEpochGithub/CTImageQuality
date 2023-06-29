@@ -231,7 +231,7 @@ if __name__ == '__main__':
         "lr": 1e-4,
         "min_lr": 1e-6,
         "weight_decay": 0.03,
-        "model_name": "UNET",
+        "model_name": "DNCNN",
         # ResNet34, Resnet34_Swin, Resnet34_Swinv2, Efficientnet_Swin, Efficientnet_Swinv2
         "img_size": 512,
         "use_avg": True,
@@ -240,7 +240,7 @@ if __name__ == '__main__':
 
     # denoise for keys of denoise_models, while classification for keys of classify_models (recomand to use AAPM for denoise task)
     model_names = [
-       "UNET" ]  # ["ED_CNN", "DNCNN", "Efficientnet_B1", "Efficientnet_B2", "Efficientnet_B3", "Efficientnet_B4", "Efficientnet_B5", "Efficientnet_B6",
+       "DNCNN" ]  # ["ED_CNN", "DNCNN", "Efficientnet_B1", "Efficientnet_B2", "Efficientnet_B3", "Efficientnet_B4", "Efficientnet_B5", "Efficientnet_B6",
 
     # Resnet34_Swin, ResNet34, Efficientnet_Swin
     for m in model_names:

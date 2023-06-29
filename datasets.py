@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader
 
 import LDCTIQAG2023_train as train_data
 import json
+from sklearn.utils import shuffle
 
 import os.path as osp
 import os
@@ -104,6 +105,23 @@ def create_datalists(type="original"):
     return imgs_list, label_list
 
 
+def reverse_crop_image(image, crop_size):
+    # Convert PIL Image to numpy array
+    image_np = np.array(image)
+
+    # Calculate the coordinates for the reverse crop
+    start_x = (image_np.shape[1] - crop_size) // 2
+    start_y = (image_np.shape[0] - crop_size) // 2
+
+    # Perform reverse crop
+    cropped_image = image_np[start_y:start_y + crop_size, start_x:start_x + crop_size]
+
+    # Convert numpy array back to PIL Image
+    cropped_image = Image.fromarray(cropped_image)
+
+    return cropped_image
+
+
 class CT_Dataset(torch.utils.data.Dataset):
     def __init__(self, imgs_list, label_list, split='validation', config={'img_size': 512}):
         self.imgs_list = imgs_list
@@ -111,10 +129,17 @@ class CT_Dataset(torch.utils.data.Dataset):
         self.split = split
         self.image_size = config['img_size']
         self.config = config
+        self.crop_size = 160
 
         if self.split == 'train':
 
             operations = [torchvision.transforms.ToPILImage()]
+
+            if self.config['Crop']:
+                operations.append(torchvision.transforms.CenterCrop(self.crop_size))
+
+            if self.config['ReverseCrop']:
+                operations.append(torchvision.transforms.Lambda(lambda img: reverse_crop_image(img, self.crop_size)))
 
             if self.config['RandomHorizontalFlip']:
                 operations.append(torchvision.transforms.RandomHorizontalFlip())
@@ -158,11 +183,18 @@ class CT_Dataset(torch.utils.data.Dataset):
             self.transform = torchvision.transforms.Compose(operations)
 
         else:
-            self.transform = torchvision.transforms.Compose([
-                torchvision.transforms.ToPILImage(),
-                torchvision.transforms.ToTensor(),
-                # torchvision.transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
-            ])
+            if self.config['Crop']:
+                self.transform = torchvision.transforms.Compose([
+                    torchvision.transforms.ToPILImage(),
+                    torchvision.transforms.CenterCrop(self.crop_size),
+                    torchvision.transforms.ToTensor(),
+                    # torchvision.transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
+                ])
+            else:
+                self.transform = torchvision.transforms.Compose([
+                    torchvision.transforms.ToPILImage(),
+                    torchvision.transforms.ToTensor()
+                ])
 
     def __len__(self):
         return len(self.label_list)
@@ -171,7 +203,10 @@ class CT_Dataset(torch.utils.data.Dataset):
         x = self.imgs_list[idx]
         x = x.resize((self.image_size, self.image_size), Image.ANTIALIAS)
         x = np.array(x)
+        # print("before  ", x.shape)
         x = self.transform(x)
+        # print(self.transform)
+        # print(x.shape)
         y = self.label_list[idx]
 
         return x, torch.tensor(y).float()
