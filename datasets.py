@@ -8,6 +8,8 @@ import torch
 import torchvision
 import tifffile
 from PIL import Image
+from torch.utils.data import DataLoader
+
 import LDCTIQAG2023_train as train_data
 import json
 
@@ -17,12 +19,20 @@ import os
 import analysis
 
 
-def create_datasets(imgs_list, label_list, configs, mode="final", dataset="original", patients_out=[3]):
+def create_train_loader(configs, data_config, vornoi_parts=6):
+    train_dataset, test_dataset = create_datasets(data_config["imgs"], data_config["labels"], configs,
+                                                  mode=data_config["split_mode"], dataset=data_config["dataset"],
+                                                  patients_out=data_config["patients_out"], vornoi_parts=vornoi_parts)
+    train_loader = DataLoader(train_dataset, batch_size=configs['batch_size'], shuffle=True)
+    return train_dataset, test_dataset, train_loader
+
+
+def create_datasets(imgs_list, label_list, configs, mode="final", dataset="original", patients_out=[3], vornoi_parts=6):
     if mode == "final":
         if dataset == "original":
             train_dataset, valid_dataset = CT_Dataset(imgs_list, label_list, split="train", config=configs), None
         if dataset == "vornoi":
-            train_dataset, valid_dataset = VornoiDataset(imgs_list, label_list), None
+            train_dataset, valid_dataset = VornoiDataset(imgs_list, label_list, configs, parts=vornoi_parts), None
 
     if mode == "patients_out":
         patient_ids = np.loadtxt(osp.join(osp.dirname(analysis.__file__), 'labels.txt'))
@@ -35,12 +45,13 @@ def create_datasets(imgs_list, label_list, configs, mode="final", dataset="origi
             train_dataset = CT_Dataset([imgs_list[x] for x in non_patient_indices],
                                        [label_list[x] for x in non_patient_indices], split="train",
                                        config=configs)
-            valid_dataset = CT_Dataset([imgs_list[x] for x in patient_indices], [label_list[x] for x in patient_indices],
+            valid_dataset = CT_Dataset([imgs_list[x] for x in patient_indices],
+                                       [label_list[x] for x in patient_indices],
                                        split="test", config=configs)
 
         if dataset == "vornoi":
             train_dataset = VornoiDataset([imgs_list[x] for x in non_patient_indices],
-                                          [label_list[x] for x in non_patient_indices])
+                                          [label_list[x] for x in non_patient_indices], configs, parts=vornoi_parts)
             valid_dataset = CT_Dataset([imgs_list[x] for x in patient_indices],
                                        [label_list[x] for x in patient_indices],
                                        split="test", config=configs)
@@ -57,7 +68,7 @@ def create_datasets(imgs_list, label_list, configs, mode="final", dataset="origi
                                        config=configs)
         if dataset == "vornoi":
             train_dataset = VornoiDataset(imgs_list[:left_bound] + imgs_list[right_bound:],
-                                       label_list[:left_bound] + label_list[right_bound:])
+                                          label_list[:left_bound] + label_list[right_bound:], configs, parts=vornoi_parts)
             valid_dataset = CT_Dataset(imgs_list[left_bound:right_bound], label_list[left_bound:right_bound],
                                        split="test",
                                        config=configs)
@@ -197,7 +208,7 @@ class ShufflePatches(object):
 
 
 class VornoiDataset(torch.utils.data.Dataset):
-    def __init__(self, images, labels, parts=6):
+    def __init__(self, images, labels, config={'img_size': 512}, parts=6):
         assert len(images) == len(labels), 'Mismatch between number of images and labels.'
 
         images = np.stack([np.array(img) for img in images])
@@ -207,6 +218,8 @@ class VornoiDataset(torch.utils.data.Dataset):
         self.labels = labels
         self.parts = parts
         self.mask_generator = VornoiMaskGenerator((512, 512))
+        self.config = config
+        self.image_size = self.config['img_size']
 
         self.grouped_images = {}
         for img, label in zip(images, labels):
@@ -228,8 +241,42 @@ class VornoiDataset(torch.utils.data.Dataset):
             img = np.array(img)
             img_res[mask] = img[mask]
 
-            # Convert composite image to tensor
-        transform = torchvision.transforms.ToTensor()
+        operations = [torchvision.transforms.ToPILImage()]
+
+        if self.config['RandomHorizontalFlip']:
+            operations.append(torchvision.transforms.RandomHorizontalFlip(p=0.3))
+
+        if self.config['RandomVerticalFlip']:
+            operations.append(torchvision.transforms.RandomVerticalFlip(p=0.3))
+
+        if self.config['RandomRotation']:
+            operations.append(torchvision.transforms.RandomRotation(self.config['rotation_angle']))
+
+        if self.config['ZoomIn']:
+            operations.append(torchvision.transforms.RandomApply([
+                torchvision.transforms.CenterCrop(size=int(self.config['zoomin_factor'] * 512)),
+                torchvision.transforms.Resize(size=(self.image_size, self.image_size)),
+            ], p=0.3))
+        if self.config['ZoomOut']:
+            operations.append(torchvision.transforms.RandomApply([
+                torchvision.transforms.Pad(padding=int(512 * self.config['zoomout_factor'])),
+                torchvision.transforms.Resize((self.image_size, self.image_size)),
+            ], p=0.3))
+
+        if self.config['XShift'] or self.config['YShift']:
+            x_max_shift = np.random.uniform(low=0.0, high=self.config['max_shift']) if self.config['XShift'] else 0
+            y_max_shift = np.random.uniform(low=0.0, high=self.config['max_shift']) if self.config['YShift'] else 0
+            shifts = (x_max_shift, y_max_shift)
+            operations.append(torchvision.transforms.RandomApply([
+                torchvision.transforms.RandomAffine(degrees=0, translate=shifts)
+            ], p=0.3))
+
+        operations += [torchvision.transforms.ToTensor()]
+
+        transform = torchvision.transforms.Compose(operations)
+
+        #     # Convert composite image to tensor
+        # transform = torchvision.transforms.ToTensor()
         img_composite = transform(img_res)
 
         label = torch.tensor(label).float()
