@@ -5,12 +5,15 @@ import torch
 import torch.optim as optim
 import numpy as np
 import torch.nn.functional as F
+from torch import nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import pytorch_warmup as warmup
 from scipy.stats import pearsonr, spearmanr, kendalltau
 import wandb
-from datasets import create_datalists, create_datasets
+from datasets import create_datalists, create_datasets, create_train_loader
+from loss import LambdaRankLoss, ConcordantPairsLoss, PearsonCorrelationLoss, SpearmanCorrelationLoss, \
+    RBOLoss
 from models.get_models import get_model
 
 
@@ -56,7 +59,7 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_single
                 std = np.std(total_pred - total_gt)
                 aggregate_results["std_error"] = std
                 mean = np.mean(np.abs(total_pred - total_gt))
-                aggregate_results["mean"] = mean
+                aggregate_results["mean_error"] = mean
                 t.set_postfix({key: round(value, 3) for key, value in aggregate_results.items()})
     # import matplotlib.pyplot as plt
     # plt.hist(errors, bins=20)
@@ -77,7 +80,7 @@ def valid(model, test_dataset, best_score, best_score_epoch, epoch, wandb_single
     return best_score, best_score_epoch
 
 
-def train_local(configs, train_dataset, test_dataset, wandb_single_experiment=False, final_train=False):
+def train_local(configs, data_config, wandb_single_experiment=False, final_train=False):
     model = get_model(configs)
     if 'Swin' in configs['model']:
         model = model(configs=configs)
@@ -97,7 +100,9 @@ def train_local(configs, train_dataset, test_dataset, wandb_single_experiment=Fa
 
     optimizer = optim.AdamW(model.parameters(), lr=configs['lr'], betas=(0.9, 0.999), eps=1e-8,
                             weight_decay=configs['weight_decay'])
-    train_loader = DataLoader(train_dataset, batch_size=configs['batch_size'], shuffle=True)
+
+    train_dataset, test_dataset, train_loader = create_train_loader(configs, data_config, vornoi_parts=6)
+
     num_steps = len(train_loader) * configs['epochs']
     lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_steps, eta_min=configs['min_lr'])
     warmup_scheduler = warmup.UntunedLinearWarmup(optimizer)
@@ -108,14 +113,30 @@ def train_local(configs, train_dataset, test_dataset, wandb_single_experiment=Fa
     for epoch in range(configs['epochs']):
         losses = 0
         model.train()
-
+        print(max(1, int((1 - epoch / configs["epochs"]) * 12)))
+        train_dataset, test_dataset, train_loader = create_train_loader(configs, data_config, vornoi_parts=max(1, int((1 - epoch / configs["epochs"]) * 12)))
         t = tqdm(enumerate(train_loader), total=len(train_loader), desc="epoch " + f"{epoch:04d}", colour='cyan')
 
         for i, (image, target) in t:
             image = image.cuda()
             target = target.cuda()
             pred = model(image)
-            loss = F.mse_loss(pred.squeeze(), target)
+            mse_loss = F.mse_loss(pred.squeeze(), target)
+            # loss = LambdaRankLoss()(pred.squeeze(), target)
+            pearson_loss = PearsonCorrelationLoss()(pred.squeeze(), target)
+
+            spearman_loss = SpearmanCorrelationLoss()(pred.squeeze(), target)
+            kendalltau_loss = RBOLoss()(pred.squeeze(), target)
+            # print("mse", mse_loss)
+            # print("pears", pearson_loss)
+            # print("spear", spearman_loss)
+            # print("kendall", kendalltau_loss)
+            if epoch < 0.5 * configs["epochs"]:
+                loss = mse_loss
+            else:
+                loss = pearson_loss + spearman_loss + kendalltau_loss
+            # loss = mse_loss
+
             losses += loss.item()
             optimizer.zero_grad()
             loss.backward()
@@ -150,47 +171,46 @@ def train_local(configs, train_dataset, test_dataset, wandb_single_experiment=Fa
 
 if __name__ == '__main__':
     configs = {
-        'pretrain': 'denoise',
+        'pretrain': 'denoise',  # None, denoise
         'img_size': 512,
-        'model': 'ED_CNN',
-        'epochs': 50,
+        'model': 'DNCNN',
+        'epochs': 150,
         'batch_size': 16,
-        'weight_decay': 1e-3,
-        'lr': 3e-4,
-        'min_lr': 1e-6,
+        'weight_decay': 3e-4,
+        'lr': 1e-3,
+        'min_lr': 6e-6,
         'ShufflePatches': False,
         'RandomHorizontalFlip': True,
         'RandomVerticalFlip': False,
-        'RandomRotation': False,
-        'Crop': True,
-        'ReverseCrop': False,
+        'RandomRotation': True,
         'ZoomIn': False,
         'ZoomOut': False,
+        'Crop': False,
+        'ReverseCrop': False,
         'use_mix': True,
-        'use_avg': False,
+        'use_avg': True,
         'XShift': False,
-        'YShift': False,
+        'YShift': True,
         'RandomShear': False,
         'max_shear': 20,  # value in degrees
         'max_shift': 0.05,
         'rotation_angle': 3,
-        'zoomin_factor': 0.95,
-        'zoomout_factor': 0.05,
+        'zoomin_factor': 0.9,
+        'zoomout_factor': 0.27,
     }
 
     imgs_list, label_list = create_datalists(type="original")  # type mosaic
 
-    mode = "patients_out"  # "split9010", "final", "patients_out"
+    mode = "split9010"  # "split9010", "final", "patients_out"
     dataset = "vornoi"  # "vornoi", "original"
 
     torch.cuda.set_device(0)
 
-    print(f'This is {configs["model"]} run')
-    print(f'GPU {torch.cuda.current_device()}')
+    print(f'Model:   {configs["model"]}')
+    print(f'GPU:   {torch.cuda.current_device()}')
     print(configs)
-    print(f'Mode {mode}')
-    print(f'Dataset {dataset}')
+    print(f'Mode:   {mode}')
+    print(f'Dataset:   {dataset}')
 
-    train_dataset, test_dataset = create_datasets(imgs_list, label_list, configs, mode=mode, dataset=dataset,
-                                                  patients_out=[3])
-    train_local(configs, train_dataset, test_dataset, wandb_single_experiment=False, final_train=mode == "final")
+    data_config = {"imgs": imgs_list, "labels": label_list, "split_mode": mode, "dataset": dataset, "patients_out": [3], "vornoi_parts": 6}
+    train_local(configs, data_config, wandb_single_experiment=False, final_train=mode == "final")
