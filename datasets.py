@@ -87,9 +87,9 @@ def create_datalists(type="original"):
                     img = Image.fromarray(image)
                     imgs_list.append(img)
 
-    labels = np.array(label_list)
-    labels_normalized = (labels - np.mean(labels)) / np.std(labels)
-    label_list = list(labels_normalized)
+    # labels = np.array(label_list)
+    # labels_normalized = (labels - np.mean(labels)) / np.std(labels)
+    # label_list = list(labels_normalized)
     return imgs_list, label_list
 
 
