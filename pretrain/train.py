@@ -9,12 +9,14 @@ import os.path as osp
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score
 import torch.nn as nn
+import tifffile
+
 from pretrain_models.model_efficientnet_denoise import Efficient_Swin_Denoise
 from pretrain_models.model_resnet_denoise import Resnet34_Swin_Denoise
 from pretrain_models.resnet34_unet import UNet34_Denoise
 from pretrain_models.efficientnet_unet import EfficientNet_Denoise
 from pretrain_models.redcnn import RED_CNN
-from pretrain_models.edcnn import EDCNN
+from pretrain_models.edcnn import EDCNN, CompoundLoss
 from pretrain_models.dncnn import DnCNN
 from pretrain.pretrain_models.unet import UNet
 from pretrain_dataloaders.classic_dataset import CT_Dataset
@@ -22,8 +24,6 @@ from util.create_dataset import create_datasets
 
 from measure import compute_PSNR, compute_SSIM
 from warmup_scheduler.scheduler import GradualWarmupScheduler
-
-torch.cuda.set_device(1)
 
 
 def set_seed(seed):
@@ -70,8 +70,11 @@ def validate(parameters, model, test_dataset):
             for i, (img, label) in tqdm(enumerate(test_dataset), total=len(test_dataset), desc="testing: ",
                                         colour='blue'):
                 img = img.unsqueeze(0).float().to("cuda")
-                noise = model(img)
-                pred = img - noise
+                if parameters["folder"] == "AAPM":
+                    pred = model(img)
+                else:
+                    noise = model(img)
+                    pred = img - noise
                 pred = pred.cpu()
                 pred_new = pred.numpy().squeeze(0)
                 pred_new = pred_new.reshape(512, 512)
@@ -81,6 +84,8 @@ def validate(parameters, model, test_dataset):
 
                 img_name = test_dataset.target_[i]
                 image_name = img_name.split("\\")[-1]
+                image_name = image_name[:-4] + ".tif"
+
                 out_path = os.path.join(img_path, image_name)
                 names.append(out_path)
                 imgs.append(pred_new)
@@ -98,8 +103,9 @@ def validate(parameters, model, test_dataset):
             best_ssim = st
             path_file = os.path.join(save_path, "pretrain_weight_denoise.pkl")
             torch.save(model.state_dict(), path_file)
-            # for j in range(len(names)):
-            #     np.save(names[j], imgs[j])
+            for j in range(len(names)):
+                # np.save(names[j], imgs[j])
+                tifffile.imwrite(names[j], imgs[j], photometric="minisblack")
         print("best PSNR:", round(best_psnr, 3))
         print("best SSIM:", round(best_ssim, 3))
     else:
@@ -163,14 +169,17 @@ def train(training_data, parameters, context):
     #     model = classify_models[parameters["model_name"]].to("cuda")
 
     epochs = parameters["epochs"]
-    optimizer = optim.AdamW(model.parameters(), lr=parameters["lr"], betas=(0.9, 0.999), eps=1e-8,
-                            weight_decay=parameters["weight_decay"])
-    warmup_epochs = parameters["warmup_epochs"]
-    nepoch = parameters["nepoch"]
-    scheduler_cosine = optim.lr_scheduler.CosineAnnealingLR(optimizer, nepoch - warmup_epochs,
-                                                            eta_min=parameters["min_lr"])
-    scheduler = GradualWarmupScheduler(optimizer, multiplier=1, total_epoch=warmup_epochs,
-                                       after_scheduler=scheduler_cosine)
+    if parameters["folder"] == "AAPM":
+        optimizer = optim.AdamW(model.parameters(), lr=parameters["lr"])
+    else:
+        optimizer = optim.AdamW(model.parameters(), lr=parameters["lr"], betas=(0.9, 0.999), eps=1e-8,
+                                weight_decay=parameters["weight_decay"])
+    # warmup_epochs = parameters["warmup_epochs"]
+    # nepoch = parameters["nepoch"]
+    # scheduler_cosine = optim.lr_scheduler.CosineAnnealingLR(optimizer, nepoch - warmup_epochs,
+    #                                                         eta_min=parameters["min_lr"])
+    # scheduler = GradualWarmupScheduler(optimizer, multiplier=1, total_epoch=warmup_epochs,
+    #                                    after_scheduler=scheduler_cosine)
 
     for epoch in range(epochs + 1):  # , colour='yellow', leave=False, position=0):
         start_time = time.time()
@@ -183,7 +192,10 @@ def train(training_data, parameters, context):
             target = target.to("cuda")
             pred = model(image)
 
-            if parameters["folder"] == "denoise_task_2K" or parameters["folder"] == "AAPM":
+            if parameters["folder"] == "AAPM":
+                loss_function = CompoundLoss()
+                loss = loss_function(pred, target)
+            elif parameters["folder"] == "denoise_task_2K":
                 loss_function = nn.MSELoss()
                 target = target.unsqueeze(1)
                 loss = loss_function(pred, image - target)
@@ -192,14 +204,21 @@ def train(training_data, parameters, context):
                 loss = loss_function(pred, target)
 
             losses += loss.item()
+
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            scheduler.step()
+
+            # if parameters["folder"] != "AAPM":
+            #     scheduler.step()
 
             if i == len(train_loader) - 1:
-                t.set_postfix(
-                    {"loss": round(float(losses / len(train_dataset)), 5), "lr": round(scheduler.get_lr()[0], 8)})
+                if parameters["folder"] == "AAPM":
+                    t.set_postfix(
+                        {"loss": round(float(losses / len(train_dataset)), 5), "lr": optimizer.param_groups[0]['lr']})
+                # else:
+                #     t.set_postfix(
+                #         {"loss": round(float(losses / len(train_dataset)), 5), "lr": round(scheduler.get_lr()[0], 8)})
 
         end_time = time.time()
         execution_time = end_time - start_time
@@ -209,7 +228,7 @@ def train(training_data, parameters, context):
 
         print("epoch:", epoch, "loss:", float(losses / len(train_dataset)), f"time: {formatted_time}")
 
-        if epoch % 15 == 0:
+        if epoch % 60 == 0:
             validate(parameters, model, test_dataset)
 
     return {
@@ -224,23 +243,24 @@ if __name__ == '__main__':
     parameters = {
         "folder": "AAPM",  # weighted_dataset, denoise_task_2K, AAPM
         "split_ratio": 0.8,
-        "batch_size": 16,
+        "batch_size": 512,
         "warmup_epochs": 20,
-        "epochs": 200,
+        "epochs": 1600,
         "nepoch": 200,
-        "lr": 1e-4,
+        "lr": 1e-3,
         "min_lr": 1e-6,
         "weight_decay": 0.03,
-        "model_name": "DNCNN",
+        "model_name": "ED_CNN",
         # ResNet34, Resnet34_Swin, Resnet34_Swinv2, Efficientnet_Swin, Efficientnet_Swinv2
         "img_size": 512,
         "use_avg": True,
         "use_mix": True,
     }
+    torch.cuda.set_device(0)
 
     # denoise for keys of denoise_models, while classification for keys of classify_models (recomand to use AAPM for denoise task)
     model_names = [
-       "DNCNN" ]  # ["ED_CNN", "DNCNN", "Efficientnet_B1", "Efficientnet_B2", "Efficientnet_B3", "Efficientnet_B4", "Efficientnet_B5", "Efficientnet_B6",
+        "ED_CNN"]  # ["ED_CNN", "DNCNN", "Efficientnet_B1", "Efficientnet_B2", "Efficientnet_B3", "Efficientnet_B4", "Efficientnet_B5", "Efficientnet_B6",
 
     # Resnet34_Swin, ResNet34, Efficientnet_Swin
     for m in model_names:
