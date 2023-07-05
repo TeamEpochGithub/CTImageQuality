@@ -5,7 +5,7 @@ import torch.cuda
 import analysis
 from datasets import create_datalists, CT_Dataset
 from models.get_models import get_model
-from train_local import train
+from train_local import train_local
 
 
 def k_fold_patients_train(configs, wandb_single_experiment=False):
@@ -16,20 +16,22 @@ def k_fold_patients_train(configs, wandb_single_experiment=False):
     imgs_list, label_list = create_datalists()
     patient_ids = np.loadtxt(osp.join(osp.dirname(analysis.__file__), 'labels.txt'))
 
-    for i in range(4):
-        patient_indices = np.where(patient_ids == i)[0]
-        print(len(patient_indices))
-        non_patient_indices = list(set(list(range(1000))) - set(patient_indices))
-        train_dataset = CT_Dataset([imgs_list[x] for x in non_patient_indices],
-                                   [label_list[x] for x in non_patient_indices], split="train",
-                                   config=configs)
-        test_dataset = CT_Dataset([imgs_list[x] for x in patient_indices], [label_list[x] for x in patient_indices],
-                                  split="test", config=configs)
+    # for i in range(4):
+    # i = 2
+    # patient_indices = np.where(patient_ids == i)[0]
+    # print(len(patient_indices))
+    # non_patient_indices = list(set(list(range(1000))) - set(patient_indices))
+    # train_dataset = CT_Dataset([imgs_list[x] for x in non_patient_indices],
+    #                            [label_list[x] for x in non_patient_indices], split="train",
+    #                            config=configs)
+    # test_dataset = CT_Dataset([imgs_list[x] for x in patient_indices], [label_list[x] for x in patient_indices],
+    #                           split="test", config=configs)
 
-        scores_dict = train(configs, train_dataset, test_dataset, wandb_single_experiment, final_train=False)
-        best_scores.append(scores_dict['best_score'])
-        best_score_epochs.append(scores_dict['best_score_epoch'])
-        best_losses.append(scores_dict['best_loss'])
+    data_config = {"imgs": imgs_list, "labels": label_list, "split_mode": "patient_out", "dataset": configs["dataset"], "patients_out": [2], "vornoi_parts": 8}
+    scores_dict = train_local(configs, data_config, wandb_single_experiment, final_train=False)
+    best_scores.append(scores_dict['best_score'])
+    best_score_epochs.append(scores_dict['best_score_epoch'])
+    best_losses.append(scores_dict['best_loss'])
 
     print({'avg_best_score': np.mean(best_scores), 'avg_best_score_epoch': np.mean(best_score_epochs), 'avg_best_loss': np.mean(best_losses)})
     return {'avg_best_score': np.mean(best_scores), 'avg_best_score_epoch': np.mean(best_score_epochs), 'avg_best_loss': np.mean(best_losses)}

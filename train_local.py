@@ -122,24 +122,20 @@ def train_local(configs, data_config, wandb_single_experiment=False, final_train
             target = target.cuda()
             pred = model(image)
             mse_loss = F.mse_loss(pred.squeeze(), target)
-            # loss = LambdaRankLoss()(pred.squeeze(), target)
-            pearson_loss = PearsonCorrelationLoss()(pred.squeeze(), target)
 
+            pearson_loss = PearsonCorrelationLoss()(pred.squeeze(), target)
             spearman_loss = SpearmanCorrelationLoss()(pred.squeeze(), target)
             kendalltau_loss = RBOLoss()(pred.squeeze(), target)
-            # print("mse", mse_loss)
-            # print("pears", pearson_loss)
-            # print("spear", spearman_loss)
-            # print("kendall", kendalltau_loss)
-            # if epoch < 0.1 * configs["epochs"] or 0.2 * configs["epochs"] < epoch < 0.3 * configs["epochs"] or 0.5 * configs["epochs"] < epoch < 0.6 * configs["epochs"] or 0.7 * configs["epochs"] < epoch < 0.8 * configs["epochs"]:
-            #     loss = mse_loss
-            # else:
-            #     loss = pearson_loss + spearman_loss + kendalltau_loss
-            if epoch < 0.1 * configs["epochs"]:
-                loss = mse_loss
-            else:
+
+            if configs["loss_function"] == 'mixed':
+                if epoch < 0.1 * configs["epochs"] or 0.2 * configs["epochs"] < epoch < 0.3 * configs["epochs"] or 0.5 * configs["epochs"] < epoch < 0.6 * configs["epochs"] or 0.7 * configs["epochs"] < epoch < 0.8 * configs["epochs"]:
+                    loss = mse_loss
+                else:
+                    loss = pearson_loss + spearman_loss + kendalltau_loss
+            elif configs["loss_function"] == 'statistical':
                 loss = pearson_loss + spearman_loss + kendalltau_loss
-            # loss = mse_loss
+            else:  # configs["loss_function"] == 'mse'
+                loss = mse_loss
 
             losses += loss.item()
             optimizer.zero_grad()
@@ -179,7 +175,7 @@ if __name__ == '__main__':
         'img_size': 512,
         'model': 'ED_CNN',
         'epochs': 100,
-        'batch_size': 16,
+        'batch_size': 128,
         'weight_decay': 1e-3,
         'lr': 3e-4,
         'min_lr': 1e-6,
@@ -189,6 +185,7 @@ if __name__ == '__main__':
         'RandomRotation': True,
         'ZoomIn': False,
         'ZoomOut': False,
+        'RandomCrop': True,
         'Crop': False,
         'ReverseCrop': False,
         'use_mix': True,
@@ -201,12 +198,16 @@ if __name__ == '__main__':
         'rotation_angle': 3,
         'zoomin_factor': 0.9,
         'zoomout_factor': 0.27,
+        'dataset': 'original',
+        'subtract_filter': True,
+        'normalize': False,
+        'loss_function': 'mse',
     }
 
     imgs_list, label_list = create_datalists(type="original")  # type mosaic
 
     mode = "patients_out"  # "split9010", "final", "patients_out"
-    dataset = "original"  # "vornoi", "original"
+    dataset = configs['dataset']  # "vornoi", "original"
 
     torch.cuda.set_device(1)
 

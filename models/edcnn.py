@@ -119,7 +119,6 @@ class EDCNN(nn.Module):
         # self.fc1 = nn.Linear(in_ch, nodes)  # You can adjust the number of nodes here
         # self.fc2 = nn.Linear(nodes, 1)  # Final output node
 
-
     def forward(self, x):
         out_0 = self.conv_sobel(x)
         out_0 = torch.cat((x, out_0), dim=-3)

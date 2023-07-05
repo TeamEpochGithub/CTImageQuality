@@ -70,7 +70,8 @@ def create_datasets(imgs_list, label_list, configs, mode="final", dataset="origi
                                        config=configs)
         if dataset == "vornoi":
             train_dataset = VornoiDataset(imgs_list[:left_bound] + imgs_list[right_bound:],
-                                          label_list[:left_bound] + label_list[right_bound:], configs, parts=vornoi_parts)
+                                          label_list[:left_bound] + label_list[right_bound:], configs,
+                                          parts=vornoi_parts)
             valid_dataset = CT_Dataset(imgs_list[left_bound:right_bound], label_list[left_bound:right_bound],
                                        split="test",
                                        config=configs)
@@ -135,6 +136,9 @@ class CT_Dataset(torch.utils.data.Dataset):
         if self.split == 'train':
 
             operations = [torchvision.transforms.ToPILImage()]
+
+            if self.config['RandomCrop']:
+                operations.append(torchvision.transforms.RandomCrop((64, 64)))
 
             if self.config['Crop']:
                 operations.append(torchvision.transforms.CenterCrop(self.crop_size))
@@ -204,9 +208,17 @@ class CT_Dataset(torch.utils.data.Dataset):
         x = self.imgs_list[idx]
         x = x.resize((self.image_size, self.image_size), Image.ANTIALIAS)
 
-        x = torch.from_numpy(np.array(x))
-        x = x - median_filter(x, 5)
-        x = x.squeeze()
+        # print('Before, Mean: ', x.mean().item(), 'Standard deviation: ', x.std().item())
+
+        ###  Filtering and normalizing
+        if self.config['subtract_filter']:
+            x = torch.from_numpy(np.array(x))
+            x = x - median_filter(x, 5)
+            x = x.squeeze()
+        if self.config['normalize']:
+            x = (x - x.mean()) / x.std()
+
+        # print('After, Mean: ', x.mean().item(), 'Standard deviation: ', x.std().item())
 
         x = np.array(x)
         x = self.transform(x)
@@ -278,6 +290,15 @@ class VornoiDataset(torch.utils.data.Dataset):
         for img, mask in image_parts:
             img = np.array(img)
             img_res[mask] = img[mask]
+
+        ###  Filtering and normalizing
+        if self.config['subtract_filter']:
+            x = torch.from_numpy(np.array(img_res))
+            x = x - median_filter(x, 5)
+            img_res = x.squeeze()
+
+        if self.config['normalize']:
+            img_res = (img_res - img_res.mean()) / img_res.std()
 
         operations = [torchvision.transforms.ToPILImage()]
 
