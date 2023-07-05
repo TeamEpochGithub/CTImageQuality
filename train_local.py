@@ -114,7 +114,7 @@ def train_local(configs, data_config, wandb_single_experiment=False, final_train
         losses = 0
         model.train()
         # print(max(1, int((1 - epoch / configs["epochs"]) * 9)))
-        train_dataset, test_dataset, train_loader = create_train_loader(configs, data_config, vornoi_parts=max(3, int((1 - epoch / configs["epochs"]) * 9)))
+        train_dataset, test_dataset, train_loader = create_train_loader(configs, data_config, vornoi_parts=max(2, int((1 - epoch / configs["epochs"]) * 6)))
         t = tqdm(enumerate(train_loader), total=len(train_loader), desc="epoch " + f"{epoch:04d}", colour='cyan')
 
         for i, (image, target) in t:

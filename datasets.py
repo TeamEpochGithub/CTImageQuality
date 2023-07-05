@@ -210,9 +210,10 @@ class CT_Dataset(torch.utils.data.Dataset):
 
         # print('Before, Mean: ', x.mean().item(), 'Standard deviation: ', x.std().item())
 
+        x = torch.from_numpy(np.array(x))
+
         ###  Filtering and normalizing
         if self.config['subtract_filter']:
-            x = torch.from_numpy(np.array(x))
             x = x - median_filter(x, 5)
             x = x.squeeze()
         if self.config['normalize']:
