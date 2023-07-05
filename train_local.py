@@ -113,7 +113,7 @@ def train_local(configs, data_config, wandb_single_experiment=False, final_train
     for epoch in range(configs['epochs']):
         losses = 0
         model.train()
-        print(max(1, int((1 - epoch / configs["epochs"]) * 9)))
+        # print(max(1, int((1 - epoch / configs["epochs"]) * 9)))
         train_dataset, test_dataset, train_loader = create_train_loader(configs, data_config, vornoi_parts=max(3, int((1 - epoch / configs["epochs"]) * 9)))
         t = tqdm(enumerate(train_loader), total=len(train_loader), desc="epoch " + f"{epoch:04d}", colour='cyan')
 
@@ -206,7 +206,7 @@ if __name__ == '__main__':
     imgs_list, label_list = create_datalists(type="original")  # type mosaic
 
     mode = "patients_out"  # "split9010", "final", "patients_out"
-    dataset = "vornoi"  # "vornoi", "original"
+    dataset = "original"  # "vornoi", "original"
 
     torch.cuda.set_device(1)
 
@@ -216,5 +216,5 @@ if __name__ == '__main__':
     print(f'Mode:   {mode}')
     print(f'Dataset:   {dataset}')
 
-    data_config = {"imgs": imgs_list, "labels": label_list, "split_mode": mode, "dataset": dataset, "patients_out": [3], "vornoi_parts": 6}
+    data_config = {"imgs": imgs_list, "labels": label_list, "split_mode": mode, "dataset": dataset, "patients_out": [2], "vornoi_parts": 6}
     train_local(configs, data_config, wandb_single_experiment=False, final_train=mode == "final")

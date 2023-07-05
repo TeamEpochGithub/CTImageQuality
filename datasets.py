@@ -18,6 +18,7 @@ import os.path as osp
 import os
 
 import analysis
+from analysis.noise_filtering import median_filter
 
 
 def create_train_loader(configs, data_config, vornoi_parts=6):
@@ -202,11 +203,13 @@ class CT_Dataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         x = self.imgs_list[idx]
         x = x.resize((self.image_size, self.image_size), Image.ANTIALIAS)
+
+        x = torch.from_numpy(np.array(x))
+        x = x - median_filter(x, 5)
+        x = x.squeeze()
+
         x = np.array(x)
-        # print("before  ", x.shape)
         x = self.transform(x)
-        # print(self.transform)
-        # print(x.shape)
         y = self.label_list[idx]
 
         return x, torch.tensor(y).float()

@@ -62,7 +62,6 @@ class SobelConv2d(nn.Module):
         if requires_grad:
             self.sobel_factor = nn.Parameter(torch.ones(size=(out_channels, 1, 1, 1), dtype=torch.float32),
                                              requires_grad=True)
-            print(self.sobel_factor)
         else:
             self.sobel_factor = nn.Parameter(torch.ones(size=(out_channels, 1, 1, 1), dtype=torch.float32),
                                              requires_grad=False)
