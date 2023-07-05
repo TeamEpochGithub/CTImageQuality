@@ -1,5 +1,3 @@
-import torch.cuda
-
 from k_fold import k_fold_patients_train
 from models.efficient_swin import Efficientnet_Swin
 import wandb

@@ -27,7 +27,7 @@ def k_fold_patients_train(configs, wandb_single_experiment=False):
     # test_dataset = CT_Dataset([imgs_list[x] for x in patient_indices], [label_list[x] for x in patient_indices],
     #                           split="test", config=configs)
 
-    data_config = {"imgs": imgs_list, "labels": label_list, "split_mode": "patient_out", "dataset": configs["dataset"], "patients_out": [2], "vornoi_parts": 8}
+    data_config = {"imgs": imgs_list, "labels": label_list, "split_mode": "patients_out", "dataset": configs["dataset"], "patients_out": [2], "vornoi_parts": 6}
     scores_dict = train_local(configs, data_config, wandb_single_experiment, final_train=False)
     best_scores.append(scores_dict['best_score'])
     best_score_epochs.append(scores_dict['best_score_epoch'])

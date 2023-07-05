@@ -302,6 +302,9 @@ class VornoiDataset(torch.utils.data.Dataset):
 
         operations = [torchvision.transforms.ToPILImage()]
 
+        if self.config['RandomCrop']:
+            operations.append(torchvision.transforms.RandomCrop((64, 64)))
+
         if self.config['RandomHorizontalFlip']:
             operations.append(torchvision.transforms.RandomHorizontalFlip(p=0.3))
 
