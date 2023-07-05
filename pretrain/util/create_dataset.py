@@ -3,11 +3,19 @@ import random
 import json
 import albumentations as A
 from glob import glob
+
+import numpy as np
 from albumentations.pytorch import ToTensorV2
 import os.path as osp
+
+from torchvision.transforms import ToTensor
+
 from pretrain.pretrain_dataloaders.classic_dataset import CT_Dataset
 import pretrain
 from torch.utils.data import random_split
+from torch.utils.data import DataLoader, Dataset
+from torchvision.transforms.functional import crop
+import torch
 
 
 def create_datasets(parameters):
@@ -46,11 +54,15 @@ def create_datasets(parameters):
     train_lists = []
     test_lists = []
     if folder == "AAPM":
+        aapm_train = []
+        aapm_label = []
         for i in range(len(train_FD_path)):
-            train_lists.append((train_QD_path[i], train_FD_path[i]))
+            aapm_train.append(train_QD_path[i])
+            aapm_label.append(train_FD_path[i])
         for i in range(len(test_FD_path)):
             test_lists.append((test_QD_path[i], test_FD_path[i]))
-        train_dataset = CT_Dataset(train_lists, transform=train_transform, norm=False, mode=folder)
+        # train_dataset = CT_Dataset(train_lists, transform=train_transform, norm=False, mode=folder)
+        train_dataset = CustomAAPMDataset(aapm_train, aapm_label)
         test_dataset = CT_Dataset(test_lists, transform=test_transform, norm=False, mode=folder)
     else:
         random.shuffle(lists)
@@ -59,3 +71,37 @@ def create_datasets(parameters):
         train_dataset = CT_Dataset(train_lists, transform=train_transform, norm=True, mode=folder)
         test_dataset = CT_Dataset(test_lists, transform=test_transform, norm=True, mode=folder)
     return train_dataset, test_dataset
+
+
+class CustomAAPMDataset(Dataset):
+    def __init__(self, images, target_images, crop_size=(64, 64)):
+        self.images = images
+        self.target_images = target_images
+        self.crop_size = crop_size
+        self.to_tensor = ToTensor()
+
+    def __getitem__(self, index):
+        image = torch.from_numpy(np.load(self.images[index]))
+        target_image = torch.from_numpy(np.load(self.target_images[index]))
+
+        # print(self.images[index])
+        # print(np.load(self.images[index]))
+        # print(type(image))
+        # Generate random top-left coordinates for cropping
+        image_height, image_width = image.shape
+        top = torch.randint(0, image_height - self.crop_size[0] + 1, (1,))
+        left = torch.randint(0, image_width - self.crop_size[1] + 1, (1,))
+
+        # Apply the same random crop to both the image and target_image
+        cropped_image = crop(image, top.item(), left.item(), self.crop_size[0], self.crop_size[1])
+        cropped_target_image = crop(target_image, top.item(), left.item(), self.crop_size[0], self.crop_size[1])
+
+        # # Convert the cropped images to tensors
+        # image_tensor = self.to_tensor(cropped_image)
+        # target_image_tensor = self.to_tensor(cropped_target_image)
+        cropped_image, cropped_target_image = cropped_image.unsqueeze(0), cropped_target_image.unsqueeze(0)
+        assert cropped_image.shape == cropped_target_image.shape
+        return cropped_image, cropped_target_image
+
+    def __len__(self):
+        return len(self.images)

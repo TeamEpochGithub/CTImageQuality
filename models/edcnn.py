@@ -62,6 +62,7 @@ class SobelConv2d(nn.Module):
         if requires_grad:
             self.sobel_factor = nn.Parameter(torch.ones(size=(out_channels, 1, 1, 1), dtype=torch.float32),
                                              requires_grad=True)
+            print(self.sobel_factor)
         else:
             self.sobel_factor = nn.Parameter(torch.ones(size=(out_channels, 1, 1, 1), dtype=torch.float32),
                                              requires_grad=False)
@@ -118,6 +119,7 @@ class EDCNN(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         # self.fc1 = nn.Linear(in_ch, nodes)  # You can adjust the number of nodes here
         # self.fc2 = nn.Linear(nodes, 1)  # Final output node
+
 
     def forward(self, x):
         out_0 = self.conv_sobel(x)
