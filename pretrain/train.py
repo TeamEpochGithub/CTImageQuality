@@ -60,7 +60,7 @@ def validate(parameters, model, test_dataset):
     if not osp.exists(save_path):
         os.mkdir(save_path)
 
-    img_path = osp.join(pretrain_path, 'output_imgs')
+    img_path = osp.join(pretrain_path, 'output_imgs', parameters["model_name"])
     if not os.path.exists(img_path):
         os.mkdir(img_path)
 
@@ -245,22 +245,22 @@ if __name__ == '__main__':
         "split_ratio": 0.8,
         "batch_size": 512,
         "warmup_epochs": 20,
-        "epochs": 1600,
+        "epochs": 10000,
         "nepoch": 200,
         "lr": 1e-3,
         "min_lr": 1e-6,
         "weight_decay": 0.03,
-        "model_name": "ED_CNN",
+        "model_name": "DNCNN",
         # ResNet34, Resnet34_Swin, Resnet34_Swinv2, Efficientnet_Swin, Efficientnet_Swinv2
         "img_size": 512,
         "use_avg": True,
         "use_mix": True,
     }
-    torch.cuda.set_device(0)
+    torch.cuda.set_device(1)
 
     # denoise for keys of denoise_models, while classification for keys of classify_models (recomand to use AAPM for denoise task)
     model_names = [
-        "ED_CNN"]  # ["ED_CNN", "DNCNN", "Efficientnet_B1", "Efficientnet_B2", "Efficientnet_B3", "Efficientnet_B4", "Efficientnet_B5", "Efficientnet_B6",
+        "Efficientnet_B1"]  # ["ED_CNN", "DNCNN", "Efficientnet_B1", "Efficientnet_B2", "Efficientnet_B3", "Efficientnet_B4", "Efficientnet_B5", "Efficientnet_B6",
 
     # Resnet34_Swin, ResNet34, Efficientnet_Swin
     for m in model_names:
