@@ -11,6 +11,7 @@ from models.resnet import load_resnet_model
 from models.edcnn import EDCNN
 from models.unet import UNet
 from models.ensemble import Ensemble
+from models.edcnn_test import EDCNN_TEST
 
 def get_model(configs):
     models = {'Resnet18': load_resnet_model('18', configs['pretrain']),
@@ -31,7 +32,7 @@ def get_model(configs):
               'ED_CNN': EDCNN(), 'EDCNN2': EDCNN2(),
               'Densenet121': load_densenet_model('121', configs['pretrain']),
               'DNCNN': DnCNN(), 'UNET': UNet(), 'Ensemble': Ensemble(),
-              'EDCNN3': EDCNN3()}
+              'EDCNN3': EDCNN3(), 'edcnn_test': EDCNN_TEST()}
 
     model = models[configs['model']]
     return model

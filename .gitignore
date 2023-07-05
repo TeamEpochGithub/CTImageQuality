@@ -183,3 +183,4 @@ cython_debug/
 /self_test.py
 /pretrain/denoise_imgs_EDCNN/
 /pretrain/create_dataset/
+/classify_test.py

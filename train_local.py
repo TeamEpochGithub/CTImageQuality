@@ -113,7 +113,7 @@ def train_local(configs, data_config, wandb_single_experiment=False, final_train
     for epoch in range(configs['epochs']):
         losses = 0
         model.train()
-        print(max(1, int((1 - epoch / configs["epochs"]) * 12)))
+        # print(max(1, int((1 - epoch / configs["epochs"]) * 12)))
         train_dataset, test_dataset, train_loader = create_train_loader(configs, data_config, vornoi_parts=max(1, int((1 - epoch / configs["epochs"]) * 12)))
         t = tqdm(enumerate(train_loader), total=len(train_loader), desc="epoch " + f"{epoch:04d}", colour='cyan')
 
@@ -173,7 +173,7 @@ if __name__ == '__main__':
     configs = {
         'pretrain': 'denoise',  # None, denoise
         'img_size': 512,
-        'model': 'DNCNN',
+        'model': 'ED_CNN',
         'epochs': 150,
         'batch_size': 16,
         'weight_decay': 3e-4,
@@ -182,15 +182,16 @@ if __name__ == '__main__':
         'ShufflePatches': False,
         'RandomHorizontalFlip': True,
         'RandomVerticalFlip': False,
-        'RandomRotation': True,
+        'RandomRotation': False,
         'ZoomIn': False,
         'ZoomOut': False,
         'Crop': False,
+        'RandomCrop': True,
         'ReverseCrop': False,
-        'use_mix': True,
-        'use_avg': True,
+        'use_mix': False,
+        'use_avg': False,
         'XShift': False,
-        'YShift': True,
+        'YShift': False,
         'RandomShear': False,
         'max_shear': 20,  # value in degrees
         'max_shift': 0.05,

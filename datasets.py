@@ -129,7 +129,7 @@ class CT_Dataset(torch.utils.data.Dataset):
         self.split = split
         self.image_size = config['img_size']
         self.config = config
-        self.crop_size = 160
+        self.crop_size = 64
 
         if self.split == 'train':
 
@@ -137,6 +137,9 @@ class CT_Dataset(torch.utils.data.Dataset):
 
             if self.config['Crop']:
                 operations.append(torchvision.transforms.CenterCrop(self.crop_size))
+
+            if self.config['RandomCrop']:
+                operations.append(torchvision.transforms.RandomCrop(self.crop_size))
 
             if self.config['ReverseCrop']:
                 operations.append(torchvision.transforms.Lambda(lambda img: reverse_crop_image(img, self.crop_size)))
