@@ -113,8 +113,8 @@ def train_local(configs, data_config, wandb_single_experiment=False, final_train
     for epoch in range(configs['epochs']):
         losses = 0
         model.train()
-        print(max(1, int((1 - epoch / configs["epochs"]) * 12)))
-        train_dataset, test_dataset, train_loader = create_train_loader(configs, data_config, vornoi_parts=max(1, int((1 - epoch / configs["epochs"]) * 12)))
+        print(max(1, int((1 - epoch / configs["epochs"]) * 9)))
+        train_dataset, test_dataset, train_loader = create_train_loader(configs, data_config, vornoi_parts=max(3, int((1 - epoch / configs["epochs"]) * 9)))
         t = tqdm(enumerate(train_loader), total=len(train_loader), desc="epoch " + f"{epoch:04d}", colour='cyan')
 
         for i, (image, target) in t:
@@ -131,7 +131,11 @@ def train_local(configs, data_config, wandb_single_experiment=False, final_train
             # print("pears", pearson_loss)
             # print("spear", spearman_loss)
             # print("kendall", kendalltau_loss)
-            if epoch < 0.5 * configs["epochs"]:
+            # if epoch < 0.1 * configs["epochs"] or 0.2 * configs["epochs"] < epoch < 0.3 * configs["epochs"] or 0.5 * configs["epochs"] < epoch < 0.6 * configs["epochs"] or 0.7 * configs["epochs"] < epoch < 0.8 * configs["epochs"]:
+            #     loss = mse_loss
+            # else:
+            #     loss = pearson_loss + spearman_loss + kendalltau_loss
+            if epoch < 0.1 * configs["epochs"]:
                 loss = mse_loss
             else:
                 loss = pearson_loss + spearman_loss + kendalltau_loss
@@ -173,12 +177,12 @@ if __name__ == '__main__':
     configs = {
         'pretrain': 'denoise',  # None, denoise
         'img_size': 512,
-        'model': 'DNCNN',
-        'epochs': 150,
+        'model': 'ED_CNN',
+        'epochs': 100,
         'batch_size': 16,
-        'weight_decay': 3e-4,
-        'lr': 1e-3,
-        'min_lr': 6e-6,
+        'weight_decay': 1e-3,
+        'lr': 3e-4,
+        'min_lr': 1e-6,
         'ShufflePatches': False,
         'RandomHorizontalFlip': True,
         'RandomVerticalFlip': False,
@@ -201,10 +205,10 @@ if __name__ == '__main__':
 
     imgs_list, label_list = create_datalists(type="original")  # type mosaic
 
-    mode = "split9010"  # "split9010", "final", "patients_out"
+    mode = "patients_out"  # "split9010", "final", "patients_out"
     dataset = "vornoi"  # "vornoi", "original"
 
-    torch.cuda.set_device(0)
+    torch.cuda.set_device(1)
 
     print(f'Model:   {configs["model"]}')
     print(f'GPU:   {torch.cuda.current_device()}')
