@@ -84,9 +84,9 @@ class SobelConv2d(nn.Module):
 
 
 class EDCNN_Swin(nn.Module):
-    def __init__(self, in_ch=1, out_ch=32, sobel_ch=32, layers_num=[2, 2, 2, 2]):
+    def __init__(self, in_ch=1, out_ch=32, sobel_ch=32, layers_num=[2, 2, 6, 2], type="regress"):
         super(EDCNN_Swin, self).__init__()
-
+        self.type = type
         self.conv_sobel = SobelConv2d(in_ch, sobel_ch, kernel_size=3, stride=1, padding=1, bias=True)
 
         self.conv_p1 = nn.Conv2d(in_ch + sobel_ch, out_ch, kernel_size=1, stride=1, padding=0)
@@ -126,7 +126,10 @@ class EDCNN_Swin(nn.Module):
                                   window_size=8, relative_pos_embedding=True)
 
         self.avg_pool = nn.AdaptiveAvgPool2d((1, 1))
-        self.lin = nn.Linear(out_ch, 21)
+        if self.type=="regress":
+            self.lin = nn.Linear(out_ch, 1)
+        else:
+            self.lin = nn.Linear(out_ch, 21)
 
         self.relu = nn.LeakyReLU()
 
@@ -141,7 +144,7 @@ class EDCNN_Swin(nn.Module):
         out_2 = self.relu(self.conv_p2(out_1))
         out_2 = self.relu(self.conv_f2(out_2))
         out_2 = torch.cat((out_0, out_2), dim=-3)
-        # out_2 = self.stage1(out_2)
+        out_2 = self.stage1(out_2)
 
         out_3 = self.relu(self.conv_p3(out_2))
         out_3 = self.relu(self.conv_f3(out_3))
@@ -150,7 +153,7 @@ class EDCNN_Swin(nn.Module):
         out_4 = self.relu(self.conv_p4(out_3))
         out_4 = self.relu(self.conv_f4(out_4))
         out_4 = torch.cat((out_0, out_4), dim=-3)
-        # out_4 = self.stage2(out_4)
+        out_4 = self.stage2(out_4)
 
         out_5 = self.relu(self.conv_p5(out_4))
         out_5 = self.relu(self.conv_f5(out_5))
@@ -159,7 +162,7 @@ class EDCNN_Swin(nn.Module):
         out_6 = self.relu(self.conv_p6(out_5))
         out_6 = self.relu(self.conv_f6(out_6))
         out_6 = torch.cat((out_0, out_6), dim=-3)
-        # out_6 = self.stage3(out_6)
+        out_6 = self.stage3(out_6)
 
         out_7 = self.relu(self.conv_p7(out_6))
         out_7 = self.relu(self.conv_f7(out_7))
@@ -172,9 +175,9 @@ class EDCNN_Swin(nn.Module):
 
         out = self.avg_pool(out)
         out = out.reshape(out.shape[0], -1)
-        out = self.lin(out)
+        if self.type=="regress":
+            out = 4*F.sigmoid(self.lin(out))
+        else:
+            out = self.lin(out)
         return out
 
-# ins = torch.randn(1, 1, 512, 512).cuda()
-# model = EDCNN_Swin().cuda()
-# print(model(ins).shape)

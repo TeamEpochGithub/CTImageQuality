@@ -114,7 +114,7 @@ class EDCNN(nn.Module):
         self.conv_f8 = nn.Conv2d(out_ch, out_ch, kernel_size=3, stride=1, padding=1)
 
         self.avg_pool = nn.AdaptiveAvgPool2d((1, 1))
-        self.lin = nn.Linear(out_ch, 21)
+        self.lin = nn.Linear(in_ch + sobel_ch + out_ch, 1)
 
         self.relu = nn.LeakyReLU()
 
@@ -152,11 +152,12 @@ class EDCNN(nn.Module):
 
         out_8 = self.relu(self.conv_p8(out_7))
         out_8 = self.conv_f8(out_8)
-        out = self.relu(x + out_8)
-        out = self.avg_pool(out)
+        out1 = self.relu(x + out_8)
+
+        out = self.avg_pool(out_7)
         out = out.reshape(out.shape[0], -1)
         out = self.lin(out)
-        return out
+        return out, out1
 
 
 class Adapter(nn.Module):

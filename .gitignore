@@ -186,3 +186,5 @@ cython_debug/
 /analysis/image_analysis.py
 /analysis/img_generate.py
 /classify_test.py
+/edcnn_test.py
+/self_test_v1.py

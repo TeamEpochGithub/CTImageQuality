@@ -115,10 +115,6 @@ class EDCNN(nn.Module):
 
         self.relu = nn.LeakyReLU()
 
-        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        # self.fc1 = nn.Linear(in_ch, nodes)  # You can adjust the number of nodes here
-        # self.fc2 = nn.Linear(nodes, 1)  # Final output node
-
     def forward(self, x):
         out_0 = self.conv_sobel(x)
         out_0 = torch.cat((x, out_0), dim=-3)
@@ -155,10 +151,5 @@ class EDCNN(nn.Module):
         out_8 = self.conv_f8(out_8)
 
         out = self.relu(x + out_8)
-        out = self.avgpool(out)
-        out = torch.flatten(out, 1)  # Flatten the output
-        # out = self.relu(self.fc1(out))
-        # out = self.fc2(out)
-        out = torch.sigmoid(out) * 4
 
         return out
