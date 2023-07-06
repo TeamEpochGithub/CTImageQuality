@@ -136,4 +136,4 @@ def mosaic(new_dataset_size, shuffle_prob=0.5, mix_prob=0.5):
 
 
 if __name__ == '__main__':
-    mosaic(new_dataset_size=10000)
+    mosaic(new_dataset_size=5000)
